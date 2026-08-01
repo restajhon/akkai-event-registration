@@ -86,3 +86,23 @@ Nama resmi yang digunakan:
 - `SUPABASE_SECRET_KEY`
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` dan `SUPABASE_SERVICE_ROLE_KEY` pada backlog adalah nama legacy dan tidak digunakan untuk implementasi baru.
+
+## Admin Authentication
+
+Admin dan operator menggunakan Supabase Auth email/password melalui cookie-based SSR.
+Session refresh dilakukan oleh `src/proxy.ts` dan `src/lib/supabase/proxy.ts` pada
+request `/admin/:path*`. Proxy hanya me-refresh session dan tidak menjadi lapisan
+authorization utama.
+
+Identity diverifikasi dengan `supabase.auth.getClaims()`. Setelah itu profile dibaca
+melalui normal SSR client dari `src/lib/supabase/server.ts`, sehingga policy RLS
+`profiles_select_self` tetap menjadi defense-in-depth. Profile harus aktif dan memiliki
+role `ADMIN` atau `OPERATOR`.
+
+Authorization halaman dan Server Action dilakukan oleh helper server-only di
+`src/lib/auth/server.ts`. Session invalid atau profile yang tidak valid dibersihkan
+melalui Route Handler internal menggunakan `signOut({ scope: "local" })`.
+
+`src/lib/supabase/admin.ts` adalah secret client server-only menggunakan
+`SUPABASE_SECRET_KEY`. Client tersebut disiapkan untuk privileged operation berikutnya
+dan tidak digunakan untuk login, `getClaims()`, atau profile lookup authentication.
