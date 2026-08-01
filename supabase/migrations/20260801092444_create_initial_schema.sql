@@ -1,7 +1,7 @@
 -- Initial AKKAI 2026 database schema.
 -- All operational writes are expected to go through a privileged server client.
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
 CREATE TYPE public.user_role AS ENUM (
   'ADMIN',
@@ -111,7 +111,7 @@ CREATE TABLE public.profiles (
 );
 
 CREATE TABLE public.sessions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(),
   code text NOT NULL UNIQUE,
   name text NOT NULL,
   event_date date NOT NULL,
@@ -128,7 +128,7 @@ CREATE TABLE public.sessions (
 );
 
 CREATE TABLE public.participants (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(),
   registration_id text NOT NULL UNIQUE,
   full_name text NOT NULL,
   member_number text NOT NULL,
@@ -138,7 +138,7 @@ CREATE TABLE public.participants (
   participant_category text NOT NULL,
   registration_status public.registration_status NOT NULL DEFAULT 'REGISTERED',
   email_status public.email_status NOT NULL DEFAULT 'PENDING',
-  qr_token text NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
+  qr_token text NOT NULL UNIQUE DEFAULT encode(extensions.gen_random_bytes(32), 'hex'),
   last_email_sent_at timestamptz,
   privacy_consent_at timestamptz NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -177,7 +177,7 @@ FOR EACH ROW
 EXECUTE FUNCTION public.set_registration_id();
 
 CREATE TABLE public.scanner_stations (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(),
   station_name text NOT NULL,
   session_id uuid NOT NULL REFERENCES public.sessions(id) ON DELETE RESTRICT,
   status public.station_status NOT NULL DEFAULT 'WAITING_PAIRING',
@@ -202,7 +202,7 @@ CREATE TABLE public.scanner_stations (
 );
 
 CREATE TABLE public.attendance (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(),
   participant_id uuid NOT NULL REFERENCES public.participants(id) ON DELETE RESTRICT,
   session_id uuid NOT NULL REFERENCES public.sessions(id) ON DELETE RESTRICT,
   check_in_time timestamptz NOT NULL DEFAULT now(),
@@ -216,7 +216,7 @@ CREATE TABLE public.attendance (
 );
 
 CREATE TABLE public.scan_events (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(),
   station_id uuid NOT NULL REFERENCES public.scanner_stations(id) ON DELETE RESTRICT,
   participant_id uuid REFERENCES public.participants(id) ON DELETE RESTRICT,
   session_id uuid NOT NULL REFERENCES public.sessions(id) ON DELETE RESTRICT,
@@ -230,7 +230,7 @@ CREATE TABLE public.scan_events (
 );
 
 CREATE TABLE public.email_logs (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(),
   participant_id uuid NOT NULL REFERENCES public.participants(id) ON DELETE RESTRICT,
   email_type public.email_type NOT NULL,
   recipient_email text NOT NULL,
