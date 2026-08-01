@@ -1,0 +1,3 @@
+-- Seed data intentionally empty.
+-- Initial AKKAI sessions are created idempotently by the initial migration.
+-- Development dummy data will be added through a separate future task.

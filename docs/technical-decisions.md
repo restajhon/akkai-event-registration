@@ -1,3 +1,88 @@
-# Database Schema
+# Technical Decisions
 
-Dokumen ini akan berisi struktur database Sistem Registrasi dan Kehadiran Digital AKKAI 2026.
+## Stack
+
+- Framework: Next.js App Router
+- Language: TypeScript
+- Database: Supabase PostgreSQL
+- Authentication: Supabase Auth
+- Realtime: Supabase Realtime
+- Email: Resend
+- Hosting: Vercel
+- QR scanner: ZXing Browser atau library browser stabil yang telah diuji
+- Display timezone: Asia/Jakarta / WIB
+
+## Initial Database Migration
+
+Migration `20260801092444_create_initial_schema.sql` membuat enum, tujuh tabel operasional, `pgcrypto`, sequence Registration ID, secure QR token, updated-at trigger, foreign key, index, seed session, dan RLS.
+
+### Registration ID
+
+Database menggunakan sequence concurrency-safe dengan format:
+
+```text
+AKKAI26-000001
+```
+
+Nilai maksimum adalah `AKKAI26-999999`. Sequence boleh memiliki gaps ketika transaksi gagal. Setelah batas tercapai, insert gagal dengan pesan yang jelas. Format ini khusus untuk satu event AKKAI 2026; platform multi-event memerlukan keputusan dan migration baru.
+
+### QR Token
+
+QR token dibuat menggunakan minimal 32 random bytes dari `pgcrypto`, disimpan plaintext dalam kolom `participants.qr_token`, dan diberi unique constraint.
+
+Token:
+
+- tidak mengandung data pribadi
+- tidak disimpan di `scan_events.metadata`
+- tidak dimasukkan ke export
+- tidak dicatat pada application log
+- hanya dibaca oleh server menggunakan privileged Supabase client
+
+### Akses Database
+
+Public registration dan check-in tidak mengakses Supabase secara langsung dari browser. Next.js server route atau server action menggunakan:
+
+```text
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+SUPABASE_SECRET_KEY
+```
+
+`SUPABASE_SECRET_KEY` hanya boleh digunakan di server. Browser tidak boleh menerima secret key.
+
+Server wajib memvalidasi input, authentication, role, session, participant status, dan duplicate attendance.
+
+Initial migration tidak membuat `SECURITY DEFINER RPC`.
+
+### Uniqueness
+
+- Email unique global secara case-insensitive menggunakan unique index `lower(email)`.
+- Member number unique global secara case-insensitive menggunakan unique index `upper(member_number)`.
+- Peserta `CANCELLED` tidak dibuatkan record baru. Workflow admin berikutnya dapat mengaktifkan kembali record lama secara terkontrol.
+- Attendance unique berdasarkan `(participant_id, session_id)`.
+
+### Deletion And Audit History
+
+Foreign key operasional menggunakan `ON DELETE RESTRICT`. Tidak ada cascade delete untuk mempertahankan histori attendance, scan event, station, dan email log.
+
+Auth user yang memiliki profile operasional tidak dihapus. Akun dinonaktifkan melalui `profiles.is_active = false`.
+
+### RLS
+
+RLS diaktifkan pada seluruh tabel sejak initial migration.
+
+- Authenticated user hanya dapat membaca profile aktif miliknya sendiri.
+- Authenticated user dapat membaca metadata session.
+- Tidak ada anon policy untuk data participant atau data operasional.
+- Tidak ada direct client write policy untuk data operasional.
+- Privileged server client menjadi jalur akses aplikasi dan RLS tetap menjadi defense-in-depth.
+
+### Environment Variable Naming
+
+Nama resmi yang digunakan:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SECRET_KEY`
+
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` dan `SUPABASE_SERVICE_ROLE_KEY` pada backlog adalah nama legacy dan tidak digunakan untuk implementasi baru.
