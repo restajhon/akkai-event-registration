@@ -125,6 +125,8 @@ export function RegistrationForm() {
   }
 
   if (state.status === "submitted") {
+    const emailWasSent = state.emailDelivery === "sent";
+
     return (
       <section
         aria-live="polite"
@@ -143,10 +145,17 @@ export function RegistrationForm() {
             Nomor Registrasi: {state.registrationId}
           </p>
         ) : null}
-        <p className={styles.closedDescription}>
-          Informasi selanjutnya akan disampaikan oleh panitia melalui alamat
-          email yang didaftarkan.
-        </p>
+        {emailWasSent ? (
+          <p className={styles.closedDescription}>
+            Email konfirmasi dan kode QR telah dikirim ke alamat email yang
+            didaftarkan.
+          </p>
+        ) : (
+          <p className={styles.closedDescription}>
+            Email konfirmasi belum dapat dikirim. Simpan nomor registrasi Anda
+            dan hubungi panitia apabila email belum diterima.
+          </p>
+        )}
       </section>
     );
   }

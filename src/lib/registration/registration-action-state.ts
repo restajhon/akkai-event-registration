@@ -8,14 +8,18 @@ export type RegistrationActionStatus =
   | "general-error"
   | "submitted";
 
+export type EmailDeliveryStatus = "sent" | "failed" | "not-attempted";
+
 export type RegistrationActionState = {
   status: RegistrationActionStatus;
   fieldErrors: RegistrationFieldErrors;
   generalError?: string;
   registrationId?: string;
+  emailDelivery?: EmailDeliveryStatus;
 };
 
 export const initialRegistrationState: RegistrationActionState = {
   status: "idle",
   fieldErrors: {},
+  emailDelivery: "not-attempted",
 };
