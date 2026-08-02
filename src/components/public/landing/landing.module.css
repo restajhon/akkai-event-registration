@@ -1,0 +1,14 @@
+.root {
+  color-scheme: light;
+  background: #fffdf9;
+  color: #263246;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.displayFont {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.bodyFont {
+  font-family: Arial, Helvetica, sans-serif;
+}
