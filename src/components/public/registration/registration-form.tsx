@@ -1,51 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useActionState, useState, type FormEvent } from "react";
 
+import {
+  submitRegistration,
+} from "@/app/register/actions";
 import { AKKAI_EVENT, IMPORTANT_INFO } from "@/lib/akkai-event";
+import {
+  initialRegistrationState,
+  type RegistrationActionState,
+} from "@/lib/registration/registration-action-state";
+import {
+  getRegistrationFieldErrors,
+  MEMBER_CATEGORIES,
+  PARTICIPANT_CATEGORIES,
+  registrationSchema,
+  type RegistrationField,
+  type RegistrationFieldErrors,
+  type RegistrationFormValues,
+} from "@/lib/validation/registration";
 
 import styles from "./registration.module.css";
 
-type FormData = {
-  full_name: string;
-  email: string;
-  phone_number: string;
-  institution: string;
-  participant_category: string;
-  member_number: string;
-  privacy_consent: boolean;
-};
-
-type FieldName = keyof FormData;
-type FieldErrors = Partial<Record<FieldName, string>>;
-type SubmissionState =
-  | "idle"
-  | "loading"
-  | "general-error"
-  | "duplicate-email"
-  | "duplicate-member-number";
-
-const PARTICIPANT_CATEGORIES = [
-  "Anggota AKKAI",
-  "Pengurus AKKAI",
-  "Narasumber",
-  "Tamu Undangan",
-  "Panitia",
-  "Lainnya",
-] as const;
-
-const MEMBER_CATEGORIES = new Set(["Anggota AKKAI", "Pengurus AKKAI"]);
-
-const submissionMessages: Partial<Record<SubmissionState, string>> = {
-  "general-error":
-    "Terjadi kendala saat memproses pendaftaran. Silakan coba kembali.",
-  "duplicate-email":
-    "Email ini sudah terdaftar. Silakan cek email konfirmasi sebelumnya atau hubungi panitia.",
-  "duplicate-member-number":
-    "Nomor anggota ini sudah terdaftar. Silakan cek kembali data Anda atau hubungi panitia.",
-};
-
-const initialFormData: FormData = {
+const initialFormData: RegistrationFormValues = {
   full_name: "",
   email: "",
   phone_number: "",
@@ -56,47 +33,7 @@ const initialFormData: FormData = {
 };
 
 function requiresMemberNumber(category: string) {
-  return MEMBER_CATEGORIES.has(category);
-}
-
-function validateForm(data: FormData): FieldErrors {
-  const nextErrors: FieldErrors = {};
-
-  if (!data.full_name.trim()) {
-    nextErrors.full_name = "Nama lengkap wajib diisi.";
-  }
-
-  if (!data.email.trim()) {
-    nextErrors.email = "Email wajib diisi.";
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
-    nextErrors.email = "Format email belum sesuai.";
-  }
-
-  if (!data.phone_number.trim()) {
-    nextErrors.phone_number = "Nomor WhatsApp wajib diisi.";
-  }
-
-  if (!data.institution.trim()) {
-    nextErrors.institution = "Institusi atau cabang wajib diisi.";
-  }
-
-  if (!data.participant_category) {
-    nextErrors.participant_category = "Pilih kategori peserta.";
-  }
-
-  if (
-    requiresMemberNumber(data.participant_category) &&
-    !data.member_number.trim()
-  ) {
-    nextErrors.member_number = "Nomor anggota wajib diisi.";
-  }
-
-  if (!data.privacy_consent) {
-    nextErrors.privacy_consent =
-      "Persetujuan penggunaan data wajib diberikan.";
-  }
-
-  return nextErrors;
+  return MEMBER_CATEGORIES.has(category as (typeof PARTICIPANT_CATEGORIES)[number]);
 }
 
 function ErrorMessage({ id, message }: { id: string; message: string }) {
@@ -111,29 +48,31 @@ function ErrorMessage({ id, message }: { id: string; message: string }) {
 }
 
 export function RegistrationForm() {
-  const [formData, setFormData] = useState<FormData>(initialFormData);
-  const [errors, setErrors] = useState<FieldErrors>({});
-  const [submissionState, setSubmissionState] =
-    useState<SubmissionState>("idle");
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [state, formAction, isPending] = useActionState<
+    RegistrationActionState,
+    FormData
+  >(
+    submitRegistration,
+    initialRegistrationState,
+  );
+  const [formData, setFormData] = useState<RegistrationFormValues>(
+    initialFormData,
+  );
+  const [clientErrors, setClientErrors] =
+    useState<RegistrationFieldErrors>({});
 
-  const isLoading = submissionState === "loading";
-  const submissionMessage = submissionMessages[submissionState];
   const memberNumberVisible = requiresMemberNumber(
     formData.participant_category,
   );
+  const errors: RegistrationFieldErrors = {
+    ...state.fieldErrors,
+    ...clientErrors,
+  };
+  const submissionMessage = state.generalError;
 
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  function updateField(field: FieldName, value: string | boolean) {
+  function updateField(field: RegistrationField, value: string | boolean) {
     setFormData((current) => {
-      const nextData = { ...current, [field]: value } as FormData;
+      const nextData = { ...current, [field]: value } as RegistrationFormValues;
 
       if (
         field === "participant_category" &&
@@ -145,7 +84,7 @@ export function RegistrationForm() {
       return nextData;
     });
 
-    setErrors((current) => {
+    setClientErrors((current) => {
       const nextErrors = { ...current };
       delete nextErrors[field];
 
@@ -158,43 +97,67 @@ export function RegistrationForm() {
 
       return nextErrors;
     });
-
-    setSubmissionState((current) =>
-      current === "loading" ? current : "idle",
-    );
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (isLoading) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (isPending) {
+      event.preventDefault();
       return;
     }
 
-    const nextErrors = validateForm(formData);
-    setErrors(nextErrors);
-    setSubmissionState("idle");
+    const result = registrationSchema.safeParse(formData);
+    const nextErrors = result.success
+      ? {}
+      : getRegistrationFieldErrors(result.error);
+
+    setClientErrors(nextErrors);
 
     const firstInvalidField = Object.keys(nextErrors)[0] as
-      | FieldName
+      | RegistrationField
       | undefined;
 
     if (firstInvalidField) {
+      event.preventDefault();
       window.requestAnimationFrame(() => {
         document.getElementById(firstInvalidField)?.focus();
       });
-      return;
     }
+  }
 
-    setSubmissionState("loading");
-    timeoutRef.current = setTimeout(() => {
-      setSubmissionState("idle");
-      timeoutRef.current = null;
-    }, 1200);
+  if (state.status === "submitted") {
+    return (
+      <section
+        aria-live="polite"
+        className={styles.closedCard}
+        role="status"
+      >
+        <p className={styles.eyebrow}>Registrasi Peserta</p>
+        <h1 className={`${styles.displayFont} ${styles.closedTitle}`}>
+          Pendaftaran Berhasil
+        </h1>
+        <p className={styles.closedDescription}>
+          Data registrasi Anda telah berhasil disimpan.
+        </p>
+        {state.registrationId ? (
+          <p className={styles.eventValue}>
+            Nomor Registrasi: {state.registrationId}
+          </p>
+        ) : null}
+        <p className={styles.closedDescription}>
+          Informasi selanjutnya akan disampaikan oleh panitia melalui alamat
+          email yang didaftarkan.
+        </p>
+      </section>
+    );
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={handleSubmit}>
+    <form
+      action={formAction}
+      className={styles.form}
+      noValidate
+      onSubmit={handleSubmit}
+    >
       {submissionMessage ? (
         <div className={styles.generalAlert} role="alert">
           <span aria-hidden="true" className={styles.alertMark}>
@@ -254,7 +217,7 @@ export function RegistrationForm() {
             <ErrorMessage id="email-error" message={errors.email} />
           ) : (
             <p className={styles.helper} id="email-helper">
-              Kode QR dan konfirmasi registrasi akan dikirim ke email ini.
+              Gunakan alamat email aktif untuk komunikasi panitia.
             </p>
           )}
         </div>
@@ -404,6 +367,7 @@ export function RegistrationForm() {
               }
               required
               type="checkbox"
+              value="true"
             />
             <label className={styles.consentLabel} htmlFor="privacy_consent">
               Dengan mengirimkan formulir ini, saya menyetujui penggunaan data
@@ -437,8 +401,12 @@ export function RegistrationForm() {
       </aside>
 
       <div className={styles.submitArea}>
-        <button className={styles.submitButton} disabled={isLoading} type="submit">
-          {isLoading ? "Mengirim Pendaftaran..." : "Kirim Pendaftaran"}
+        <button
+          className={styles.submitButton}
+          disabled={isPending}
+          type="submit"
+        >
+          {isPending ? "Mengirim Pendaftaran..." : "Kirim Pendaftaran"}
         </button>
         <p className={styles.submitHint}>
           Pastikan seluruh data sudah benar sebelum mengirimkan formulir.

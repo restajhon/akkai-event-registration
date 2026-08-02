@@ -61,8 +61,7 @@ function RegistrationContent() {
         </h1>
         <div aria-hidden="true" className={styles.goldDivider} />
         <p className={styles.introDescription}>
-          Lengkapi data berikut dengan benar. Kode QR registrasi akan dikirimkan
-          ke alamat email yang didaftarkan.
+          Lengkapi data berikut dengan benar untuk menyimpan pendaftaran Anda.
         </p>
         <EventInformation />
       </section>
