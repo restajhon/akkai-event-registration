@@ -3,12 +3,17 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { PairForm, type PairingStation } from "./pair-form";
+import {
+  PairForm,
+  type MyScannerStation,
+  type PairingStation,
+} from "./pair-form";
 
 type SessionRow = {
   id: string;
   code: string;
   name: string;
+  event_date: string;
   status: "OPEN" | "CLOSED";
 };
 
@@ -19,6 +24,13 @@ type StationRow = {
   status: "WAITING_PAIRING" | "PAIRED" | "ACTIVE" | "DISCONNECTED" | "CLOSED";
   pairing_expires_at: string;
   paired_operator_id: string | null;
+};
+
+type OwnedStationRow = {
+  id: string;
+  station_name: string;
+  session_id: string;
+  status: "PAIRED" | "ACTIVE";
 };
 
 function PairingError() {
@@ -43,14 +55,13 @@ function PairingError() {
   );
 }
 
-async function loadPairingStations() {
+async function loadPairingStations(profileId: string) {
   try {
     const adminSupabase = createAdminClient();
-    const [sessionsResult, stationsResult] = await Promise.all([
+    const [sessionsResult, stationsResult, ownedStationsResult] = await Promise.all([
       adminSupabase
         .from("sessions")
-        .select("id, code, name, status")
-        .eq("status", "OPEN")
+        .select("id, code, name, event_date, status")
         .order("event_date", { ascending: true })
         .order("code", { ascending: true }),
       adminSupabase
@@ -62,17 +73,29 @@ async function loadPairingStations() {
         .is("paired_operator_id", null)
         .gt("pairing_expires_at", new Date().toISOString())
         .order("pairing_expires_at", { ascending: true }),
+      adminSupabase
+        .from("scanner_stations")
+        .select("id, station_name, session_id, status")
+        .eq("paired_operator_id", profileId)
+        .in("status", ["PAIRED", "ACTIVE"])
+        .is("closed_at", null)
+        .order("station_name", { ascending: true }),
     ]);
 
-    if (sessionsResult.error || stationsResult.error) {
+    if (
+      sessionsResult.error ||
+      stationsResult.error ||
+      ownedStationsResult.error
+    ) {
       return null;
     }
 
     const sessions = (sessionsResult.data ?? []) as SessionRow[];
     const stations = (stationsResult.data ?? []) as StationRow[];
+    const ownedStations = (ownedStationsResult.data ?? []) as OwnedStationRow[];
     const sessionById = new Map(sessions.map((session) => [session.id, session]));
     const pairingStations: PairingStation[] = stations
-      .filter((station) => sessionById.has(station.session_id))
+      .filter((station) => sessionById.get(station.session_id)?.status === "OPEN")
       .map((station) => {
         const session = sessionById.get(station.session_id);
 
@@ -85,7 +108,23 @@ async function loadPairingStations() {
         };
       });
 
-    return pairingStations;
+    const myStations: MyScannerStation[] = ownedStations.map((station) => {
+      const session = sessionById.get(station.session_id);
+
+      return {
+        id: station.id,
+        stationName: station.station_name,
+        status: station.status,
+        sessionCode: session?.code ?? "-",
+        sessionName: session?.name ?? "Session tidak ditemukan",
+        sessionStatus: session?.status ?? "CLOSED",
+      };
+    });
+
+    return {
+      pairingStations,
+      myStations,
+    };
   } catch {
     return null;
   }
@@ -93,16 +132,17 @@ async function loadPairingStations() {
 
 export default async function ScannerPairPage() {
   const profile = await requireRole(["ADMIN", "OPERATOR"]);
-  const pairingStations = await loadPairingStations();
+  const pairingData = await loadPairingStations(profile.id);
 
-  if (!pairingStations) {
+  if (!pairingData) {
     return <PairingError />;
   }
 
   return (
     <PairForm
       isAdmin={profile.role === "ADMIN"}
-      stations={pairingStations}
+      myStations={pairingData.myStations}
+      stations={pairingData.pairingStations}
     />
   );
 }

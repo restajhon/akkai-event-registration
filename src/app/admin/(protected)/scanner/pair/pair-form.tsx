@@ -16,8 +16,18 @@ export type PairingStation = {
   pairingExpiresAt: string;
 };
 
+export type MyScannerStation = {
+  id: string;
+  stationName: string;
+  status: "PAIRED" | "ACTIVE";
+  sessionCode: string;
+  sessionName: string;
+  sessionStatus: "OPEN" | "CLOSED";
+};
+
 type PairFormProps = {
   isAdmin: boolean;
+  myStations: MyScannerStation[];
   stations: PairingStation[];
 };
 
@@ -35,7 +45,7 @@ function formatDateTime(dateValue: string) {
   }).format(date);
 }
 
-export function PairForm({ isAdmin, stations }: PairFormProps) {
+export function PairForm({ isAdmin, myStations, stations }: PairFormProps) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(
     pairStation,
@@ -86,6 +96,46 @@ export function PairForm({ isAdmin, stations }: PairFormProps) {
             ) : null}
           </div>
         </div>
+
+        <section className="mt-8 rounded-lg border border-zinc-200 p-4 sm:p-5">
+          <h2 className="text-lg font-semibold text-zinc-900">Scanner Saya</h2>
+          <p className="mt-1 text-sm text-zinc-600">
+            Station yang sedang terpasang pada operator ini.
+          </p>
+
+          {myStations.length === 0 ? (
+            <p className="mt-5 rounded-lg border border-dashed border-zinc-300 p-5 text-center text-sm text-zinc-600">
+              Belum ada station yang terpasang pada akun ini.
+            </p>
+          ) : (
+            <div className="mt-5 grid gap-3">
+              {myStations.map((station) => (
+                <article
+                  className="flex flex-col gap-4 rounded-lg bg-zinc-50 p-4 sm:flex-row sm:items-center sm:justify-between"
+                  key={station.id}
+                >
+                  <div>
+                    <h3 className="font-semibold text-zinc-900">
+                      {station.stationName}
+                    </h3>
+                    <p className="mt-1 text-sm text-zinc-600">
+                      {station.sessionCode} - {station.sessionName}
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      Station {station.status} · Session {station.sessionStatus}
+                    </p>
+                  </div>
+                  <Link
+                    className="inline-flex justify-center rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700"
+                    href={`/admin/scanner/${station.id}`}
+                  >
+                    Buka Scanner
+                  </Link>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
 
         {state.message ? (
           <p
