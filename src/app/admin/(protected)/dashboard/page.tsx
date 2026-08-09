@@ -513,6 +513,12 @@ function getQuickActions(role: UserRole) {
       visible: true,
     },
     {
+      href: "/admin/participants",
+      label: "Peserta",
+      description: "Kelola peserta dan kirim ulang QR registrasi.",
+      visible: role === "ADMIN",
+    },
+    {
       href: "/admin/display/setup",
       label: "Stations",
       description: "Siapkan dan kelola scanner station.",
