@@ -649,8 +649,8 @@ export default async function AdminDashboardPage() {
               />
             ))}
             <QuickActionCard
-              description="Tampilan check-in realtime untuk layar panitia."
-              disabled
+              description="Tampilkan check-in peserta secara realtime."
+              href="/admin/display"
               label="Live Display"
             />
           </div>

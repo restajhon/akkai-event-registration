@@ -288,12 +288,15 @@ export function LiveDisplayClient({
             },
           },
         });
+        console.info("Live Display realtime channel created");
 
         channel
           .on("broadcast", { event: "participant-check-in" }, (message) => {
             if (!isMounted) {
               return;
             }
+
+            console.info("Live Display broadcast received");
 
             const candidate = {
               status: message.payload?.status,
@@ -325,6 +328,7 @@ export function LiveDisplayClient({
             }
 
             if (status === "SUBSCRIBED") {
+              console.info("Live Display realtime subscribed");
               setConnectionStatus("preparing");
             } else if (status === "CHANNEL_ERROR") {
               setConnectionStatus("error");
@@ -345,6 +349,7 @@ export function LiveDisplayClient({
       isMounted = false;
 
       if (channel) {
+        console.info("Live Display realtime channel removed");
         void supabase.removeChannel(channel);
       }
     };
