@@ -295,7 +295,14 @@ export function LiveDisplayClient({
               return;
             }
 
-            const parsedEvent = liveDisplayEventSchema.safeParse(message.payload);
+            const candidate = {
+              status: message.payload?.status,
+              participant: message.payload?.participant,
+              session: message.payload?.session,
+              station: message.payload?.station,
+              eventAt: message.payload?.eventAt,
+            };
+            const parsedEvent = liveDisplayEventSchema.safeParse(candidate);
 
             if (parsedEvent.success) {
               setDisplayEvent(parsedEvent.data);
