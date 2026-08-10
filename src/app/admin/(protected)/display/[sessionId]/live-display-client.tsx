@@ -151,8 +151,9 @@ function eventEyebrow(status: LiveDisplayEvent["status"]) {
 function eventStatus(status: LiveDisplayEvent["status"]) {
   switch (status) {
     case "success":
-    case "success-with-warning":
       return "Check-in berhasil";
+    case "success-with-warning":
+      return "Check-in seminar berhasil";
     case "already-checked-in":
       return "Peserta telah tercatat pada sesi ini";
   }
@@ -220,7 +221,7 @@ function EventDetails({ event }: { event: LiveDisplayEvent }) {
             </p>
             {event.status === "success-with-warning" ? (
               <p className="mt-2 text-sm font-medium text-[#80631e]">
-                Perlu verifikasi panitia
+                Peserta belum tercatat pada sesi kedatangan (ARRIVAL).
               </p>
             ) : null}
           </div>

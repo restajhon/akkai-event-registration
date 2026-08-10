@@ -180,7 +180,7 @@ function parseScanResponse(payload: unknown, httpStatus: number): SafeScanResult
         status,
         ...participantResult,
         message:
-          "Check-in berhasil, tetapi peserta belum tercatat pada sesi kedatangan.",
+          "Peserta berhasil check-in untuk sesi seminar, tetapi belum tercatat pada sesi kedatangan (ARRIVAL).",
       };
     }
 
@@ -565,6 +565,15 @@ export function ScannerClient({
               Hentikan Kamera
             </button>
           </div>
+
+          <div className="mt-4 border-t border-[#eee6d8] pt-4">
+            <Link
+              className="text-sm font-medium text-[#6d531e] underline decoration-[#b99a5a] underline-offset-4 hover:text-[#142842]"
+              href={`/admin/scanner/${stationId}/manual`}
+            >
+              QR bermasalah? Check-in Manual
+            </Link>
+          </div>
         </section>
 
         {scanResult ? (
@@ -628,7 +637,7 @@ function ScanResultView({ result }: { result: SafeScanResult }) {
       result.status === "success"
         ? "Check-in Berhasil"
         : result.status === "success-with-warning"
-          ? "Check-in Berhasil dengan Catatan"
+          ? "CHECK-IN SEMINAR BERHASIL DENGAN CATATAN"
           : "Sudah Check-in";
 
     return (
