@@ -59,17 +59,18 @@ const safeMessages: Record<
   Exclude<SafeScanResult["status"], "success" | "success-with-warning" | "already-checked-in">,
   string
 > = {
-  "invalid-qr": "QR tidak valid.",
-  "cancelled-participant": "Pendaftaran peserta telah dibatalkan.",
+  "invalid-qr": "Kode QR tidak dikenali sebagai peserta AKKAI 2026.",
+  "cancelled-participant":
+    "Pendaftaran peserta telah dibatalkan. Silakan arahkan peserta ke Help Desk.",
   "invalid-station": "Station tidak dapat digunakan.",
-  "station-not-paired": "Station belum siap digunakan.",
-  "station-owned-by-other-operator": "Station terikat ke operator lain.",
-  "closed-session": "Session check-in belum dibuka atau telah ditutup.",
+  "station-not-paired": "Scanner belum siap digunakan. Hubungkan kembali melalui pairing.",
+  "station-owned-by-other-operator": "Station ini terikat ke operator lain.",
+  "closed-session": "Check-in belum dapat dilakukan pada sesi ini.",
   forbidden: "Anda tidak memiliki akses untuk melakukan scan.",
   unauthorized: "Authentication diperlukan.",
   "internal-error": "Terjadi kendala saat memproses scan. Silakan coba kembali.",
-  "invalid-request": "Request scan tidak valid.",
-  "network-error": "Koneksi gagal. Periksa koneksi internet lalu coba kembali.",
+  "invalid-request": "Data scan belum sesuai. Silakan coba kembali.",
+  "network-error": "Periksa koneksi internet lalu coba kembali.",
 };
 
 const knownErrorStatuses = new Set<
@@ -257,7 +258,6 @@ function cameraErrorMessage(error: unknown) {
 export function ScannerClient({
   stationId,
   stationName,
-  sessionCode,
   sessionName,
 }: ScannerClientProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -463,122 +463,143 @@ export function ScannerClient({
   const isCameraActive = cameraStatus === "starting" || cameraStatus === "ready";
   const cameraStatusLabel = {
     off: "Kamera belum aktif",
-    starting: "Memulai kamera...",
-    ready: "Siap memindai QR",
-    processing: "Memproses...",
+    starting: "Menyiapkan kamera...",
+    ready: "Kamera aktif",
+    processing: "Memproses QR...",
   }[cameraStatus];
 
   return (
-    <main className="min-h-screen bg-[#f7f3ea] px-4 py-6 sm:px-8 sm:py-8">
-      <section className="mx-auto max-w-3xl">
-        <header className="flex flex-col gap-5 rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-5 shadow-sm sm:p-7">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold tracking-[0.2em] text-[#9a7526]">
-                AKKAI 2026
-              </p>
-              <h1 className="mt-2 text-2xl font-semibold text-[#142842]">
-                Scanner Check-in
-              </h1>
-            </div>
-            <div className="flex flex-wrap gap-4 text-sm font-medium">
-              <Link
-                className="text-[#344d68] underline underline-offset-4 hover:text-[#142842]"
-                href="/admin/scanner/pair"
-              >
-                Pairing Scanner
-              </Link>
-              <Link
-                className="text-[#344d68] underline underline-offset-4 hover:text-[#142842]"
-                href="/admin/dashboard"
-              >
-                Dashboard
-              </Link>
-            </div>
+    <main className="min-h-screen bg-[#f7f3ea] px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:px-8 sm:py-6">
+      <section className="mx-auto max-w-2xl">
+        <header className="flex items-start justify-between gap-4 border-b border-[#dfd3bf] pb-4">
+          <div className="min-w-0">
+            <p className="text-xs font-bold tracking-[0.2em] text-[#9a7526]">AKKAI 2026</p>
+            <h1 className="mt-1 text-xl font-semibold leading-tight tracking-tight text-[#142842] sm:text-2xl">
+              {sessionName}
+            </h1>
           </div>
-
-          <dl className="grid gap-3 rounded-xl bg-[#f1eadc] p-4 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
-                Station
-              </dt>
-              <dd className="mt-1 font-semibold text-[#142842]">{stationName}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
-                Session
-              </dt>
-              <dd className="mt-1 font-semibold text-[#142842]">
-                {sessionCode} - {sessionName}
-              </dd>
-            </div>
-          </dl>
+          <nav aria-label="Navigasi scanner" className="flex shrink-0 items-center gap-3 pt-1 text-sm font-semibold">
+            <Link
+              className="rounded-md px-1 py-1 text-[#344d68] underline decoration-[#b99a5a] underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+              href="/admin/dashboard"
+            >
+              <span className="sm:hidden">Kembali</span>
+              <span className="hidden sm:inline">Kembali ke Dashboard</span>
+            </Link>
+            <Link
+              className="hidden rounded-md px-1 py-1 text-[#344d68] underline decoration-[#b99a5a] underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:inline"
+              href="/admin/scanner/pair"
+            >
+              Pairing
+            </Link>
+          </nav>
         </header>
 
-        <section className="mt-5 rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-4 shadow-sm sm:p-6">
-          <div className="relative overflow-hidden rounded-xl bg-[#142842] aspect-[4/3] sm:aspect-video">
-            <video
-              aria-label="Preview kamera scanner"
-              autoPlay
-              className={`h-full w-full object-cover ${isCameraActive ? "block" : "hidden"}`}
-              muted
-              playsInline
-              ref={videoRef}
-            />
-            {isCameraActive ? (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <div className="h-2/3 w-2/3 rounded-2xl border-2 border-[#d9ad45] shadow-[0_0_0_999px_rgba(20,40,66,0.28)]" />
-              </div>
-            ) : (
-              <div className="flex h-full items-center justify-center px-6 text-center text-sm text-[#f7f3ea]">
-                Kamera dihentikan. Tekan Mulai Kamera untuk memulai scan.
-              </div>
-            )}
+        <section className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] px-4 py-3" aria-label="Konteks scanner">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#897657]">Station</p>
+            <p className="mt-0.5 truncate text-sm font-semibold text-[#142842]">{stationName}</p>
           </div>
-
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-lg bg-[#f1eadc] px-4 py-3 text-sm">
-            <span className="font-medium text-[#344d68]">Status kamera</span>
-            <span className="font-semibold text-[#142842]">{cameraStatusLabel}</span>
-          </div>
-
-          {cameraError ? (
-            <p className="mt-4 rounded-lg border border-[#ead3cc] bg-[#fff5f2] p-4 text-sm text-[#9b3d31]" role="alert">
-              {cameraError}
-            </p>
-          ) : null}
-
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <button
-              className="rounded-lg bg-[#142842] px-4 py-3 text-sm font-semibold text-white hover:bg-[#203d5d] disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={cameraStatus === "starting" || cameraStatus === "ready" || cameraStatus === "processing" || hasResult}
-              onClick={() => void startCamera()}
-              type="button"
-            >
-              {cameraStatus === "starting" ? "Memulai Kamera..." : "Mulai Kamera"}
-            </button>
-            <button
-              className="rounded-lg border border-[#b99a5a] px-4 py-3 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8] disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={cameraStatus === "off" || cameraStatus === "processing"}
-              onClick={stopCamera}
-              type="button"
-            >
-              Hentikan Kamera
-            </button>
-          </div>
-
-          <div className="mt-4 border-t border-[#eee6d8] pt-4">
-            <Link
-              className="text-sm font-medium text-[#6d531e] underline decoration-[#b99a5a] underline-offset-4 hover:text-[#142842]"
-              href={`/admin/scanner/${stationId}/manual`}
-            >
-              QR bermasalah? Check-in Manual
-            </Link>
-          </div>
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#edf7ef] px-3 py-1.5 text-xs font-bold text-[#267044]">
+            <span aria-hidden="true">●</span>
+            Sesi Aktif
+          </span>
         </section>
 
-        {scanResult ? (
+        {!hasResult ? (
+          <section className="mt-4 rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-3 shadow-[0_6px_20px_rgba(20,40,66,0.06)] sm:p-5" aria-label="Kamera scanner">
+            <div className={`relative overflow-hidden rounded-xl bg-[#142842] ${isCameraActive ? "aspect-[3/4] sm:aspect-video" : "aspect-[4/3] sm:aspect-video"}`}>
+              <video
+                aria-label="Preview kamera scanner"
+                autoPlay
+                className={`h-full w-full object-cover ${isCameraActive ? "block" : "hidden"}`}
+                muted
+                playsInline
+                ref={videoRef}
+              />
+              {isCameraActive ? (
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
+                  <div className="h-2/3 w-2/3 rounded-2xl border-2 border-[#d9ad45] shadow-[0_0_0_999px_rgba(20,40,66,0.3)]" />
+                  <p className="absolute bottom-5 text-center text-sm font-medium text-white drop-shadow-sm">
+                    Arahkan QR peserta ke dalam bingkai
+                  </p>
+                </div>
+              ) : cameraStatus === "processing" ? (
+                <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-[#f7f3ea]" role="status" aria-live="polite">
+                  <span aria-hidden="true" className="flex h-14 w-14 items-center justify-center rounded-full border border-[#d9ad45] text-2xl text-[#d9ad45]">...</span>
+                  <div>
+                    <p className="text-base font-semibold">Memproses QR...</p>
+                    <p className="mt-1 text-sm text-[#d8d5cc]">Tunggu sebentar.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-[#f7f3ea]">
+                  <span aria-hidden="true" className="relative flex h-14 w-16 items-center justify-center rounded-xl border-2 border-[#d9ad45]">
+                    <span className="h-7 w-7 rounded-full border-2 border-[#d9ad45]" />
+                    <span className="absolute -right-1 top-2 h-3 w-3 rounded-full bg-[#d9ad45]" />
+                  </span>
+                  <div>
+                    <p className="text-base font-semibold">Kamera belum aktif</p>
+                    <p className="mt-1 max-w-xs text-sm leading-5 text-[#d8d5cc]">
+                      Aktifkan kamera untuk mulai memindai QR peserta.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 flex items-center gap-2 px-1 text-sm" role="status" aria-live="polite">
+              <span aria-hidden="true" className={cameraStatus === "ready" ? "text-[#267044]" : cameraStatus === "processing" ? "text-[#9a7526]" : "text-[#897657]"}>●</span>
+              <span className="font-medium text-[#344d68]">{cameraStatusLabel}</span>
+            </div>
+
+            {cameraError ? (
+              <p className="mt-3 rounded-lg border border-[#ead3cc] bg-[#fff5f2] p-3 text-sm leading-5 text-[#9b3d31]" role="alert">
+                {cameraError}
+              </p>
+            ) : null}
+
+            <div className="mt-4">
+              {cameraStatus === "ready" ? (
+                <button
+                  className="min-h-12 w-full rounded-lg border border-[#b99a5a] px-4 py-3 text-sm font-semibold text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={stopCamera}
+                  type="button"
+                >
+                  Hentikan Kamera
+                </button>
+              ) : cameraStatus === "processing" ? (
+                <button
+                  className="min-h-12 w-full rounded-lg bg-[#d9d1c2] px-4 py-3 text-sm font-semibold text-[#6b6a66]"
+                  disabled
+                  type="button"
+                >
+                  Memproses QR...
+                </button>
+              ) : (
+                <button
+                  className="min-h-12 w-full rounded-lg bg-[#142842] px-4 py-3 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={cameraStatus === "starting"}
+                  onClick={() => void startCamera()}
+                  type="button"
+                >
+                  {cameraStatus === "starting" ? "Menyiapkan Kamera..." : "Mulai Kamera"}
+                </button>
+              )}
+            </div>
+
+            <div className="mt-3 border-t border-[#eee6d8] pt-3 text-center">
+              <Link
+                className="inline-flex min-h-11 items-center rounded-md px-2 py-2 text-sm font-medium text-[#6d531e] underline decoration-[#b99a5a] underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                href={`/admin/scanner/${stationId}/manual`}
+              >
+                QR bermasalah? Check-in Manual
+              </Link>
+            </div>
+          </section>
+        ) : (
           <section
-            className={`mt-5 rounded-2xl border p-5 shadow-sm sm:p-6 ${
+            className={`mt-4 rounded-2xl border p-5 shadow-[0_6px_20px_rgba(20,40,66,0.06)] sm:p-6 ${
               scanResult.status === "success"
                 ? "border-[#b9dec8] bg-[#f3fbf5]"
                 : scanResult.status === "success-with-warning"
@@ -587,23 +608,26 @@ export function ScannerClient({
                     ? "border-[#b8cce2] bg-[#f3f8fd]"
                     : "border-[#ead3cc] bg-[#fff5f2]"
             }`}
-            role="status"
+            role={scanResult.status === "network-error" || scanResult.status === "internal-error" ? "alert" : "status"}
+            aria-live="polite"
           >
             <ScanResultView result={scanResult} />
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <button
-                className="rounded-lg bg-[#142842] px-4 py-3 text-sm font-semibold text-white hover:bg-[#203d5d] disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-12 w-full rounded-lg bg-[#142842] px-4 py-3 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={cameraStatus === "processing"}
                 onClick={handleNextScan}
                 type="button"
               >
-                Scan Berikutnya
+                {scanResult.status === "success" || scanResult.status === "success-with-warning" || scanResult.status === "already-checked-in"
+                  ? "Scan Peserta Berikutnya"
+                  : "Coba Lagi"}
               </button>
               {scanResult.status === "invalid-station" ||
               scanResult.status === "station-not-paired" ||
               scanResult.status === "station-owned-by-other-operator" ? (
                 <Link
-                  className="rounded-lg border border-[#b99a5a] px-4 py-3 text-center text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-[#b99a5a] px-4 py-3 text-center text-sm font-semibold text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:w-auto"
                   href="/admin/scanner/pair"
                 >
                   Kembali ke Pairing
@@ -613,7 +637,7 @@ export function ScannerClient({
               scanResult.status === "forbidden" ||
               scanResult.status === "unauthorized" ? (
                 <Link
-                  className="rounded-lg border border-[#b99a5a] px-4 py-3 text-center text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-[#b99a5a] px-4 py-3 text-center text-sm font-semibold text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:w-auto"
                   href="/admin/dashboard"
                 >
                   Kembali ke Dashboard
@@ -621,7 +645,7 @@ export function ScannerClient({
               ) : null}
             </div>
           </section>
-        ) : null}
+        )}
       </section>
     </main>
   );
@@ -635,20 +659,27 @@ function ScanResultView({ result }: { result: SafeScanResult }) {
   ) {
     const heading =
       result.status === "success"
-        ? "Check-in Berhasil"
+        ? "CHECK-IN BERHASIL"
         : result.status === "success-with-warning"
           ? "CHECK-IN SEMINAR BERHASIL DENGAN CATATAN"
-          : "Sudah Check-in";
+          : "SUDAH CHECK-IN";
+    const stateMark = result.status === "success" ? "✓" : result.status === "success-with-warning" ? "!" : "i";
+    const stateMarkClass = result.status === "success" ? "bg-[#267044] text-white" : result.status === "success-with-warning" ? "bg-[#b78a2b] text-white" : "bg-[#47739b] text-white";
 
     return (
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#9a7526]">
-          {heading}
-        </p>
-        <h2 className="mt-2 text-2xl font-bold text-[#142842]">
+        <div className="flex items-center gap-3">
+          <span aria-hidden="true" className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl font-bold ${stateMarkClass}`}>
+            {stateMark}
+          </span>
+          <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#6d531e]">
+            {heading}
+          </p>
+        </div>
+        <h2 className="mt-5 break-words text-3xl font-bold leading-tight tracking-tight text-[#142842] sm:text-4xl">
           {result.participant.fullName}
         </h2>
-        <dl className="mt-5 grid gap-3 text-sm text-[#344d68] sm:grid-cols-2">
+        <dl className="mt-6 grid gap-4 text-sm text-[#344d68] sm:grid-cols-2">
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
               Registration ID
@@ -691,7 +722,7 @@ function ScanResultView({ result }: { result: SafeScanResult }) {
           </div>
         </dl>
         {result.message ? (
-          <p className="mt-5 rounded-lg bg-white/70 p-3 text-sm font-medium text-[#6d531e]">
+          <p className="mt-5 rounded-lg bg-white/70 p-4 text-sm font-medium leading-5 text-[#6d531e]">
             {result.message}
           </p>
         ) : null}
@@ -701,14 +732,39 @@ function ScanResultView({ result }: { result: SafeScanResult }) {
 
   return (
     <div>
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#9b3d31]">
-        {result.status === "invalid-qr"
-          ? "QR Tidak Valid"
-          : result.status === "cancelled-participant"
-            ? "Pendaftaran Dibatalkan"
-            : "Scan Tidak Dapat Diproses"}
-      </p>
-      <p className="mt-3 text-base font-medium text-[#5f302b]">{result.message}</p>
+      <div className="flex items-center gap-3">
+        <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#b94b3e] text-xl font-bold text-white">
+          !
+        </span>
+        <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#9b3d31]">
+          {errorTitle(result.status)}
+        </p>
+      </div>
+      <p className="mt-5 text-base font-medium leading-6 text-[#5f302b]">{result.message}</p>
     </div>
   );
+}
+
+function errorTitle(status: Exclude<SafeScanResult["status"], "success" | "success-with-warning" | "already-checked-in">) {
+  switch (status) {
+    case "invalid-qr":
+      return "QR tidak valid";
+    case "cancelled-participant":
+      return "Check-in tidak dapat dilakukan";
+    case "closed-session":
+      return "Sesi belum aktif";
+    case "network-error":
+      return "Koneksi bermasalah";
+    case "internal-error":
+      return "Scan belum tersimpan";
+    case "invalid-station":
+    case "station-not-paired":
+    case "station-owned-by-other-operator":
+      return "Scanner tidak siap";
+    case "forbidden":
+    case "unauthorized":
+      return "Akses scanner diperlukan";
+    case "invalid-request":
+      return "Data scan tidak sesuai";
+  }
 }
