@@ -6,6 +6,7 @@ import { useActionState, useState } from "react";
 import {
   initialManualCheckInState,
   initialManualSearchState,
+  type ManualCheckInErrorCode,
   type ManualCheckInState,
   type ManualParticipant,
 } from "@/lib/manual-check-in/manual-check-in-state";
@@ -34,7 +35,6 @@ export function ManualCheckInClient(props: ManualCheckInClientProps) {
 function ManualCheckInFlow({
   stationId,
   stationName,
-  sessionCode,
   sessionName,
   onNextParticipant,
 }: ManualCheckInClientProps & { onNextParticipant: () => void }) {
@@ -57,43 +57,41 @@ function ManualCheckInFlow({
     checkInState.status === "cancelled-participant";
 
   return (
-    <main className="min-h-screen bg-[#f7f3ea] px-4 py-6 sm:px-8 sm:py-8">
-      <section className="mx-auto max-w-3xl">
-        <header className="rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-5 shadow-sm sm:p-7">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold tracking-[0.2em] text-[#9a7526]">
-                AKKAI 2026
-              </p>
-              <h1 className="mt-2 text-2xl font-semibold text-[#142842]">
-                Check-in Manual
-              </h1>
-            </div>
-            <Link
-              className="text-sm font-semibold text-[#344d68] underline underline-offset-4 hover:text-[#142842]"
-              href={`/admin/scanner/${stationId}`}
-            >
-              Kembali ke Scanner
-            </Link>
+    <main className="min-h-screen bg-[#f7f3ea] px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:px-8 sm:py-6">
+      <section className="mx-auto max-w-2xl">
+        <header className="flex items-start justify-between gap-4 border-b border-[#dfd3bf] pb-4">
+          <div className="min-w-0">
+            <p className="text-xs font-bold tracking-[0.2em] text-[#9a7526]">AKKAI 2026</p>
+            <h1 className="mt-1 text-xl font-semibold leading-tight tracking-tight text-[#142842] sm:text-2xl">
+              Check-in Manual
+            </h1>
           </div>
-
-          <dl className="mt-6 grid gap-3 rounded-xl bg-[#f1eadc] p-4 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
-                Station
-              </dt>
-              <dd className="mt-1 font-semibold text-[#142842]">{stationName}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
-                Sesi
-              </dt>
-              <dd className="mt-1 font-semibold text-[#142842]">
-                {sessionCode} — {sessionName}
-              </dd>
-            </div>
-          </dl>
+          <Link
+            className="inline-flex min-h-11 shrink-0 items-center rounded-md px-1 py-1 text-sm font-semibold text-[#344d68] underline decoration-[#b99a5a] underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+            href={`/admin/scanner/${stationId}`}
+          >
+            Kembali ke Scanner
+          </Link>
         </header>
+
+        <section className="mt-4 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] px-4 py-3" aria-label="Konteks check-in manual">
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#897657]">Sesi</p>
+              <p className="mt-0.5 text-sm font-semibold text-[#142842]">{sessionName}</p>
+            </div>
+            <div className="flex items-center justify-between gap-3 sm:justify-end">
+              <div className="min-w-0 sm:text-right">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#897657]">Station</p>
+                <p className="mt-0.5 truncate text-sm font-semibold text-[#142842]">{stationName}</p>
+              </div>
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#edf7ef] px-3 py-1.5 text-xs font-bold text-[#267044]">
+                <span aria-hidden="true">●</span>
+                Sesi Aktif
+              </span>
+            </div>
+          </div>
+        </section>
 
         {isCompleted ? (
           <ManualResult
@@ -101,140 +99,133 @@ function ManualCheckInFlow({
             state={checkInState}
             stationId={stationId}
           />
+        ) : selectedParticipant ? (
+          <SelectedParticipant
+            checkInAction={checkInAction}
+            checkInPending={checkInPending}
+            checkInState={checkInState}
+            onChangeParticipant={() => setSelectedParticipant(null)}
+            participant={selectedParticipant}
+            sessionName={sessionName}
+            stationId={stationId}
+          />
         ) : (
-          <>
-            <section className="mt-5 rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-4 shadow-sm sm:p-6">
-              <form
-                action={searchAction}
-                className="grid gap-3 sm:grid-cols-[1fr_auto]"
-                onSubmit={() => setSelectedParticipant(null)}
-              >
-                <input name="stationId" type="hidden" value={stationId} />
-                <label className="grid gap-2 text-sm font-medium text-[#344d68] sm:col-span-2">
-                  Cari peserta
-                  <input
-                    autoComplete="off"
-                    className="rounded-lg border border-[#cfc5b4] bg-white px-3 py-3 text-base text-[#142842] outline-none placeholder:text-[#9a9489] focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac]"
-                    maxLength={100}
-                    name="query"
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Cari nama atau Registration ID"
-                    type="search"
-                    value={query}
-                  />
-                </label>
-                <button
-                  className="rounded-lg bg-[#142842] px-5 py-3 text-sm font-semibold text-white hover:bg-[#203d5d] disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={searchPending}
-                  type="submit"
-                >
-                  {searchPending ? "Mencari..." : "Cari Peserta"}
-                </button>
-              </form>
-
-              {searchState.message ? (
-                <p
-                  className={`mt-4 rounded-lg p-3 text-sm ${
-                    searchState.status === "error"
-                      ? "border border-[#ead3cc] bg-[#fff5f2] text-[#9b3d31]"
-                      : "bg-[#f1eadc] text-[#5b6c7c]"
-                  }`}
-                  role={searchState.status === "error" ? "alert" : "status"}
-                >
-                  {searchState.message}
-                </p>
-              ) : null}
-            </section>
-
-            {searchState.status === "success" ? (
-              <section className="mt-5 grid gap-3" aria-live="polite">
-                {searchState.results.length === 0 ? (
-                  <p className="rounded-2xl border border-dashed border-[#cfc5b4] bg-[#fffdf8] p-6 text-center text-sm text-[#5b6c7c]">
-                    Belum ada peserta yang sesuai dengan pencarian.
-                  </p>
-                ) : (
-                  searchState.results.map((participant) => (
-                    <ParticipantResultCard
-                      key={participant.registrationId}
-                      onSelect={setSelectedParticipant}
-                      participant={participant}
-                    />
-                  ))
-                )}
-              </section>
-            ) : null}
-
-            {selectedParticipant ? (
-              <section className="mt-5 rounded-2xl border border-[#b8cce2] bg-[#f3f8fd] p-5 shadow-sm sm:p-6">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#344d68]">
-                  Konfirmasi
-                </p>
-                <h2 className="mt-2 text-xl font-semibold text-[#142842]">
-                  Check-in peserta ini secara manual?
-                </h2>
-                <dl className="mt-5 grid gap-3 text-sm text-[#5b6c7c]">
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
-                      Peserta
-                    </dt>
-                    <dd className="mt-1 font-semibold text-[#142842]">
-                      {selectedParticipant.fullName}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
-                      Registration ID
-                    </dt>
-                    <dd className="mt-1 font-semibold text-[#142842]">
-                      {selectedParticipant.registrationId}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
-                      Sesi
-                    </dt>
-                    <dd className="mt-1 font-semibold text-[#142842]">{sessionName}</dd>
-                  </div>
-                </dl>
-
-                {checkInState.status === "error" && checkInState.message ? (
-                  <p
-                    className="mt-5 rounded-lg border border-[#ead3cc] bg-[#fff5f2] p-3 text-sm text-[#9b3d31]"
-                    role="alert"
-                  >
-                    {checkInState.message}
-                  </p>
-                ) : null}
-
-                <form action={checkInAction} className="mt-6 flex flex-col gap-3 sm:flex-row">
-                  <input name="stationId" type="hidden" value={stationId} />
-                  <input
-                    name="registrationId"
-                    type="hidden"
-                    value={selectedParticipant.registrationId}
-                  />
-                  <button
-                    className="order-1 rounded-lg bg-[#142842] px-4 py-3 text-sm font-semibold text-white hover:bg-[#203d5d] disabled:cursor-not-allowed disabled:opacity-50 sm:order-2"
-                    disabled={checkInPending}
-                    type="submit"
-                  >
-                    {checkInPending ? "Memproses..." : "Check-in Manual"}
-                  </button>
-                  <button
-                    className="order-2 rounded-lg border border-[#b99a5a] px-4 py-3 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8] disabled:cursor-not-allowed disabled:opacity-50 sm:order-1"
-                    disabled={checkInPending}
-                    onClick={() => setSelectedParticipant(null)}
-                    type="button"
-                  >
-                    Batal
-                  </button>
-                </form>
-              </section>
-            ) : null}
-          </>
+          <SearchWorkspace
+            onQueryChange={setQuery}
+            onSelectParticipant={setSelectedParticipant}
+            query={query}
+            searchAction={searchAction}
+            searchPending={searchPending}
+            searchState={searchState}
+            stationId={stationId}
+          />
         )}
       </section>
     </main>
+  );
+}
+
+function SearchWorkspace({
+  onQueryChange,
+  onSelectParticipant,
+  query,
+  searchAction,
+  searchPending,
+  searchState,
+  stationId,
+}: {
+  onQueryChange: (value: string) => void;
+  onSelectParticipant: (participant: ManualParticipant) => void;
+  query: string;
+  searchAction: (payload: FormData) => void;
+  searchPending: boolean;
+  searchState: {
+    status: "idle" | "success" | "error";
+    message: string | null;
+    results: ManualParticipant[];
+  };
+  stationId: string;
+}) {
+  const hasSearched = searchState.status === "success";
+  const hasResults = hasSearched && searchState.results.length > 0;
+
+  return (
+    <>
+      <section className="mt-4 rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-4 shadow-[0_6px_20px_rgba(20,40,66,0.06)] sm:p-5">
+        <form
+          action={searchAction}
+          aria-busy={searchPending}
+          className="grid gap-3"
+        >
+          <input name="stationId" type="hidden" value={stationId} />
+          <label className="grid gap-2 text-sm font-semibold text-[#344d68]" htmlFor="manual-participant-search">
+            Cari Peserta
+            <input
+              autoComplete="off"
+              className="min-h-12 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-base text-[#142842] outline-none placeholder:text-[#9a9489] focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac]"
+              id="manual-participant-search"
+              maxLength={100}
+              name="query"
+              onChange={(event) => onQueryChange(event.target.value)}
+              placeholder="Nama, Registration ID, atau nomor anggota"
+              type="search"
+              value={query}
+            />
+          </label>
+          <button
+            className="min-h-12 w-full rounded-lg bg-[#142842] px-5 py-3 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={searchPending}
+            type="submit"
+          >
+            {searchPending ? "Mencari peserta..." : "Cari Peserta"}
+          </button>
+        </form>
+
+        <div className="mt-3 min-h-5" aria-live="polite" role="status">
+          {searchPending ? (
+            <p className="text-sm font-medium text-[#5b6c7c]">Mencari peserta...</p>
+          ) : searchState.status === "error" && searchState.message ? (
+            <p className="rounded-lg border border-[#ead3cc] bg-[#fff5f2] p-3 text-sm leading-5 text-[#9b3d31]" role="alert">
+              {searchState.message}
+            </p>
+          ) : null}
+        </div>
+      </section>
+
+      {!hasSearched && searchState.status !== "error" ? (
+        <section className="mt-4 px-1 py-2" aria-label="Petunjuk pencarian">
+          <p className="text-base font-semibold text-[#142842]">
+            Cari peserta untuk melakukan check-in manual.
+          </p>
+          <p className="mt-1 text-sm leading-5 text-[#5b6c7c]">
+            Gunakan nama, Registration ID, atau nomor anggota.
+          </p>
+        </section>
+      ) : null}
+
+      {hasSearched ? (
+        <section className="mt-4" aria-live="polite" aria-label="Hasil pencarian peserta">
+          {hasResults ? (
+            <div className="grid gap-3">
+              {searchState.results.map((participant) => (
+                <ParticipantResultCard
+                  key={participant.registrationId}
+                  onSelect={onSelectParticipant}
+                  participant={participant}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-[#cfc5b4] bg-[#fffdf8] px-4 py-5">
+              <p className="text-base font-semibold text-[#142842]">Peserta tidak ditemukan</p>
+              <p className="mt-1 text-sm leading-5 text-[#5b6c7c]">
+                Coba periksa nama atau Registration ID peserta.
+              </p>
+            </div>
+          )}
+        </section>
+      ) : null}
+    </>
   );
 }
 
@@ -246,66 +237,142 @@ function ParticipantResultCard({
   onSelect: (participant: ManualParticipant) => void;
 }) {
   const isCancelled = participant.registrationStatus === "CANCELLED";
+  const isUnavailable = isCancelled || participant.alreadyCheckedIn;
 
   return (
-    <article className="rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-5 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-bold tracking-[0.14em] text-[#9a7526]">
-            {participant.registrationId}
-          </p>
-          <h2 className="mt-2 text-xl font-semibold text-[#142842]">
-            {participant.fullName}
-          </h2>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {participant.alreadyCheckedIn ? (
-            <span className="inline-flex rounded-full border border-[#b8cce2] bg-[#f3f8fd] px-2.5 py-1 text-xs font-semibold text-[#344d68]">
-              Sudah Hadir
-            </span>
-          ) : null}
-          {isCancelled ? (
-            <span className="inline-flex rounded-full border border-[#dedbd3] bg-[#f2f0eb] px-2.5 py-1 text-xs font-semibold text-[#6b6a66]">
-              Pendaftaran Dibatalkan
-            </span>
-          ) : null}
-        </div>
+    <article
+      className={`rounded-xl border bg-[#fffdf8] p-4 sm:p-5 ${
+        isCancelled
+          ? "border-[#dedbd3] bg-[#f2f0eb]"
+          : participant.alreadyCheckedIn
+            ? "border-[#b8cce2] bg-[#f3f8fd]"
+            : "border-[#e4d8c4]"
+      }`}
+    >
+      <div className="min-w-0">
+        <h2 className="break-words text-xl font-bold leading-tight text-[#142842] sm:text-2xl">
+          {participant.fullName}
+        </h2>
+        <p className="mt-1 break-words text-sm font-bold tracking-[0.08em] text-[#9a7526]">
+          {participant.registrationId}
+        </p>
       </div>
 
-      <dl className="mt-5 grid gap-3 text-sm text-[#5b6c7c] sm:grid-cols-2">
+      <dl className="mt-4 grid gap-3 text-sm text-[#5b6c7c] sm:grid-cols-2">
         <div>
-          <dt className="text-xs uppercase tracking-wide text-[#897657]">Institusi</dt>
-          <dd className="mt-1 font-medium text-[#344d68]">{participant.institution}</dd>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">Institusi</dt>
+          <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.institution}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-[#897657]">Kategori</dt>
-          <dd className="mt-1 font-medium text-[#344d68]">
-            {participant.participantCategory}
-          </dd>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">Kategori</dt>
+          <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.participantCategory}</dd>
         </div>
-        {participant.alreadyCheckedIn && participant.checkedInAt ? (
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-[#897657]">
-              Waktu Check-in
-            </dt>
-            <dd className="mt-1 font-medium text-[#344d68]">
-              {formatDateTime(participant.checkedInAt)}
-            </dd>
-          </div>
-        ) : null}
       </dl>
 
-      <div className="mt-5 border-t border-[#eee6d8] pt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Status sesi peserta">
+        {isCancelled ? (
+          <span className="inline-flex min-h-8 items-center rounded-full bg-[#e5e2dc] px-3 py-1 text-xs font-bold text-[#6b6a66]">
+            Pendaftaran dibatalkan
+          </span>
+        ) : participant.alreadyCheckedIn ? (
+          <span className="inline-flex min-h-8 items-center rounded-full bg-[#dfeefa] px-3 py-1 text-xs font-bold text-[#345d80]">
+            SUDAH CHECK-IN
+          </span>
+        ) : (
+          <span className="inline-flex min-h-8 items-center rounded-full bg-[#edf7ef] px-3 py-1 text-xs font-bold text-[#267044]">
+            Belum Check-in
+          </span>
+        )}
+        {participant.alreadyCheckedIn && participant.checkedInAt ? (
+          <span className="text-sm font-medium text-[#5b6c7c]">
+            Waktu: {formatDateTime(participant.checkedInAt)}
+          </span>
+        ) : null}
+      </div>
+
+      {!isUnavailable ? (
+        <div className="mt-4 border-t border-[#eee6d8] pt-4">
+          <button
+            className="min-h-12 w-full rounded-lg bg-[#142842] px-4 py-3 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+            onClick={() => onSelect(participant)}
+            type="button"
+          >
+            Pilih Peserta
+          </button>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function SelectedParticipant({
+  checkInAction,
+  checkInPending,
+  checkInState,
+  onChangeParticipant,
+  participant,
+  sessionName,
+  stationId,
+}: {
+  checkInAction: (payload: FormData) => void;
+  checkInPending: boolean;
+  checkInState: ManualCheckInState;
+  onChangeParticipant: () => void;
+  participant: ManualParticipant;
+  sessionName: string;
+  stationId: string;
+}) {
+  const errorCopy = checkInState.errorCode
+    ? manualErrorCopy(checkInState.errorCode)
+    : null;
+
+  return (
+    <section className="mt-4 rounded-2xl border border-[#b8cce2] bg-[#f3f8fd] p-5 shadow-[0_6px_20px_rgba(20,40,66,0.06)] sm:p-6" aria-label="Peserta yang dipilih">
+      <div className="flex items-center gap-3">
+        <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#47739b] text-lg font-bold text-white">
+          ✓
+        </span>
+        <p className="text-sm font-bold uppercase tracking-[0.14em] text-[#345d80]">Peserta Dipilih</p>
+      </div>
+
+      <h2 className="mt-5 break-words text-3xl font-bold leading-tight tracking-tight text-[#142842] sm:text-4xl">
+        {participant.fullName}
+      </h2>
+
+      <dl className="mt-6 grid gap-4 text-sm text-[#5b6c7c] sm:grid-cols-2">
+        <Detail label="Registration ID" value={participant.registrationId} strong />
+        <Detail label="Institusi" value={participant.institution} />
+        <Detail label="Kategori" value={participant.participantCategory} />
+        <Detail label="Sesi" value={sessionName} />
+      </dl>
+
+      {errorCopy ? (
+        <div className="mt-5 rounded-lg border border-[#ead3cc] bg-[#fff5f2] p-4" role="alert">
+          <p className="text-sm font-bold uppercase tracking-[0.1em] text-[#9b3d31]">{errorCopy.title}</p>
+          <p className="mt-1 text-sm leading-5 text-[#5f302b]">{errorCopy.message}</p>
+        </div>
+      ) : null}
+
+      <form action={checkInAction} className="mt-6 grid gap-3" aria-busy={checkInPending}>
+        <input name="stationId" type="hidden" value={stationId} />
+        <input name="registrationId" type="hidden" value={participant.registrationId} />
         <button
-          className="w-full rounded-lg bg-[#142842] px-4 py-3 text-sm font-semibold text-white hover:bg-[#203d5d] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-          disabled={isCancelled}
-          onClick={() => onSelect(participant)}
+          className="order-1 min-h-12 w-full rounded-lg bg-[#142842] px-4 py-3 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={checkInPending}
+          type="submit"
+        >
+          {checkInPending ? "Memproses check-in..." : checkInState.status === "error" ? "Coba Lagi" : "Check-in Peserta"}
+        </button>
+        <button
+          className="order-2 min-h-12 w-full rounded-lg border border-[#b99a5a] px-4 py-3 text-sm font-semibold text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={checkInPending}
+          onClick={onChangeParticipant}
           type="button"
         >
-          {isCancelled ? "Check-in Tidak Tersedia" : "Pilih Peserta"}
+          Ganti Peserta
         </button>
-      </div>
-    </article>
+      </form>
+    </section>
   );
 }
 
@@ -323,82 +390,86 @@ function ManualResult({
   const isWarning = state.status === "success-with-warning";
   const isAlreadyCheckedIn = state.status === "already-checked-in";
   const isCancelled = state.status === "cancelled-participant";
+  const isPositive = state.status === "success" || isWarning;
+  const title = isWarning
+    ? "CHECK-IN SEMINAR BERHASIL DENGAN CATATAN"
+    : isAlreadyCheckedIn
+      ? "SUDAH CHECK-IN"
+      : isCancelled
+        ? "CHECK-IN TIDAK DAPAT DILAKUKAN"
+        : "CHECK-IN BERHASIL";
+  const message = isWarning
+    ? "Peserta berhasil check-in untuk sesi seminar, tetapi belum tercatat pada sesi kedatangan (ARRIVAL)."
+    : isAlreadyCheckedIn
+      ? "Peserta sudah tercatat pada sesi ini."
+      : isCancelled
+        ? "Pendaftaran peserta telah dibatalkan."
+        : null;
+  const stateClass = isWarning
+    ? "border-[#e5cb8c] bg-[#fff9eb]"
+    : isAlreadyCheckedIn
+      ? "border-[#b8cce2] bg-[#f3f8fd]"
+      : isCancelled
+        ? "border-[#ead3cc] bg-[#fff5f2]"
+        : "border-[#b9dec8] bg-[#f3fbf5]";
+  const markClass = isWarning
+    ? "bg-[#b78a2b]"
+    : isAlreadyCheckedIn
+      ? "bg-[#47739b]"
+      : isCancelled
+        ? "bg-[#b94b3e]"
+        : "bg-[#267044]";
 
   return (
     <section
-      className={`mt-5 rounded-2xl border p-5 shadow-sm sm:p-6 ${
-        isWarning
-          ? "border-[#e5cb8c] bg-[#fff9eb]"
-          : isAlreadyCheckedIn
-            ? "border-[#b8cce2] bg-[#f3f8fd]"
-            : isCancelled
-              ? "border-[#dedbd3] bg-[#f2f0eb]"
-              : "border-[#b9dec8] bg-[#f3fbf5]"
-      }`}
-      role="status"
+      className={`mt-4 rounded-2xl border p-5 shadow-[0_6px_20px_rgba(20,40,66,0.06)] sm:p-6 ${stateClass}`}
+      role={isCancelled ? "alert" : "status"}
+      aria-live="polite"
     >
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#267044]">
-        {isWarning
-          ? "✓ Check-in Berhasil dengan Catatan"
-          : isAlreadyCheckedIn
-            ? "Sudah Check-in"
-            : isCancelled
-              ? "Pendaftaran Dibatalkan"
-              : "✓ Check-in Berhasil"}
-      </p>
+      <div className="flex items-center gap-3">
+        <span aria-hidden="true" className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl font-bold text-white ${markClass}`}>
+          {isAlreadyCheckedIn ? "i" : isCancelled || isWarning ? "!" : "✓"}
+        </span>
+        <p className={`text-sm font-bold uppercase tracking-[0.12em] ${isCancelled ? "text-[#9b3d31]" : isAlreadyCheckedIn ? "text-[#345d80]" : "text-[#6d531e]"}`}>
+          {title}
+        </p>
+      </div>
 
       {participant ? (
         <>
-          <h2 className="mt-3 text-2xl font-bold text-[#142842]">
+          <h2 className="mt-5 break-words text-3xl font-bold leading-tight tracking-tight text-[#142842] sm:text-4xl">
             {participant.fullName}
           </h2>
-          <dl className="mt-5 grid gap-3 text-sm text-[#344d68] sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
-                Registration ID
-              </dt>
-              <dd className="mt-1 font-semibold text-[#142842]">
-                {participant.registrationId}
-              </dd>
-            </div>
-            {session ? (
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
-                  Sesi
-                </dt>
-                <dd className="mt-1 font-semibold text-[#142842]">{session.name}</dd>
-              </div>
-            ) : null}
-            {state.checkedAt ? (
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
-                  Waktu Check-in
-                </dt>
-                <dd className="mt-1 font-semibold text-[#142842]">
-                  {formatDateTime(state.checkedAt)}
-                </dd>
-              </div>
-            ) : null}
+          <dl className="mt-6 grid gap-4 text-sm text-[#344d68] sm:grid-cols-2">
+            <Detail label="Registration ID" value={participant.registrationId} strong />
+            <Detail label="Institusi" value={participant.institution} />
+            <Detail label="Kategori" value={participant.participantCategory} />
+            {session ? <Detail label="Sesi" value={session.name} /> : null}
+            {state.checkedAt ? <Detail label="Waktu Check-in" value={formatDateTime(state.checkedAt)} /> : null}
           </dl>
         </>
       ) : null}
 
-      {isWarning ? (
-        <p className="mt-5 rounded-lg bg-white/70 p-3 text-sm font-medium text-[#6d531e]">
-          Peserta belum tercatat pada sesi kedatangan.
+      {message ? (
+        <p className={`mt-5 rounded-lg p-4 text-sm font-medium leading-5 ${isCancelled ? "bg-white/70 text-[#5f302b]" : "bg-white/70 text-[#6d531e]"}`}>
+          {message}
         </p>
       ) : null}
 
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+      {isPositive ? (
+        <p className="mt-4 text-xs font-bold uppercase tracking-[0.12em] text-[#897657]">Check-in Manual</p>
+      ) : null}
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <button
-          className="rounded-lg bg-[#142842] px-4 py-3 text-sm font-semibold text-white hover:bg-[#203d5d]"
+          className="min-h-12 w-full rounded-lg bg-[#142842] px-4 py-3 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
           onClick={onNextParticipant}
           type="button"
         >
-          Check-in Peserta Berikutnya
+          {isAlreadyCheckedIn || isCancelled ? "Cari Peserta Lain" : "Check-in Peserta Berikutnya"}
         </button>
         <Link
-          className="rounded-lg border border-[#b99a5a] px-4 py-3 text-center text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
+          className="inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-[#b99a5a] px-4 py-3 text-center text-sm font-semibold text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
           href={`/admin/scanner/${stationId}`}
         >
           Kembali ke Scanner
@@ -406,6 +477,62 @@ function ManualResult({
       </div>
     </section>
   );
+}
+
+function Detail({
+  label,
+  value,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
+  return (
+    <div>
+      <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">{label}</dt>
+      <dd className={`mt-1 break-words ${strong ? "font-bold text-[#142842]" : "font-semibold text-[#344d68]"}`}>
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function manualErrorCopy(errorCode: ManualCheckInErrorCode) {
+  switch (errorCode) {
+    case "participant-not-found":
+      return {
+        title: "Peserta tidak ditemukan",
+        message: "Coba periksa nama atau Registration ID peserta.",
+      };
+    case "closed-session":
+      return {
+        title: "Sesi belum aktif",
+        message: "Check-in belum dapat dilakukan pada sesi ini.",
+      };
+    case "invalid-station":
+    case "station-not-paired":
+    case "station-owned-by-other-operator":
+      return {
+        title: "Scanner tidak siap",
+        message: "Gunakan scanner yang sudah dipasangkan dengan akun operator ini.",
+      };
+    case "unauthorized-operator":
+      return {
+        title: "Akses check-in diperlukan",
+        message: "Akun operator ini tidak dapat melakukan check-in.",
+      };
+    case "invalid-request":
+      return {
+        title: "Data check-in tidak sesuai",
+        message: "Periksa peserta yang dipilih lalu coba kembali.",
+      };
+    case "internal-error":
+      return {
+        title: "Check-in belum tersimpan",
+        message: "Terjadi kendala saat memproses check-in. Silakan coba kembali.",
+      };
+  }
 }
 
 function formatDateTime(dateValue: string) {
