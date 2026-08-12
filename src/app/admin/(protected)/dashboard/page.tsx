@@ -118,7 +118,7 @@ function formatStationStatus(status: StationStatus) {
     case "WAITING_PAIRING":
       return "Menunggu Pairing";
     case "DISCONNECTED":
-      return "Terputus";
+      return "Tidak Terhubung";
     case "CLOSED":
       return "Ditutup";
   }
@@ -295,28 +295,26 @@ async function loadDashboardData(): Promise<DashboardData | null> {
 
 function DashboardHeader({ profile }: { profile: UserProfile }) {
   return (
-    <header className="flex flex-col gap-5 rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-5 shadow-sm sm:p-7 lg:flex-row lg:items-center lg:justify-between">
+    <header className="flex flex-col gap-4 border-b border-[#dfd3bf] pb-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p className="text-sm font-semibold tracking-[0.2em] text-[#9a7526]">
-          AKKAI 2026
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#142842]">
-          Admin Control Center
+        <p className="text-xs font-bold tracking-[0.2em] text-[#9a7526]">AKKAI 2026</p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#142842] sm:text-3xl">
+          Operational Dashboard
         </h1>
-        <p className="mt-2 text-sm text-[#5b6c7c]">
-          Ringkasan operasional registrasi, sesi, dan scanner event.
+        <p className="mt-1 text-sm text-[#5b6c7c]">
+          Pantau registrasi, sesi, dan scanner secara real-time.
         </p>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="rounded-xl bg-[#f1eadc] px-4 py-3 text-sm">
-          <p className="font-semibold text-[#142842]">{profile.full_name}</p>
-          <span className="mt-1 inline-flex rounded-full bg-[#142842] px-2.5 py-1 text-xs font-semibold text-[#fffdf8]">
-            {profile.role}
+      <div className="flex items-center justify-between gap-4 sm:justify-end">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-[#142842]">{profile.full_name}</p>
+          <span className="mt-1 inline-flex rounded-full bg-[#142842] px-2.5 py-1 text-[11px] font-semibold text-[#fffdf8]">
+            {profile.role === "ADMIN" ? "Admin" : "Operator"}
           </span>
         </div>
         <form action={signOut}>
           <button
-            className="w-full rounded-lg border border-[#b99a5a] px-4 py-3 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8] sm:w-auto"
+            className="min-h-11 rounded-lg border border-[#b99a5a] px-4 py-2.5 text-sm font-semibold text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
             type="submit"
           >
             Logout
@@ -338,12 +336,12 @@ function DashboardError({ profile }: { profile: UserProfile }) {
             Silakan muat ulang halaman atau coba beberapa saat lagi.
           </p>
         </div>
-        <div className="mt-5 flex flex-wrap gap-4 text-sm font-semibold">
-          <Link className="text-[#344d68] underline underline-offset-4" href="/admin/sessions">
-            Sessions
+        <div className="mt-5 flex flex-wrap gap-3 text-sm font-semibold">
+          <Link className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 py-2.5 text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]" href="/admin/sessions">
+            Kelola Sesi
           </Link>
-          <Link className="text-[#344d68] underline underline-offset-4" href="/admin/scanner/pair">
-            Pairing
+          <Link className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 py-2.5 text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]" href="/admin/scanner/pair">
+            Pasangkan Scanner
           </Link>
         </div>
       </section>
@@ -361,11 +359,10 @@ function KpiCard({
   subtitle: string;
 }) {
   return (
-    <article className="relative overflow-hidden rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-5 shadow-sm">
-      <div className="absolute inset-y-0 left-0 w-1 bg-[#d9ad45]" />
+    <article className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
       <p className="text-sm font-semibold text-[#5b6c7c]">{label}</p>
-      <p className="mt-3 text-4xl font-bold tracking-tight text-[#142842]">{value}</p>
-      <p className="mt-2 text-sm text-[#897657]">{subtitle}</p>
+      <p className="mt-2 text-3xl font-bold tracking-tight text-[#142842] sm:text-4xl">{value}</p>
+      <p className="mt-1 text-sm text-[#897657]">{subtitle}</p>
     </article>
   );
 }
@@ -375,18 +372,26 @@ function QuickActionCard({
   label,
   description,
   disabled = false,
+  primary = false,
+  supporting = false,
 }: {
   href?: string;
   label: string;
   description: string;
   disabled?: boolean;
+  primary?: boolean;
+  supporting?: boolean;
 }) {
   const content = (
     <div
-      className={`rounded-2xl border p-5 transition-colors ${
+      className={`min-h-[92px] rounded-xl border p-4 transition-colors ${
         disabled
           ? "border-[#dedbd3] bg-[#f2f0eb] text-[#77756e]"
-          : "border-[#e4d8c4] bg-[#fffdf8] text-[#142842] hover:border-[#b99a5a] hover:bg-[#fbf5e8]"
+          : primary
+            ? "border-[#142842] bg-[#142842] text-white hover:bg-[#203d5d]"
+            : supporting
+              ? "border-[#e4d8c4] bg-transparent text-[#344d68] hover:border-[#b99a5a] hover:bg-[#fbf5e8]"
+              : "border-[#e4d8c4] bg-[#fffdf8] text-[#142842] hover:border-[#b99a5a] hover:bg-[#fbf5e8]"
       }`}
     >
       <div className="flex items-center justify-between gap-3">
@@ -396,12 +401,12 @@ function QuickActionCard({
             Segera hadir
           </span>
         ) : (
-          <span aria-hidden="true" className="text-lg text-[#9a7526]">
+          <span aria-hidden="true" className={`text-lg ${primary ? "text-[#d9ad45]" : "text-[#9a7526]"}`}>
             →
           </span>
         )}
       </div>
-      <p className="mt-2 text-sm leading-6">{description}</p>
+      <p className={`mt-1 text-sm leading-5 ${primary ? "text-white/70" : "text-[#5b6c7c]"}`}>{description}</p>
     </div>
   );
 
@@ -410,83 +415,52 @@ function QuickActionCard({
 
 function SessionCard({
   session,
-  registeredCount,
 }: {
   session: DashboardSession;
-  registeredCount: number;
 }) {
-  const percentage =
-    registeredCount > 0
-      ? Math.min(
-          100,
-          Math.round((session.attendanceCount / registeredCount) * 100),
-        )
-      : 0;
-
   return (
-    <article className="rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-5 shadow-sm">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-[#e9f5ed] px-2.5 py-1 text-xs font-semibold text-[#267044]">
-              OPEN
-            </span>
-            <span className="text-sm font-bold tracking-[0.12em] text-[#9a7526]">
-              {session.code}
-            </span>
-          </div>
-          <h3 className="mt-3 text-xl font-semibold text-[#142842]">{session.name}</h3>
-          <p className="mt-1 text-sm text-[#5b6c7c]">
-            {formatEventDate(session.event_date)}
-          </p>
-        </div>
-        <p className="text-3xl font-bold text-[#142842]">{percentage}%</p>
-      </div>
-
-      <div className="mt-6">
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="font-medium text-[#344d68]">
-            {session.attendanceCount} dari {registeredCount} peserta sudah check-in
+    <article className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#edf7ef] px-2.5 py-1 text-xs font-bold text-[#267044]">
+            <span aria-hidden="true">●</span>
+            Aktif
           </span>
-          <span className="text-[#897657]">{percentage}%</span>
+          <h3 className="mt-3 break-words text-xl font-semibold text-[#142842]">{session.name}</h3>
+          <p className="mt-1 text-sm text-[#5b6c7c]">{formatEventDate(session.event_date)}</p>
         </div>
-        <div
-          aria-label={`${percentage}% peserta sudah check-in`}
-          aria-valuemax={100}
-          aria-valuemin={0}
-          aria-valuenow={percentage}
-          className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#eee6d8]"
-          role="progressbar"
-        >
-          <div
-            className="h-full rounded-full bg-[#d9ad45] transition-[width]"
-            style={{ width: `${percentage}%` }}
-          />
+        <div className="shrink-0 text-right">
+          <p className="text-2xl font-bold tracking-tight text-[#142842]">{session.attendanceCount}</p>
+          <p className="mt-0.5 text-xs text-[#897657]">check-in</p>
         </div>
       </div>
+      <p className="mt-4 border-t border-[#eee6d8] pt-3 text-sm text-[#5b6c7c]">
+        {session.attendanceCount} peserta sudah check-in
+      </p>
     </article>
   );
 }
 
 function StationCard({ station }: { station: DashboardStation }) {
   return (
-    <article className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4">
+    <article className="border-b border-[#eee6d8] py-4 first:pt-0 last:border-b-0 last:pb-0">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h3 className="truncate font-semibold text-[#142842]">{station.stationName}</h3>
+          <h3 className="break-words font-semibold text-[#142842]">{station.stationName}</h3>
           <p className="mt-1 text-sm text-[#5b6c7c]">
-            {station.sessionCode} - {station.sessionName}
+            {station.sessionName}
           </p>
         </div>
         <span
-          className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-semibold ${stationStatusClassName(
+          className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${stationStatusClassName(
             station.status,
           )}`}
         >
+          <span aria-hidden="true">●</span>
           {formatStationStatus(station.status)}
         </span>
       </div>
-      <dl className="mt-4 grid gap-2 text-sm text-[#5b6c7c] sm:grid-cols-2">
+      <dl className="mt-3 grid gap-2 text-sm text-[#5b6c7c] sm:grid-cols-2">
         <div>
           <dt className="text-xs uppercase tracking-wide text-[#897657]">Operator</dt>
           <dd className="mt-1 font-medium text-[#344d68]">
@@ -507,28 +481,36 @@ function StationCard({ station }: { station: DashboardStation }) {
 function getQuickActions(role: UserRole) {
   const actions = [
     {
-      href: "/admin/sessions",
-      label: "Sessions",
-      description: "Kelola dan lihat status sesi event.",
+      href: "/admin/scanner/pair",
+      label: "Pasangkan Scanner",
+      description: "Hubungkan scanner dengan station.",
       visible: true,
     },
     {
       href: "/admin/participants",
-      label: "Peserta",
-      description: "Kelola peserta dan kirim ulang QR registrasi.",
+      label: "Kelola Peserta",
+      description: "Cari dan kelola data peserta.",
       visible: role === "ADMIN",
+    },
+    {
+      href: "/admin/display",
+      label: "Buka Live Display",
+      description: "Tampilkan check-in peserta secara real-time.",
+      visible: true,
+    },
+    {
+      href: "/admin/sessions",
+      label: "Kelola Sesi",
+      description: "Atur status sesi operasional.",
+      visible: true,
+      supporting: true,
     },
     {
       href: "/admin/display/setup",
-      label: "Stations",
+      label: "Siapkan Station",
       description: "Siapkan dan kelola scanner station.",
       visible: role === "ADMIN",
-    },
-    {
-      href: "/admin/scanner/pair",
-      label: "Pairing",
-      description: "Pasangkan scanner dengan operator.",
-      visible: true,
+      supporting: true,
     },
   ];
 
@@ -556,23 +538,59 @@ export default async function AdminDashboardPage() {
       : activeSessionCount > 1
         ? `${activeSessionCount} sesi sedang aktif`
         : "Belum ada sesi aktif";
-  const sessionSubtitle =
-    activeSessionCount === 1
-      ? dashboardData.activeSessions[0].code
-      : activeSessionCount > 1
-        ? `${activeSessionCount} sesi sedang berjalan`
-        : "Tidak ada sesi aktif";
   const quickActions = getQuickActions(profile.role);
+  const primaryActions = quickActions.filter((action) => !action.supporting);
+  const supportingActions = quickActions.filter((action) => action.supporting);
 
   return (
-    <main className="min-h-screen bg-[#f7f3ea] px-4 py-6 sm:px-8 sm:py-8">
-      <section className="mx-auto max-w-7xl">
+    <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
+      <section className="mx-auto max-w-[1380px]">
         <DashboardHeader profile={profile} />
 
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="mt-5" aria-labelledby="active-session-heading">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">OPERATIONS</p>
+              <h2 className="mt-1 text-xl font-semibold text-[#142842]" id="active-session-heading">Sesi Aktif</h2>
+            </div>
+            <Link
+              className="hidden min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:inline-flex"
+              href="/admin/sessions"
+            >
+              Lihat semua sesi
+            </Link>
+          </div>
+
+          {dashboardData.activeSessions.length === 0 ? (
+            <div className="mt-3 flex flex-col gap-4 rounded-xl border border-[#e5cb8c] bg-[#fff9eb] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+              <div>
+                <p className="font-semibold text-[#142842]">Belum ada sesi aktif</p>
+                <p className="mt-1 text-sm text-[#80631e]">
+                  {profile.role === "ADMIN" ? "Buka sesi untuk mulai menerima check-in peserta." : "Tunggu admin membuka sesi."}
+                </p>
+              </div>
+              {profile.role === "ADMIN" ? (
+                <Link
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-4 py-2.5 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                  href="/admin/sessions"
+                >
+                  Kelola Sesi
+                </Link>
+              ) : null}
+            </div>
+          ) : (
+            <div className="mt-3 grid gap-3 lg:grid-cols-2">
+              {dashboardData.activeSessions.map((session) => (
+                <SessionCard key={session.id} session={session} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Ringkasan operasional">
           <KpiCard
             label="Peserta Terdaftar"
-            subtitle="Peserta dengan registrasi aktif"
+            subtitle="Registrasi aktif"
             value={dashboardData.registeredCount}
           />
           <KpiCard
@@ -587,106 +605,83 @@ export default async function AdminDashboardPage() {
             }
           />
           <KpiCard
-            label="Sesi Aktif"
-            subtitle={sessionSubtitle}
-            value={activeSessionCount}
-          />
-          <KpiCard
             label="Scanner Aktif"
-            subtitle="Scanner siap digunakan"
+            subtitle="Station siap digunakan"
             value={dashboardData.activeScannerCount}
           />
         </section>
 
-        <section className="mt-8">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold tracking-[0.16em] text-[#9a7526]">OPERATIONS</p>
-              <h2 className="mt-1 text-2xl font-semibold text-[#142842]">Sesi Aktif</h2>
+        <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
+          <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] px-4 sm:px-5" aria-labelledby="station-heading">
+            <div className="flex items-end justify-between gap-4 border-b border-[#eee6d8] py-4">
+              <div>
+                <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">STATION MONITORING</p>
+                <h2 className="mt-1 text-xl font-semibold text-[#142842]" id="station-heading">Scanner Station</h2>
+              </div>
+              <Link
+                className="hidden min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:inline-flex"
+                href={profile.role === "ADMIN" ? "/admin/display/setup" : "/admin/scanner/pair"}
+              >
+                {profile.role === "ADMIN" ? "Siapkan Station" : "Pasangkan Scanner"}
+              </Link>
             </div>
-            <Link
-              className="text-sm font-semibold text-[#344d68] underline underline-offset-4 hover:text-[#142842]"
-              href="/admin/sessions"
-            >
-              Lihat semua sesi
-            </Link>
-          </div>
 
-          {dashboardData.activeSessions.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-dashed border-[#cfc5b4] bg-[#fffdf8] p-8 text-center">
-              <p className="font-semibold text-[#142842]">Belum ada sesi aktif.</p>
-              <p className="mt-2 text-sm text-[#5b6c7c]">
-                Buka sesi untuk mulai menerima check-in peserta.
-              </p>
-              {profile.role === "ADMIN" ? (
+            {dashboardData.stations.length === 0 ? (
+              <div className="py-6">
+                <p className="font-semibold text-[#142842]">Belum ada scanner station</p>
+                <p className="mt-1 text-sm text-[#5b6c7c]">Siapkan station untuk mulai memantau perangkat scanner.</p>
                 <Link
-                  className="mt-5 inline-flex rounded-lg bg-[#142842] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#203d5d]"
-                  href="/admin/sessions"
+                  className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 py-2.5 text-sm font-semibold text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                  href={profile.role === "ADMIN" ? "/admin/display/setup" : "/admin/scanner/pair"}
                 >
-                  Kelola Sesi
+                  {profile.role === "ADMIN" ? "Siapkan Station" : "Pasangkan Scanner"}
                 </Link>
-              ) : null}
+              </div>
+            ) : (
+              <div>
+                {dashboardData.stations.map((station) => (
+                  <StationCard key={station.id} station={station} />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section aria-labelledby="actions-heading">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">AKSI HARI ACARA</p>
+                <h2 className="mt-1 text-xl font-semibold text-[#142842]" id="actions-heading">Aksi Hari Acara</h2>
+              </div>
             </div>
-          ) : (
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
-              {dashboardData.activeSessions.map((session) => (
-                <SessionCard
-                  key={session.id}
-                  registeredCount={dashboardData.registeredCount}
-                  session={session}
-                />
+            <div className="mt-3 grid gap-3">
+              {primaryActions.map((action, index) => (
+                <div key={action.label} className={index === 0 ? "rounded-xl bg-[#142842] p-1" : ""}>
+                  <QuickActionCard
+                    description={action.description}
+                    href={action.href}
+                    label={action.label}
+                    primary={index === 0}
+                  />
+                </div>
               ))}
             </div>
-          )}
-        </section>
-
-        <section className="mt-8">
-          <div>
-            <p className="text-sm font-semibold tracking-[0.16em] text-[#9a7526]">NAVIGATION</p>
-            <h2 className="mt-1 text-2xl font-semibold text-[#142842]">Quick Actions</h2>
-          </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {quickActions.map((action) => (
-              <QuickActionCard
-                description={action.description}
-                href={action.href}
-                key={action.label}
-                label={action.label}
-              />
-            ))}
-            <QuickActionCard
-              description="Tampilkan check-in peserta secara realtime."
-              href="/admin/display"
-              label="Live Display"
-            />
-          </div>
-        </section>
-
-        <section className="mt-8 pb-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold tracking-[0.16em] text-[#9a7526]">STATION MONITORING</p>
-              <h2 className="mt-1 text-2xl font-semibold text-[#142842]">Scanner Station</h2>
-            </div>
-            <Link
-              className="text-sm font-semibold text-[#344d68] underline underline-offset-4 hover:text-[#142842]"
-              href={profile.role === "ADMIN" ? "/admin/display/setup" : "/admin/scanner/pair"}
-            >
-              {profile.role === "ADMIN" ? "Kelola station" : "Lihat scanner saya"}
-            </Link>
-          </div>
-
-          {dashboardData.stations.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-dashed border-[#cfc5b4] bg-[#fffdf8] p-8 text-center">
-              <p className="font-semibold text-[#142842]">Belum ada scanner station.</p>
-            </div>
-          ) : (
-            <div className="mt-4 grid gap-3 lg:grid-cols-2">
-              {dashboardData.stations.map((station) => (
-                <StationCard key={station.id} station={station} />
-              ))}
-            </div>
-          )}
+            {supportingActions.length > 0 ? (
+              <div className="mt-5 border-t border-[#dfd3bf] pt-4">
+                <p className="text-xs font-bold tracking-[0.14em] text-[#897657]">ADMINISTRASI</p>
+                <div className="mt-2 grid gap-2">
+                  {supportingActions.map((action) => (
+                    <QuickActionCard
+                      description={action.description}
+                      href={action.href}
+                      key={action.label}
+                      label={action.label}
+                      supporting
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </section>
         </section>
       </section>
     </main>
