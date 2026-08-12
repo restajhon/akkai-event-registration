@@ -58,21 +58,6 @@ type ConnectionStatus =
   | "reconnecting"
   | "error";
 
-function formatSessionDate(dateValue: string) {
-  const [year, month, day] = dateValue.split("-").map(Number);
-
-  if (!year || !month || !day) {
-    return "Tanggal tidak tersedia";
-  }
-
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, month - 1, day)));
-}
-
 function formatEventTime(dateValue: string) {
   const date = new Date(dateValue);
 
@@ -81,9 +66,6 @@ function formatEventTime(dateValue: string) {
   }
 
   return `${new Intl.DateTimeFormat("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Asia/Jakarta",
@@ -93,28 +75,28 @@ function formatEventTime(dateValue: string) {
 function connectionLabel(status: ConnectionStatus) {
   switch (status) {
     case "live":
-      return "Live";
+      return "Terhubung";
     case "connecting":
       return "Menghubungkan...";
     case "preparing":
-      return "Menyiapkan realtime...";
+      return "Menghubungkan...";
     case "reconnecting":
-      return "Menghubungkan ulang...";
+      return "Menghubungkan...";
     case "error":
-      return "Koneksi realtime bermasalah";
+      return "Koneksi bermasalah";
   }
 }
 
 function connectionClassName(status: ConnectionStatus) {
   switch (status) {
     case "live":
-      return "border-[#b9dec8] bg-[#f3fbf5] text-[#267044]";
+      return "border-white/20 text-[#f7f3ea]";
     case "connecting":
     case "preparing":
     case "reconnecting":
-      return "border-[#e5cb8c] bg-[#fff9eb] text-[#80631e]";
+      return "border-[#d9ad45]/60 text-[#ead9ac]";
     case "error":
-      return "border-[#ead3cc] bg-[#fff5f2] text-[#9b3d31]";
+      return "border-[#e7a298]/70 text-[#f7d8d2]";
   }
 }
 
@@ -122,24 +104,21 @@ function eventTheme(status: LiveDisplayEvent["status"]) {
   switch (status) {
     case "success":
       return {
-        panel: "border-[#b9dec8] bg-[#f7fcf8]",
-        accent: "bg-[#267044]",
-        eyebrow: "text-[#267044]",
-        status: "text-[#267044]",
+        accent: "border-[#d9ad45] bg-[#d9ad45] text-[#142842]",
+        eyebrow: "text-[#ead9ac]",
+        confirmation: "text-[#fffdf8]",
       };
     case "success-with-warning":
       return {
-        panel: "border-[#e5cb8c] bg-[#fffdf5]",
-        accent: "bg-[#b78524]",
-        eyebrow: "text-[#80631e]",
-        status: "text-[#80631e]",
+        accent: "border-[#d9ad45] bg-[#d9ad45] text-[#142842]",
+        eyebrow: "text-[#ead9ac]",
+        confirmation: "text-[#fffdf8]",
       };
     case "already-checked-in":
       return {
-        panel: "border-[#e5cb8c] bg-[#fff9eb]",
-        accent: "bg-[#b78524]",
-        eyebrow: "text-[#80631e]",
-        status: "text-[#80631e]",
+        accent: "border-[#8ca8c0] bg-[#8ca8c0] text-[#142842]",
+        eyebrow: "text-[#c8d8e5]",
+        confirmation: "text-[#e5eef5]",
       };
   }
 }
@@ -155,7 +134,7 @@ function eventStatus(status: LiveDisplayEvent["status"]) {
     case "success-with-warning":
       return "Check-in seminar berhasil";
     case "already-checked-in":
-      return "Peserta telah tercatat pada sesi ini";
+      return "Peserta sudah tercatat pada sesi ini.";
   }
 }
 
@@ -175,84 +154,60 @@ function ConnectionStatus({ status }: { status: ConnectionStatus }) {
 
 function EventDetails({ event }: { event: LiveDisplayEvent }) {
   const theme = eventTheme(event.status);
+  const isAlreadyCheckedIn = event.status === "already-checked-in";
 
   return (
-    <section className={`relative overflow-hidden rounded-3xl border p-6 shadow-sm sm:p-10 lg:p-14 ${theme.panel}`}>
-      <div className={`absolute inset-y-0 left-0 w-2 ${theme.accent}`} />
-      <div className="relative">
-        <p className={`text-sm font-bold tracking-[0.22em] sm:text-base ${theme.eyebrow}`}>
-          {eventEyebrow(event.status)}
+    <section
+      aria-live="polite"
+      className="relative flex w-full max-w-[1400px] flex-col items-center text-center"
+    >
+      <div
+        aria-hidden="true"
+        className={`flex h-16 w-16 items-center justify-center rounded-full border-2 text-3xl font-bold shadow-[0_0_0_10px_rgba(217,173,69,0.08)] sm:h-20 sm:w-20 sm:text-4xl ${theme.accent}`}
+      >
+        {isAlreadyCheckedIn ? "i" : "✓"}
+      </div>
+      <p className={`mt-7 text-[clamp(1.4rem,2.4vw,3rem)] font-bold uppercase tracking-[0.16em] ${theme.eyebrow}`}>
+        {eventEyebrow(event.status)}
+      </p>
+      <h2 className="mt-5 max-w-[min(90vw,1250px)] break-words text-[clamp(3rem,7vw,8rem)] font-semibold leading-[0.98] tracking-[-0.04em] text-[#fffdf8]">
+        {event.participant.fullName}
+      </h2>
+      <div className="mt-7 flex max-w-[min(90vw,1100px)] flex-wrap justify-center gap-x-5 gap-y-2 text-[clamp(1.2rem,2vw,2rem)] leading-tight text-[#ead9ac]">
+        <span className="break-words">{event.participant.institution}</span>
+        <span aria-hidden="true" className="text-[#d9ad45]">·</span>
+        <span className="break-words">{event.participant.participantCategory}</span>
+      </div>
+
+      <div className="mt-12 w-full max-w-[min(90vw,1100px)] border-t border-white/15 pt-6 sm:mt-16 sm:pt-8">
+        <p className={`text-[clamp(1rem,1.5vw,1.6rem)] font-semibold ${theme.confirmation}`}>
+          {eventStatus(event.status)}
         </p>
-        <h2 className="mt-5 max-w-5xl text-4xl font-semibold leading-[1.05] tracking-tight text-[#142842] sm:text-6xl lg:text-8xl">
-          {event.participant.fullName}
-        </h2>
-
-        <dl className="mt-8 grid gap-5 text-sm text-[#5b6c7c] sm:grid-cols-3 sm:text-base">
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-[#897657]">
-              Registration ID
-            </dt>
-            <dd className="mt-2 text-lg font-semibold text-[#344d68] sm:text-xl">
-              {event.participant.registrationId}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-[#897657]">
-              Institusi
-            </dt>
-            <dd className="mt-2 text-lg font-semibold text-[#344d68] sm:text-xl">
-              {event.participant.institution}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-[#897657]">
-              Kategori
-            </dt>
-            <dd className="mt-2 text-lg font-semibold text-[#344d68] sm:text-xl">
-              {event.participant.participantCategory}
-            </dd>
-          </div>
-        </dl>
-
-        <div className="mt-10 flex flex-col gap-4 border-t border-[#dfd4c1] pt-6 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className={`text-lg font-bold sm:text-xl ${theme.status}`}>
-              {eventStatus(event.status)}
-            </p>
-            {event.status === "success-with-warning" ? (
-              <p className="mt-2 text-sm font-medium text-[#80631e]">
-                Peserta belum tercatat pada sesi kedatangan (ARRIVAL).
-              </p>
-            ) : null}
-          </div>
-          <dl className="grid gap-2 text-sm text-[#5b6c7c] sm:text-right">
-            <div>
-              <dt className="inline text-[#897657]">Station: </dt>
-              <dd className="inline font-semibold text-[#344d68]">{event.station.name}</dd>
-            </div>
-            <div>
-              <dt className="inline text-[#897657]">Waktu: </dt>
-              <dd className="inline font-semibold text-[#344d68]">{formatEventTime(event.eventAt)}</dd>
-            </div>
-          </dl>
-        </div>
+        {event.status === "success-with-warning" ? (
+          <p className="mx-auto mt-3 max-w-3xl text-[clamp(0.95rem,1.2vw,1.3rem)] font-medium leading-relaxed text-[#ead9ac]">
+            Peserta belum tercatat pada sesi kedatangan (ARRIVAL).
+          </p>
+        ) : null}
+        <p className="mt-4 text-[clamp(0.8rem,1vw,1.1rem)] font-medium text-white/55">
+          {event.participant.registrationId} · {formatEventTime(event.eventAt)}
+        </p>
       </div>
     </section>
   );
 }
 
-function WaitingState() {
+function WaitingState({ sessionStatus, sessionName }: { sessionStatus: LiveDisplaySession["status"]; sessionName: string }) {
+  const isOpen = sessionStatus === "OPEN";
+
   return (
-    <section className="flex min-h-[28rem] flex-col items-center justify-center rounded-3xl border border-dashed border-[#cfc5b4] bg-[#fffdf8] px-6 py-16 text-center shadow-sm sm:min-h-[36rem]">
-      <p className="text-sm font-bold tracking-[0.24em] text-[#9a7526] sm:text-base">
-        AKKAI 2026
+    <section className="flex w-full max-w-[1100px] flex-col items-center text-center">
+      <div aria-hidden="true" className="h-px w-24 bg-[#d9ad45]" />
+      <p className="mt-8 text-[clamp(1.4rem,2.4vw,3rem)] font-bold uppercase tracking-[0.16em] text-[#ead9ac]">
+        {isOpen ? "SIAP MENERIMA PESERTA" : "SESI TIDAK AKTIF"}
       </p>
-      <h2 className="mt-6 text-4xl font-semibold tracking-tight text-[#142842] sm:text-6xl lg:text-7xl">
-        SIAP MENERIMA PESERTA
+      <h2 className="mt-6 max-w-4xl text-[clamp(1.1rem,1.5vw,1.75rem)] font-medium text-white/75">
+        {isOpen ? "Silakan tunjukkan QR registrasi kepada panitia." : `Tampilan ${sessionName} tersedia untuk ditinjau.`}
       </h2>
-      <p className="mt-5 text-base text-[#5b6c7c] sm:text-lg">
-        Menunggu check-in berikutnya...
-      </p>
     </section>
   );
 }
@@ -357,42 +312,57 @@ export function LiveDisplayClient({
   }, [sessionId, supabase]);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#f7f3ea] px-4 py-4 sm:px-8 sm:py-6">
-      <section className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[1500px] flex-col">
-        <header className="flex flex-col gap-5 border-b border-[#ded2bd] pb-5 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-bold tracking-[0.22em] text-[#9a7526]">AKKAI 2026</p>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-[#142842] sm:text-3xl">
-                {session.code} — {session.name}
-              </h1>
-              {session.status === "CLOSED" ? (
-                <span className="rounded-full border border-[#dedbd3] bg-[#f2f0eb] px-2.5 py-1 text-xs font-semibold text-[#6b6a66]">
-                  Sesi Tidak Aktif
-                </span>
-              ) : null}
-            </div>
-            <p className="mt-2 text-sm text-[#5b6c7c]">
-              {formatSessionDate(session.eventDate)}
-            </p>
+    <main className="relative min-h-screen overflow-x-hidden bg-[#142842] text-[#fffdf8]">
+      <style>{`
+        @keyframes live-display-reveal {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .live-display-motion { animation: none !important; }
+        }
+      `}</style>
+      <div aria-hidden="true" className="pointer-events-none absolute left-0 top-0 h-px w-[22vw] bg-[#d9ad45]" />
+      <div aria-hidden="true" className="pointer-events-none absolute bottom-0 right-0 h-[18vw] w-[18vw] rounded-full border border-[#d9ad45]/10" />
+      <div aria-hidden="true" className="pointer-events-none absolute bottom-[8vh] right-[8vw] h-16 w-16 rounded-full border border-[#d9ad45]/20" />
+
+      <section className="relative mx-auto flex min-h-screen w-full max-w-[2200px] flex-col px-[clamp(1.5rem,5vw,6rem)] py-[clamp(1.5rem,4vw,4rem)]">
+        <header className="flex items-start justify-between gap-6">
+          <div className="min-w-0">
+            <p className="text-[clamp(0.9rem,1vw,1.25rem)] font-bold tracking-[0.24em] text-[#d9ad45]">AKKAI 2026</p>
+            <h1 className="mt-3 max-w-3xl break-words text-[clamp(1rem,1.5vw,1.75rem)] font-medium leading-tight text-white/75">
+              {session.name}
+            </h1>
           </div>
 
-          <div className="flex flex-col items-start gap-3 sm:items-end">
+          <div className="flex shrink-0 flex-col items-end gap-3">
             <ConnectionStatus status={connectionStatus} />
-            <nav className="flex flex-wrap gap-4 text-sm font-semibold text-[#344d68]">
-              <Link className="underline underline-offset-4 hover:text-[#142842]" href="/admin/display">
-                Kembali
-              </Link>
-              <Link className="underline underline-offset-4 hover:text-[#142842]" href="/admin/dashboard">
-                Dashboard
-              </Link>
-            </nav>
+            <Link
+              className="rounded-md px-2 py-1 text-xs font-medium text-white/45 underline decoration-white/20 underline-offset-4 outline-none transition hover:text-white/85 focus-visible:ring-2 focus-visible:ring-[#d9ad45]"
+              href="/admin/display"
+            >
+              Kembali
+            </Link>
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col justify-center py-8 sm:py-12">
-          {displayEvent ? <EventDetails event={displayEvent} /> : <WaitingState />}
+        <div className="flex flex-1 items-center justify-center py-[clamp(2rem,5vh,5rem)]">
+          {displayEvent ? (
+            <div
+              className="live-display-motion w-full motion-safe:animate-[live-display-reveal_240ms_ease-out]"
+              key={`${displayEvent.eventAt}-${displayEvent.participant.registrationId}-${displayEvent.status}`}
+            >
+              <EventDetails event={displayEvent} />
+            </div>
+          ) : (
+            <WaitingState sessionName={session.name} sessionStatus={session.status} />
+          )}
         </div>
+
+        <footer className="flex items-end justify-between gap-4 text-[clamp(0.7rem,0.8vw,0.95rem)] text-white/35">
+          <span>Rapat Tahunan AKKAI 2026</span>
+          <span className="hidden sm:inline">{session.name}</span>
+        </footer>
       </section>
     </main>
   );
