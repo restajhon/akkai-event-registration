@@ -20,15 +20,20 @@ function errorState(message: string): StationActionState {
 }
 
 function successState(
+  action: "create" | "reset" | "close",
   message: string,
-  pairingCode?: string,
-  pairingExpiresAt?: string,
+  details: {
+    stationId?: string;
+    stationName?: string;
+    pairingCode?: string;
+    pairingExpiresAt?: string;
+  } = {},
 ): StationActionState {
   return {
     status: "success",
     message,
-    pairingCode,
-    pairingExpiresAt,
+    action,
+    ...details,
   };
 }
 
@@ -85,7 +90,7 @@ export async function createStation(
     }
 
     const credentials = await createPairingCredentials();
-    const { error: insertError } = await adminSupabase
+    const { data: insertedStation, error: insertError } = await adminSupabase
       .from("scanner_stations")
       .insert({
         station_name: stationName,
@@ -99,9 +104,11 @@ export async function createStation(
         last_activity_at: null,
         created_by: profile.id,
         closed_at: null,
-      });
+      })
+      .select("id")
+      .single();
 
-    if (insertError) {
+    if (insertError || !insertedStation) {
       return errorState(
         "Terjadi kendala saat memproses station. Silakan coba kembali.",
       );
@@ -111,9 +118,14 @@ export async function createStation(
     revalidatePath("/admin/scanner/pair");
 
     return successState(
+      "create",
       "Station berhasil dibuat.",
-      credentials.pairingCode,
-      credentials.pairingExpiresAt,
+      {
+        stationId: insertedStation.id,
+        stationName,
+        pairingCode: credentials.pairingCode,
+        pairingExpiresAt: credentials.pairingExpiresAt,
+      },
     );
   } catch {
     return errorState(
@@ -144,7 +156,7 @@ export async function resetStationPairing(
     const adminSupabase = createAdminClient();
     const { data: station, error: stationError } = await adminSupabase
       .from("scanner_stations")
-      .select("id, session_id, status")
+      .select("id, station_name, session_id, status")
       .eq("id", stationId)
       .maybeSingle();
 
@@ -211,9 +223,14 @@ export async function resetStationPairing(
     revalidatePath("/admin/scanner/pair");
 
     return successState(
+      "reset",
       "Kode pairing berhasil dibuat.",
-      credentials.pairingCode,
-      credentials.pairingExpiresAt,
+      {
+        stationId: station.id,
+        stationName: station.station_name,
+        pairingCode: credentials.pairingCode,
+        pairingExpiresAt: credentials.pairingExpiresAt,
+      },
     );
   } catch {
     return errorState(
@@ -286,7 +303,9 @@ export async function closeStation(
     revalidatePath("/admin/display/setup");
     revalidatePath("/admin/scanner/pair");
 
-    return successState("Station berhasil ditutup.");
+    return successState("close", "Station berhasil ditutup.", {
+      stationId: station.id,
+    });
   } catch {
     return errorState(
       "Terjadi kendala saat memproses station. Silakan coba kembali.",

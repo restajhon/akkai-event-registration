@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import {
   closeStation,
@@ -10,6 +10,7 @@ import {
 } from "./actions";
 import {
   initialStationActionState,
+  type StationAction,
   type StationActionState,
 } from "@/lib/stations/station-action-state";
 
@@ -109,60 +110,189 @@ function ActionMessage({ state }: { state: StationActionState }) {
     return null;
   }
 
+  const isSuccess = state.status === "success";
+
   return (
     <p
-      className={`rounded-lg p-4 text-sm ${
-        state.status === "success"
-          ? "bg-emerald-50 text-emerald-700"
-          : "bg-red-50 text-red-700"
+      className={`rounded-lg text-sm ${
+        isSuccess
+          ? "inline-flex items-center gap-2 bg-emerald-50 px-3 py-2 text-emerald-700"
+          : "bg-red-50 p-4 text-red-700"
       }`}
       role={state.status === "error" ? "alert" : "status"}
     >
+      {isSuccess ? <span aria-hidden="true">✓</span> : null}
       {state.message}
     </p>
   );
 }
 
-function PairingCredential({
-  state,
-}: {
-  state: StationActionState;
-}) {
-  if (!state.pairingCode || !state.pairingExpiresAt) {
-    return null;
+type PairingCredential = {
+  stationId: string;
+  stationName: string;
+  pairingCode: string;
+  pairingExpiresAt: string;
+};
+
+function isPairingCredentialState(
+  state: StationActionState,
+): state is StationActionState & PairingCredential {
+  return Boolean(
+    state.stationId &&
+      state.stationName &&
+      state.pairingCode &&
+      state.pairingExpiresAt,
+  );
+}
+
+function upsertPairingCredential(
+  credentials: PairingCredential[],
+  state: StationActionState,
+) {
+  if (!isPairingCredentialState(state)) {
+    return credentials;
   }
 
+  return [
+    ...credentials.filter(
+      (credential) => credential.stationId !== state.stationId,
+    ),
+    {
+      stationId: state.stationId,
+      stationName: state.stationName,
+      pairingCode: state.pairingCode,
+      pairingExpiresAt: state.pairingExpiresAt,
+    },
+  ];
+}
+
+function PairingCredential({
+  credential,
+  latest = false,
+}: {
+  credential: PairingCredential;
+  latest?: boolean;
+}) {
   return (
-    <section className="rounded-lg border border-amber-200 bg-amber-50 p-4" role="status">
-      <p className="text-sm font-semibold text-amber-900">Kode pairing</p>
-      <p className="mt-2 font-mono text-3xl font-bold tracking-[0.3em] text-amber-950">
-        {state.pairingCode}
+    <section
+      className={`rounded-lg border border-amber-200 bg-amber-50 p-4 ${
+        latest ? "sm:p-5" : "border-dashed bg-amber-50/60"
+      }`}
+      role="status"
+    >
+      <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-800">
+        {latest ? "Kode pairing terbaru" : credential.stationName}
       </p>
+      <p className="mt-2 font-mono text-3xl font-bold tracking-[0.3em] text-amber-950">
+        {credential.pairingCode}
+      </p>
+      {latest ? (
+        <p className="mt-3 text-sm text-amber-900">
+          Station: <span className="font-semibold">{credential.stationName}</span>
+        </p>
+      ) : null}
       <p className="mt-3 text-sm text-amber-900">
         Simpan kode ini sekarang. Kode tidak akan ditampilkan kembali setelah
         halaman dimuat ulang.
       </p>
       <p className="mt-2 text-xs text-amber-800">
-        Berlaku sampai {formatDateTime(state.pairingExpiresAt)}.
+        Berlaku sampai {formatDateTime(credential.pairingExpiresAt)}.
       </p>
     </section>
   );
 }
 
 export function StationSetup({ sessions, stations }: StationSetupProps) {
+  const [pairingCredentials, setPairingCredentials] = useState<
+    PairingCredential[]
+  >([]);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+  const [lastAction, setLastAction] = useState<StationAction | null>(null);
+
+  async function createStationWithPresentation(
+    previousState: StationActionState,
+    formData: FormData,
+  ) {
+    const nextState = await createStation(previousState, formData);
+    setCurrentTime(Date.now());
+
+    if (isPairingCredentialState(nextState)) {
+      setPairingCredentials((credentials) =>
+        upsertPairingCredential(credentials, nextState),
+      );
+    }
+
+    return nextState;
+  }
+
+  async function resetStationPairingWithPresentation(
+    previousState: StationActionState,
+    formData: FormData,
+  ) {
+    const nextState = await resetStationPairing(previousState, formData);
+    setCurrentTime(Date.now());
+
+    if (isPairingCredentialState(nextState)) {
+      setPairingCredentials((credentials) =>
+        upsertPairingCredential(credentials, nextState),
+      );
+    }
+
+    return nextState;
+  }
+
+  async function closeStationWithPresentation(
+    previousState: StationActionState,
+    formData: FormData,
+  ) {
+    const nextState = await closeStation(previousState, formData);
+    setCurrentTime(Date.now());
+
+    if (nextState.status === "success" && nextState.stationId) {
+      setPairingCredentials((credentials) =>
+        credentials.filter(
+          (credential) => credential.stationId !== nextState.stationId,
+        ),
+      );
+    }
+
+    return nextState;
+  }
+
   const [createState, createAction, createPending] = useActionState(
-    createStation,
+    createStationWithPresentation,
     initialStationActionState,
   );
   const [resetState, resetAction, resetPending] = useActionState(
-    resetStationPairing,
+    resetStationPairingWithPresentation,
     initialStationActionState,
   );
   const [closeState, closeAction, closePending] = useActionState(
-    closeStation,
+    closeStationWithPresentation,
     initialStationActionState,
   );
   const pending = createPending || resetPending || closePending;
+
+  const feedbackState =
+    lastAction === "create"
+      ? createState
+      : lastAction === "close"
+        ? closeState
+        : lastAction === "reset"
+          ? resetState
+          : null;
+  const actionableCredentials = pairingCredentials.filter(
+    (credential) =>
+      new Date(credential.pairingExpiresAt).getTime() > currentTime,
+  );
+  const latestCredential = actionableCredentials.length
+    ? actionableCredentials[actionableCredentials.length - 1]
+    : null;
+  const olderCredentials = latestCredential
+    ? actionableCredentials.filter(
+        (credential) => credential.stationId !== latestCredential.stationId,
+      )
+    : [];
 
   return (
     <main className="min-h-screen bg-zinc-100 px-4 py-8 sm:px-8 sm:py-10">
@@ -194,11 +324,30 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
         </div>
 
         <div className="mt-6 grid gap-3">
-          <ActionMessage state={createState} />
-          <ActionMessage state={resetState} />
-          <ActionMessage state={closeState} />
-          <PairingCredential state={createState} />
-          <PairingCredential state={resetState} />
+          {feedbackState &&
+          (feedbackState.status === "error" ||
+            feedbackState.action === "create" ||
+            feedbackState.action === "close") ? (
+            <ActionMessage state={feedbackState} />
+          ) : null}
+          {latestCredential ? (
+            <PairingCredential credential={latestCredential} latest />
+          ) : null}
+          {olderCredentials.length > 0 ? (
+            <details className="rounded-lg border border-zinc-200 bg-white">
+              <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-zinc-800">
+                Kode pairing lain yang masih berlaku ({olderCredentials.length})
+              </summary>
+              <div className="grid gap-3 border-t border-zinc-200 p-3">
+                {olderCredentials.map((credential) => (
+                  <PairingCredential
+                    credential={credential}
+                    key={credential.stationId}
+                  />
+                ))}
+              </div>
+            </details>
+          ) : null}
         </div>
 
         <section className="mt-8 rounded-lg border border-zinc-200 p-4 sm:p-5">
@@ -206,7 +355,11 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
           <p className="mt-1 text-sm text-zinc-600">
             Station hanya dapat dibuat untuk session yang sedang OPEN.
           </p>
-          <form action={createAction} className="mt-5 grid gap-4 sm:grid-cols-2">
+          <form
+            action={createAction}
+            className="mt-5 grid gap-4 sm:grid-cols-2"
+            onSubmit={() => setLastAction("create")}
+          >
             <label className="grid gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
               Nama station
               <input
@@ -318,7 +471,10 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
 
                   {station.status !== "CLOSED" ? (
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                      <form action={resetAction}>
+                      <form
+                        action={resetAction}
+                        onSubmit={() => setLastAction("reset")}
+                      >
                         <input name="stationId" type="hidden" value={station.id} />
                         <button
                           className="w-full rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
@@ -328,7 +484,10 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
                           {resetPending ? "Membuat kode..." : "Reset Pairing"}
                         </button>
                       </form>
-                      <form action={closeAction}>
+                      <form
+                        action={closeAction}
+                        onSubmit={() => setLastAction("close")}
+                      >
                         <input name="stationId" type="hidden" value={station.id} />
                         <button
                           className="w-full rounded-md border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
