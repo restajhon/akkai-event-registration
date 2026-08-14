@@ -2,41 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { z } from "zod";
 
+import {
+  participantCheckInEventSchema,
+  type ParticipantCheckInEvent,
+} from "@/lib/realtime/participant-check-in-event";
 import { createClient } from "@/lib/supabase/client";
 
-const liveDisplayEventSchema = z
-  .object({
-    status: z.enum([
-      "success",
-      "success-with-warning",
-      "already-checked-in",
-    ]),
-    participant: z
-      .object({
-        registrationId: z.string().min(1),
-        fullName: z.string().min(1),
-        institution: z.string().min(1),
-        participantCategory: z.string().min(1),
-      })
-      .strict(),
-    session: z
-      .object({
-        code: z.string().min(1),
-        name: z.string().min(1),
-      })
-      .strict(),
-    station: z
-      .object({
-        name: z.string().min(1),
-      })
-      .strict(),
-    eventAt: z.string().datetime({ offset: true }),
-  })
-  .strict();
-
-export type LiveDisplayEvent = z.infer<typeof liveDisplayEventSchema>;
+export type LiveDisplayEvent = ParticipantCheckInEvent;
 
 export type LiveDisplaySession = {
   code: string;
@@ -261,7 +234,7 @@ export function LiveDisplayClient({
               station: message.payload?.station,
               eventAt: message.payload?.eventAt,
             };
-            const parsedEvent = liveDisplayEventSchema.safeParse(candidate);
+            const parsedEvent = participantCheckInEventSchema.safeParse(candidate);
 
             if (parsedEvent.success) {
               setDisplayEvent(parsedEvent.data);

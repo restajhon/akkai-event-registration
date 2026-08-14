@@ -3,6 +3,8 @@ import Link from "next/link";
 import { requireRole, type UserRole } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { DashboardRealtimeClient } from "./dashboard-realtime-client";
+
 export const dynamic = "force-dynamic";
 
 type SessionStatus = "OPEN" | "CLOSED";
@@ -56,6 +58,7 @@ type DashboardStation = {
 
 type DashboardData = {
   registeredCount: number;
+  activeSessionIds: string[];
   activeSessions: DashboardSession[];
   activeAttendanceCount: number;
   activeScannerCount: number;
@@ -259,6 +262,7 @@ async function loadDashboardData(): Promise<DashboardData | null> {
 
     return {
       registeredCount,
+      activeSessionIds,
       activeSessions,
       activeAttendanceCount,
       activeScannerCount,
@@ -507,6 +511,7 @@ export default async function AdminDashboardPage() {
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
       <section className="mx-auto max-w-[1380px]">
+        <DashboardRealtimeClient sessionIds={dashboardData.activeSessionIds} />
         <DashboardHeader />
 
         <section className="mt-4" aria-labelledby="active-session-heading">
