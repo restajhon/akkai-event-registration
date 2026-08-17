@@ -43,9 +43,12 @@ type DetailData = {
   seminar: AttendanceSummary;
 };
 
-function formatDateTime(dateValue: string | null) {
+function formatDateTime(
+  dateValue: string | null,
+  emptyLabel = "Waktu tidak tersedia",
+) {
   if (!dateValue) {
-    return "Belum ada pengiriman berhasil";
+    return emptyLabel;
   }
 
   const date = new Date(dateValue);
@@ -65,6 +68,12 @@ function registrationStatusLabel(status: DatabaseParticipantRow["registration_st
   return status === "REGISTERED" ? "Terdaftar" : "Dibatalkan";
 }
 
+function statusClassName(status: DatabaseParticipantRow["registration_status"]) {
+  return status === "REGISTERED"
+    ? "border-[#b9dec8] bg-[#f3fbf5] text-[#267044]"
+    : "border-[#dedbd3] bg-[#f2f0eb] text-[#6b6a66]";
+}
+
 function emailStatusLabel(status: DatabaseParticipantRow["email_status"]) {
   switch (status) {
     case "SENT":
@@ -74,12 +83,6 @@ function emailStatusLabel(status: DatabaseParticipantRow["email_status"]) {
     case "PENDING":
       return "Diproses";
   }
-}
-
-function statusClassName(status: DatabaseParticipantRow["registration_status"]) {
-  return status === "REGISTERED"
-    ? "border-[#b9dec8] bg-[#f3fbf5] text-[#267044]"
-    : "border-[#dedbd3] bg-[#f2f0eb] text-[#6b6a66]";
 }
 
 function emailStatusClassName(status: DatabaseParticipantRow["email_status"]) {
@@ -183,15 +186,14 @@ function AttendanceCard({
 }) {
   return (
     <article className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#897657]">
-        {label}
-      </p>
+      <h3 className="text-sm font-semibold text-[#142842]">{label}</h3>
       <p
-        className={`mt-2 text-lg font-semibold ${
+        className={`mt-3 flex items-center gap-2 text-lg font-semibold ${
           attendance.checkedIn ? "text-[#267044]" : "text-[#897657]"
         }`}
       >
-        {attendance.checkedIn ? "Hadir" : "Belum"}
+        <span aria-hidden="true">{attendance.checkedIn ? "●" : "○"}</span>
+        {attendance.checkedIn ? "Sudah Check-in" : "Belum Check-in"}
       </p>
       <p className="mt-1 text-sm text-[#5b6c7c]">
         {attendance.checkedIn
@@ -210,17 +212,16 @@ function ParticipantDetailError({
   message: string;
 }) {
   return (
-    <main className="min-h-screen bg-[#f7f3ea] px-4 py-8 sm:px-8 sm:py-10">
-      <section className="mx-auto max-w-3xl rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-6 shadow-sm sm:p-8">
-        <p className="text-sm font-semibold tracking-[0.2em] text-[#9a7526]">
-          AKKAI 2026
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold text-[#142842]">{title}</h1>
+    <main className="min-h-screen bg-[#f7f3ea] px-4 py-6 sm:px-8 sm:py-8">
+      <section className="mx-auto max-w-3xl">
+        <header className="border-b border-[#dfd3bf] pb-4">
+          <h1 className="text-2xl font-semibold tracking-tight text-[#142842]">{title}</h1>
+        </header>
         <p className="mt-6 rounded-xl border border-[#ead3cc] bg-[#fff5f2] p-4 text-sm text-[#9b3d31]" role="alert">
           {message}
         </p>
         <Link
-          className="mt-6 inline-flex text-sm font-semibold text-[#344d68] underline underline-offset-4 hover:text-[#142842]"
+          className="mt-5 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
           href="/admin/participants"
         >
           Kembali ke Peserta
@@ -264,67 +265,52 @@ export default async function ParticipantDetailPage({
   const isCancelled = participant.registration_status === "CANCELLED";
 
   return (
-    <main className="min-h-screen bg-[#f7f3ea] px-4 py-6 sm:px-8 sm:py-8">
-      <section className="mx-auto max-w-5xl">
-        <header className="rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-5 shadow-sm sm:p-7">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold tracking-[0.2em] text-[#9a7526]">
-                AKKAI 2026
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#142842]">
-                Detail Peserta
+    <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
+      <section className="mx-auto max-w-[1100px]">
+        <header className="border-b border-[#dfd3bf] pb-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">DETAIL PESERTA</p>
+              <h1 className="mt-1 break-words text-2xl font-semibold tracking-tight text-[#142842] sm:text-3xl">
+                {participant.full_name}
               </h1>
-              <p className="mt-2 text-sm text-[#5b6c7c]">
+              <p className="mt-1 break-all text-sm font-semibold text-[#9a7526]">
                 {participant.registration_id}
               </p>
+              <p className="mt-3 break-words text-sm text-[#5b6c7c]">
+                {participant.institution} · {participant.participant_category}
+              </p>
             </div>
-            <div className="flex flex-wrap gap-4 text-sm font-semibold">
+            <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
+              <span
+                className={`inline-flex min-h-8 items-center rounded-full border px-3 py-1.5 text-xs font-semibold ${statusClassName(
+                  participant.registration_status,
+                )}`}
+              >
+                {registrationStatusLabel(participant.registration_status)}
+              </span>
               <Link
-                className="text-[#344d68] underline underline-offset-4 hover:text-[#142842]"
+                className="inline-flex min-h-11 items-center text-sm font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
                 href="/admin/participants"
               >
                 Kembali ke Peserta
-              </Link>
-              <Link
-                className="text-[#344d68] underline underline-offset-4 hover:text-[#142842]"
-                href="/admin/dashboard"
-              >
-                Dashboard
               </Link>
             </div>
           </div>
         </header>
 
-        <section className="mt-5 rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-5 shadow-sm sm:p-7">
-          <div className="flex flex-col gap-5 border-b border-[#eee6d8] pb-6 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold text-[#142842]">
-                {participant.full_name}
-              </h2>
-              <p className="mt-2 text-sm text-[#5b6c7c]">{participant.email}</p>
-            </div>
-            <span
-              className={`inline-flex w-fit rounded-full border px-3 py-1.5 text-xs font-semibold ${statusClassName(
-                participant.registration_status,
-              )}`}
-            >
-              {registrationStatusLabel(participant.registration_status)}
-            </span>
-          </div>
-
-          <dl className="mt-6 grid gap-5 text-sm text-[#5b6c7c] sm:grid-cols-2">
-            <DetailField label="Registration ID" value={participant.registration_id} />
-            <DetailField label="Nama Lengkap" value={participant.full_name} />
+        <section
+          aria-labelledby="registration-information-heading"
+          className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5"
+        >
+          <h2 className="text-xl font-semibold text-[#142842]" id="registration-information-heading">
+            Informasi Registrasi
+          </h2>
+          <dl className="mt-5 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
             <DetailField label="Email" value={participant.email} />
             <DetailField
               label="Nomor Anggota"
               value={participant.member_number ?? "Tidak diisi"}
-            />
-            <DetailField label="Institusi" value={participant.institution} />
-            <DetailField
-              label="Kategori Peserta"
-              value={participant.participant_category}
             />
             <DetailField
               label="Status Email Terakhir"
@@ -333,18 +319,32 @@ export default async function ParticipantDetailPage({
             />
             <DetailField
               label="Pengiriman Email Berhasil Terakhir"
-              value={formatDateTime(participant.last_email_sent_at)}
+              value={formatDateTime(
+                participant.last_email_sent_at,
+                "Belum ada pengiriman berhasil",
+              )}
             />
             <DetailField
               label="Tanggal Registrasi"
               value={formatDateTime(participant.created_at)}
             />
           </dl>
+        </section>
 
-          <div className="mt-7 border-t border-[#eee6d8] pt-6">
+        <section
+          aria-labelledby="registration-email-heading"
+          className="mt-4 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5"
+        >
+          <h2 className="text-xl font-semibold text-[#142842]" id="registration-email-heading">
+            Email Registrasi
+          </h2>
+          <p className="mt-1 text-sm text-[#5b6c7c]">
+            Email registrasi dengan QR yang sama akan dikirim kembali ke alamat peserta.
+          </p>
+          <div className="mt-4">
             {isCancelled ? (
-              <p className="rounded-xl border border-[#dedbd3] bg-[#f2f0eb] p-4 text-sm text-[#6b6a66]">
-                QR tidak dapat dikirim ulang karena registrasi peserta telah dibatalkan.
+              <p className="rounded-lg border border-[#dedbd3] bg-[#f2f0eb] p-3 text-sm text-[#6b6a66]">
+                Email registrasi tidak dapat dikirim ulang karena peserta berstatus Dibatalkan.
               </p>
             ) : (
               <ResendQrButton
@@ -355,9 +355,20 @@ export default async function ParticipantDetailPage({
           </div>
         </section>
 
-        <section className="mt-5 grid gap-4 sm:grid-cols-2">
-          <AttendanceCard attendance={detailData.arrival} label="Registrasi Kedatangan" />
-          <AttendanceCard attendance={detailData.seminar} label="Seminar AKKAI 2026" />
+        <section aria-labelledby="attendance-heading" className="mt-4">
+          <h2 className="text-xl font-semibold text-[#142842]" id="attendance-heading">
+            Kehadiran
+          </h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <AttendanceCard
+              attendance={detailData.arrival}
+              label="Registrasi Kedatangan"
+            />
+            <AttendanceCard
+              attendance={detailData.seminar}
+              label="Seminar AKKAI 2026"
+            />
+          </div>
         </section>
       </section>
     </main>
@@ -378,7 +389,7 @@ function DetailField({
       <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-[#897657]">
         {label}
       </dt>
-      <dd className={`mt-2 font-semibold ${valueClassName}`}>{value}</dd>
+      <dd className={`mt-1 break-words font-semibold ${valueClassName}`}>{value}</dd>
     </div>
   );
 }
