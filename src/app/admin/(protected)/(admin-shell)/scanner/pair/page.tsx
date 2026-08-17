@@ -35,20 +35,22 @@ type OwnedStationRow = {
 
 function PairingError() {
   return (
-    <main className="min-h-screen bg-zinc-100 px-4 py-10 sm:px-8">
-      <section className="mx-auto max-w-3xl rounded-xl bg-white p-6 shadow-sm sm:p-8">
-        <p className="text-sm font-medium text-zinc-500">AKKAI 2026</p>
-        <h1 className="mt-2 text-2xl font-semibold text-zinc-900">
-          Pairing Scanner
-        </h1>
-        <p className="mt-6 rounded-lg bg-red-50 p-4 text-sm text-red-700" role="alert">
+    <main className="min-h-screen bg-[#f7f3ea] px-4 py-6 sm:px-8 sm:py-8">
+      <section className="mx-auto max-w-3xl">
+        <header className="border-b border-[#dfd3bf] pb-4">
+          <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">OPERASIONAL</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#142842]">
+            Pairing Scanner
+          </h1>
+        </header>
+        <p className="mt-5 rounded-lg border border-[#ead3cc] bg-[#fff5f2] p-4 text-sm text-[#9b3d31]" role="alert">
           Station belum dapat dimuat. Silakan coba kembali.
         </p>
         <Link
-          className="mt-6 inline-flex text-sm font-medium text-zinc-700 underline underline-offset-4 hover:text-zinc-950"
-          href="/admin/dashboard"
+          className="mt-5 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+          href="/admin/scanner/pair"
         >
-          Kembali ke Dashboard
+          Coba Lagi
         </Link>
       </section>
     </main>

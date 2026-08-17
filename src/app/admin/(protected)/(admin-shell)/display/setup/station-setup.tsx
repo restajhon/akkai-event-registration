@@ -79,13 +79,13 @@ function formatDateTime(dateValue: string | null) {
 function statusLabel(status: SetupStation["status"]) {
   switch (status) {
     case "WAITING_PAIRING":
-      return "Menunggu pairing";
+      return "Menunggu Pairing";
     case "PAIRED":
       return "Terpasang";
     case "ACTIVE":
       return "Aktif";
     case "DISCONNECTED":
-      return "Terputus";
+      return "Tidak Terhubung";
     case "CLOSED":
       return "Ditutup";
   }
@@ -94,14 +94,15 @@ function statusLabel(status: SetupStation["status"]) {
 function statusClassName(status: SetupStation["status"]) {
   switch (status) {
     case "PAIRED":
+      return "border-[#b8cce2] bg-[#f3f8fd] text-[#345e88]";
     case "ACTIVE":
-      return "bg-emerald-100 text-emerald-800";
+      return "border-[#b9dec8] bg-[#f3fbf5] text-[#267044]";
     case "WAITING_PAIRING":
-      return "bg-amber-100 text-amber-800";
+      return "border-[#e5cb8c] bg-[#fff9eb] text-[#80631e]";
     case "DISCONNECTED":
-      return "bg-orange-100 text-orange-800";
+      return "border-[#ead3cc] bg-[#fff5f2] text-[#9b3d31]";
     case "CLOSED":
-      return "bg-zinc-200 text-zinc-700";
+      return "border-[#dedbd3] bg-[#f2f0eb] text-[#6b6a66]";
   }
 }
 
@@ -114,10 +115,10 @@ function ActionMessage({ state }: { state: StationActionState }) {
 
   return (
     <p
-      className={`rounded-lg text-sm ${
+      className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
         isSuccess
-          ? "inline-flex items-center gap-2 bg-emerald-50 px-3 py-2 text-emerald-700"
-          : "bg-red-50 p-4 text-red-700"
+          ? "bg-[#edf7ef] text-[#267044]"
+          : "bg-[#fff5f2] text-[#9b3d31]"
       }`}
       role={state.status === "error" ? "alert" : "status"}
     >
@@ -191,10 +192,11 @@ function PairingCredential({
           Station: <span className="font-semibold">{credential.stationName}</span>
         </p>
       ) : null}
-      <p className="mt-3 text-sm text-amber-900">
-        Simpan kode ini sekarang. Kode tidak akan ditampilkan kembali setelah
-        halaman dimuat ulang.
-      </p>
+      {latest ? (
+        <p className="mt-3 text-sm text-amber-900">
+          Simpan kode ini sekarang. Kode tidak dapat ditampilkan kembali setelah halaman dimuat ulang.
+        </p>
+      ) : null}
       <p className="mt-2 text-xs text-amber-800">
         Berlaku sampai {formatDateTime(credential.pairingExpiresAt)}.
       </p>
@@ -295,38 +297,31 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
     : [];
 
   return (
-    <main className="min-h-screen bg-zinc-100 px-4 py-8 sm:px-8 sm:py-10">
-      <section className="mx-auto max-w-5xl rounded-xl bg-white p-6 shadow-sm sm:p-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-zinc-500">AKKAI 2026</p>
-            <h1 className="mt-2 text-2xl font-semibold text-zinc-900">
-              Pengelolaan Scanner Station
-            </h1>
-            <p className="mt-2 text-sm text-zinc-600">
-              Buat station dan siapkan kode pairing untuk operator.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-4 text-sm font-medium">
+    <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
+      <section className="mx-auto max-w-[1380px]">
+        <header className="border-b border-[#dfd3bf] pb-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">SETUP</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#142842] sm:text-3xl">
+                Scanner Station
+              </h1>
+              <p className="mt-1 text-sm text-[#5b6c7c]">
+                Buat station dan siapkan pairing untuk perangkat scanner.
+              </p>
+            </div>
             <Link
-              className="text-zinc-700 underline underline-offset-4 hover:text-zinc-950"
-              href="/admin/dashboard"
-            >
-              Kembali ke Dashboard
-            </Link>
-            <Link
-              className="text-zinc-700 underline underline-offset-4 hover:text-zinc-950"
+              className="inline-flex min-h-11 items-center text-sm font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
               href="/admin/scanner/pair"
             >
               Pairing Scanner
             </Link>
           </div>
-        </div>
+        </header>
 
         <div className="mt-6 grid gap-3">
           {feedbackState &&
           (feedbackState.status === "error" ||
-            feedbackState.action === "create" ||
             feedbackState.action === "close") ? (
             <ActionMessage state={feedbackState} />
           ) : null}
@@ -334,11 +329,11 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
             <PairingCredential credential={latestCredential} latest />
           ) : null}
           {olderCredentials.length > 0 ? (
-            <details className="rounded-lg border border-zinc-200 bg-white">
-              <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-zinc-800">
-                Kode pairing lain yang masih berlaku ({olderCredentials.length})
-              </summary>
-              <div className="grid gap-3 border-t border-zinc-200 p-3">
+              <details className="rounded-lg border border-[#e5cb8c] bg-[#fff9eb]">
+                <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-[#6d531e] outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]">
+                  Kode pairing lain yang masih berlaku ({olderCredentials.length})
+                </summary>
+                <div className="grid gap-3 border-t border-[#eadcb9] p-3">
                 {olderCredentials.map((credential) => (
                   <PairingCredential
                     credential={credential}
@@ -350,20 +345,21 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
           ) : null}
         </div>
 
-        <section className="mt-8 rounded-lg border border-zinc-200 p-4 sm:p-5">
-          <h2 className="text-lg font-semibold text-zinc-900">Buat station</h2>
-          <p className="mt-1 text-sm text-zinc-600">
-            Station hanya dapat dibuat untuk session yang sedang OPEN.
+        <section className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
+          <h2 className="text-xl font-semibold text-[#142842]">Buat Station</h2>
+          <p className="mt-1 text-sm text-[#5b6c7c]">
+            Station hanya dapat dibuat untuk sesi yang sedang aktif.
           </p>
           <form
             action={createAction}
             className="mt-5 grid gap-4 sm:grid-cols-2"
             onSubmit={() => setLastAction("create")}
           >
-            <label className="grid gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
+            <label className="grid gap-2 text-sm font-semibold text-[#344d68] sm:col-span-2" htmlFor="station-name">
               Nama station
               <input
-                className="rounded-md border border-zinc-300 px-3 py-2.5 font-normal outline-none focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200"
+                className="min-h-11 rounded-lg border border-[#cfc5b4] bg-[#fffdf8] px-3 text-sm font-normal text-[#142842] outline-none placeholder:text-[#b8ad9b] focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac] disabled:bg-[#f2f0eb]"
+                id="station-name"
                 maxLength={100}
                 minLength={3}
                 name="stationName"
@@ -372,32 +368,33 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
                 type="text"
               />
             </label>
-            <label className="grid gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
-              Session
+            <label className="grid gap-2 text-sm font-semibold text-[#344d68] sm:col-span-2" htmlFor="station-session">
+              Sesi
               <select
-                className="rounded-md border border-zinc-300 px-3 py-2.5 font-normal outline-none focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200 disabled:bg-zinc-100"
+                className="min-h-11 rounded-lg border border-[#cfc5b4] bg-[#fffdf8] px-3 text-sm font-normal text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac] disabled:cursor-not-allowed disabled:bg-[#f2f0eb]"
                 defaultValue=""
                 disabled={sessions.length === 0 || pending}
+                id="station-session"
                 name="sessionId"
                 required
               >
                 <option disabled value="">
-                  Pilih session OPEN
+                  Pilih sesi aktif
                 </option>
                 {sessions.map((session) => (
                   <option key={session.id} value={session.id}>
-                    {session.code} - {session.name} ({formatSessionDate(session.event_date)})
+                    {session.name} · {formatSessionDate(session.event_date)} ({session.code})
                   </option>
                 ))}
               </select>
             </label>
             {sessions.length === 0 ? (
-              <p className="text-sm text-amber-700 sm:col-span-2">
-                Belum ada session OPEN. Buka session terlebih dahulu.
+              <p className="text-sm text-[#80631e] sm:col-span-2">
+                Belum ada sesi aktif. Buka sesi terlebih dahulu.
               </p>
             ) : null}
             <button
-              className="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-fit sm:col-span-2"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#142842] px-4 py-2.5 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2 sm:w-fit"
               disabled={sessions.length === 0 || pending}
               type="submit"
             >
@@ -406,78 +403,79 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
           </form>
         </section>
 
-        <section className="mt-8">
+        <section className="mt-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-zinc-900">Daftar station</h2>
-              <p className="mt-1 text-sm text-zinc-600">
-                Status dan pairing station yang tersimpan di database.
+              <h2 className="text-xl font-semibold text-[#142842]">Daftar Station</h2>
+              <p className="mt-1 text-sm text-[#5b6c7c]">
+                Pantau status station dan pairing yang tersedia.
               </p>
             </div>
           </div>
 
           {stations.length === 0 ? (
-            <p className="mt-5 rounded-lg border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
+            <p className="mt-4 rounded-xl border border-dashed border-[#d8cbb6] bg-[#fffdf8] p-6 text-center text-sm text-[#5b6c7c]">
               Belum ada station.
             </p>
           ) : (
-            <div className="mt-5 grid gap-4">
+            <div className="mt-4 divide-y divide-[#eee6d8] overflow-hidden rounded-xl border border-[#e4d8c4] bg-[#fffdf8]">
               {stations.map((station) => (
                 <article
-                  className="rounded-lg border border-zinc-200 p-4 sm:p-5"
+                  className="p-4 sm:p-5"
                   key={station.id}
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
-                      <h3 className="text-lg font-semibold text-zinc-900">
+                      <h3 className="break-words text-xl font-semibold tracking-tight text-[#142842]">
                         {station.stationName}
                       </h3>
-                      <p className="mt-1 text-sm text-zinc-600">
-                        {station.sessionCode} - {station.sessionName}
+                      <p className="mt-1 break-words text-sm font-medium text-[#344d68]">
+                        {station.sessionName}
                       </p>
-                      <p className="mt-1 text-sm text-zinc-500">
-                        {formatSessionDate(station.eventDate)}
+                      <p className="mt-1 text-sm text-[#897657]">
+                        {formatSessionDate(station.eventDate)} · {station.sessionCode}
                       </p>
                     </div>
                     <span
-                      className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${statusClassName(
+                      className={`inline-flex min-h-8 w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${statusClassName(
                         station.status,
                       )}`}
                     >
+                      <span aria-hidden="true">●</span>
                       {statusLabel(station.status)}
                     </span>
                   </div>
 
-                  <dl className="mt-5 grid gap-3 text-sm text-zinc-600 sm:grid-cols-2">
+                   <dl className="mt-5 grid gap-4 text-sm text-[#5b6c7c] sm:grid-cols-2">
                     <div>
-                      <dt className="text-xs uppercase tracking-wide text-zinc-400">
-                        Operator
-                      </dt>
-                      <dd className="mt-1 font-medium text-zinc-800">
-                        {station.pairedOperatorName ?? "Belum ada operator"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs uppercase tracking-wide text-zinc-400">
-                        Masa berlaku pairing
-                      </dt>
-                      <dd className="mt-1 font-medium text-zinc-800">
-                        {station.status === "WAITING_PAIRING"
-                          ? formatDateTime(station.pairingExpiresAt)
-                          : "Tidak berlaku"}
+                       <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-[#897657]">
+                         Operator
+                       </dt>
+                       <dd className="mt-1 break-words font-medium text-[#344d68]">
+                         {station.pairedOperatorName ?? "Belum ada operator"}
+                       </dd>
+                     </div>
+                     <div>
+                       <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-[#897657]">
+                         Masa berlaku pairing
+                       </dt>
+                       <dd className="mt-1 font-medium text-[#344d68]">
+                         {station.status === "WAITING_PAIRING"
+                           ? formatDateTime(station.pairingExpiresAt)
+                           : "Tidak berlaku"}
                       </dd>
                     </div>
                   </dl>
 
-                  {station.status !== "CLOSED" ? (
-                    <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                   {station.status !== "CLOSED" ? (
+                     <div className="mt-5 flex flex-col gap-2 sm:flex-row">
                       <form
                         action={resetAction}
                         onSubmit={() => setLastAction("reset")}
                       >
                         <input name="stationId" type="hidden" value={station.id} />
-                        <button
-                          className="w-full rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                         <button
+                           className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-[#b99a5a] px-4 py-2.5 text-sm font-semibold text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                           disabled={pending}
                           type="submit"
                         >
@@ -489,8 +487,8 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
                         onSubmit={() => setLastAction("close")}
                       >
                         <input name="stationId" type="hidden" value={station.id} />
-                        <button
-                          className="w-full rounded-md border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                         <button
+                           className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-[#e7b7ad] px-4 py-2.5 text-sm font-semibold text-[#9b3d31] outline-none transition hover:bg-[#fff5f2] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                           disabled={pending}
                           type="submit"
                         >
