@@ -69,9 +69,14 @@ export function DashboardRealtimeClient({
                 return;
               }
 
-              const parsedEvent = participantCheckInEventSchema.safeParse(
-                message.payload,
-              );
+              const candidate = {
+                status: message.payload?.status,
+                participant: message.payload?.participant,
+                session: message.payload?.session,
+                station: message.payload?.station,
+                eventAt: message.payload?.eventAt,
+              };
+              const parsedEvent = participantCheckInEventSchema.safeParse(candidate);
 
               if (
                 parsedEvent.success &&
