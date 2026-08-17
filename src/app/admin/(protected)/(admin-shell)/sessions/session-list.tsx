@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { updateSessionStatus } from "./actions";
 
@@ -23,6 +22,12 @@ const initialState = {
   message: null,
 };
 
+type SessionActionRequest = {
+  sessionId: string;
+  sessionName: string;
+  targetStatus: Session["status"];
+};
+
 function formatSessionDate(dateValue: string) {
   const [year, month, day] = dateValue.split("-").map(Number);
 
@@ -38,117 +43,222 @@ function formatSessionDate(dateValue: string) {
   }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
+function statusLabel(status: Session["status"]) {
+  return status === "OPEN" ? "Aktif" : "Ditutup";
+}
+
+function operationalCopy(status: Session["status"]) {
+  return status === "OPEN"
+    ? "Scanner dapat digunakan selama sesi aktif."
+    : "Scanner tidak dapat menerima check-in saat sesi ditutup.";
+}
+
+function actionLabel(
+  targetStatus: Session["status"],
+  pending = false,
+) {
+  if (targetStatus === "OPEN") {
+    return pending ? "Membuka sesi..." : "Buka Sesi";
+  }
+
+  return pending ? "Menutup sesi..." : "Tutup Sesi";
+}
+
+function confirmationTitle(action: SessionActionRequest) {
+  return action.targetStatus === "OPEN"
+    ? `Buka sesi ${action.sessionName}?`
+    : `Yakin ingin menutup sesi ${action.sessionName}?`;
+}
+
+function confirmationDescription(targetStatus: Session["status"]) {
+  return targetStatus === "OPEN"
+    ? "Scanner dapat menerima check-in untuk sesi ini setelah dibuka."
+    : "Check-in peserta tidak dapat dilakukan selama sesi ditutup.";
+}
+
 export function SessionList({ sessions, role }: SessionListProps) {
   const [state, formAction, pending] = useActionState(
     updateSessionStatus,
     initialState,
   );
+  const [confirmation, setConfirmation] =
+    useState<SessionActionRequest | null>(null);
+  const [submittedAction, setSubmittedAction] =
+    useState<SessionActionRequest | null>(null);
 
   return (
-    <main className="min-h-screen bg-zinc-100 px-4 py-10 sm:px-8">
-      <section className="mx-auto max-w-3xl rounded-xl bg-white p-6 shadow-sm sm:p-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-zinc-500">AKKAI 2026</p>
-            <h1 className="mt-2 text-2xl font-semibold text-zinc-900">
-              Sesi Acara
-            </h1>
-            <p className="mt-2 text-sm text-zinc-600">
-              Kelola status sesi operasional acara.
-            </p>
-          </div>
-          <Link
-            className="text-sm font-medium text-zinc-700 underline underline-offset-4 hover:text-zinc-950"
-            href="/admin/dashboard"
-          >
-            Kembali ke Dashboard
-          </Link>
-        </div>
+    <main className="min-h-screen bg-[#f7f3ea] px-4 py-6 sm:px-8 sm:py-8">
+      <section className="mx-auto max-w-4xl">
+        <header className="border-b border-[#dfd3bf] pb-5">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9a7526]">
+            Operasional
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#142842] sm:text-3xl">
+            Pengelolaan Sesi
+          </h1>
+          <p className="mt-1 text-sm text-[#5b6c7c]">
+            Atur sesi check-in untuk rangkaian acara AKKAI 2026.
+          </p>
+        </header>
 
         {state.message ? (
           <p
-            className={`mt-6 rounded-lg p-4 text-sm ${
+            className={`mt-5 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
               state.status === "success"
-                ? "bg-emerald-50 text-emerald-700"
-                : "bg-red-50 text-red-700"
+                ? "bg-[#edf7ef] text-[#267044]"
+                : "bg-[#fff5f2] text-[#9b3d31]"
             }`}
             role={state.status === "error" ? "alert" : "status"}
           >
+            {state.status === "success" ? (
+              <span aria-hidden="true">✓</span>
+            ) : null}
             {state.message}
           </p>
         ) : null}
 
         {sessions.length === 0 ? (
-          <p className="mt-8 rounded-lg border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
+          <p className="mt-6 rounded-xl border border-dashed border-[#d8cbb6] bg-[#fffdf8] p-6 text-center text-sm text-[#5b6c7c]">
             Belum ada sesi tersedia.
           </p>
         ) : (
-          <div className="mt-8 grid gap-4">
+          <div className="mt-6 divide-y divide-[#eee6d8] overflow-hidden rounded-xl border border-[#e4d8c4] bg-[#fffdf8]">
             {sessions.map((session) => {
               const isOpen = session.status === "OPEN";
+              const sessionAction: SessionActionRequest = {
+                sessionId: session.id,
+                sessionName: session.name,
+                targetStatus: isOpen ? "CLOSED" : "OPEN",
+              };
+              const confirmationForSession =
+                confirmation?.sessionId === session.id ? confirmation : null;
+              const isPendingForSession =
+                pending && submittedAction?.sessionId === session.id;
 
               return (
                 <article
-                  className="rounded-lg border border-zinc-200 p-4 sm:p-5"
+                  className="px-4 py-5 sm:px-6 sm:py-6"
                   key={session.id}
                 >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(230px,auto)] lg:items-center lg:gap-8">
                     <div className="min-w-0">
-                      <h2 className="text-lg font-semibold text-zinc-900">
+                      <h2 className="break-words text-xl font-semibold tracking-tight text-[#142842]">
                         {session.name}
                       </h2>
-                      <dl className="mt-3 grid gap-2 text-sm text-zinc-600 sm:grid-cols-2 sm:gap-x-6">
-                        <div>
-                          <dt className="text-xs uppercase tracking-wide text-zinc-400">
-                            Kode sesi
-                          </dt>
-                          <dd className="mt-1 font-medium text-zinc-800">
-                            {session.code}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs uppercase tracking-wide text-zinc-400">
-                            Tanggal sesi
-                          </dt>
-                          <dd className="mt-1 font-medium text-zinc-800">
-                            {formatSessionDate(session.event_date)}
-                          </dd>
-                        </div>
-                      </dl>
+                      <p className="mt-1 text-sm font-medium text-[#897657]">
+                        {formatSessionDate(session.event_date)}
+                      </p>
+                      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                        <span
+                          className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${
+                            isOpen
+                              ? "border-[#b9dec8] bg-[#f3fbf5] text-[#267044]"
+                              : "border-[#dedbd3] bg-[#f2f0eb] text-[#6b6a66]"
+                          }`}
+                        >
+                          {isOpen ? (
+                            <span aria-hidden="true">●</span>
+                          ) : null}
+                          {statusLabel(session.status)}
+                        </span>
+                        <p className="text-sm text-[#5b6c7c]">
+                          {operationalCopy(session.status)}
+                        </p>
+                      </div>
                     </div>
 
-                    <span
-                      className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
-                        isOpen
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-zinc-100 text-zinc-700"
-                      }`}
-                    >
-                      {session.status}
-                    </span>
+                    <div className="lg:min-w-[230px]">
+                      {role === "ADMIN" ? (
+                        confirmationForSession ? (
+                          <div
+                            aria-describedby={`session-confirmation-description-${session.id}`}
+                            aria-labelledby={`session-confirmation-title-${session.id}`}
+                            className="rounded-lg border border-[#e5cb8c] bg-[#fff9eb] p-3.5"
+                            role="alertdialog"
+                          >
+                            <p
+                              className="text-sm font-semibold text-[#142842]"
+                              id={`session-confirmation-title-${session.id}`}
+                            >
+                              {confirmationTitle(confirmationForSession)}
+                            </p>
+                            <p
+                              className="mt-1 text-xs leading-5 text-[#80631e]"
+                              id={`session-confirmation-description-${session.id}`}
+                            >
+                              {confirmationDescription(
+                                confirmationForSession.targetStatus,
+                              )}
+                            </p>
+                            <div className="mt-3 flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+                              <button
+                                autoFocus
+                                className="min-h-11 rounded-md border border-[#d8cbb6] px-3 py-2 text-sm font-semibold text-[#344d68] outline-none transition hover:bg-[#fffdf8] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
+                                disabled={pending}
+                                onClick={() => setConfirmation(null)}
+                                type="button"
+                              >
+                                Batal
+                              </button>
+                              <form
+                                action={formAction}
+                                onSubmit={() => {
+                                  setSubmittedAction(confirmationForSession);
+                                  setConfirmation(null);
+                                }}
+                              >
+                                <input
+                                  name="sessionId"
+                                  type="hidden"
+                                  value={session.id}
+                                />
+                                <input
+                                  name="nextStatus"
+                                  type="hidden"
+                                  value={confirmationForSession.targetStatus}
+                                />
+                                <button
+                                  className="min-h-11 w-full rounded-md bg-[#142842] px-3 py-2 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
+                                  disabled={pending}
+                                  type="submit"
+                                >
+                                  {isPendingForSession
+                                    ? actionLabel(
+                                        confirmationForSession.targetStatus,
+                                        true,
+                                      )
+                                    : confirmationForSession.targetStatus ===
+                                        "OPEN"
+                                      ? "Ya, Buka Sesi"
+                                      : "Ya, Tutup Sesi"}
+                                </button>
+                              </form>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            className={`min-h-11 w-full rounded-md px-4 py-2.5 text-sm font-semibold outline-none transition focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto lg:w-full ${
+                              isOpen
+                                ? "border border-[#b99a5a] bg-transparent text-[#6d531e] hover:bg-[#fbf5e8]"
+                                : "bg-[#142842] text-white hover:bg-[#203d5d]"
+                            }`}
+                            disabled={pending}
+                            onClick={() => setConfirmation(sessionAction)}
+                            type="button"
+                          >
+                            {actionLabel(
+                              sessionAction.targetStatus,
+                              isPendingForSession,
+                            )}
+                          </button>
+                        )
+                      ) : (
+                        <p className="text-sm text-[#6b6a66] lg:text-right">
+                          Hanya dapat melihat status sesi.
+                        </p>
+                      )}
+                    </div>
                   </div>
-
-                  {role === "ADMIN" ? (
-                    <form action={formAction} className="mt-5">
-                      <input name="sessionId" type="hidden" value={session.id} />
-                      <input
-                        name="nextStatus"
-                        type="hidden"
-                        value={isOpen ? "CLOSED" : "OPEN"}
-                      />
-                      <button
-                        className="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                        disabled={pending}
-                        type="submit"
-                      >
-                        {isOpen ? "Tutup Sesi" : "Buka Sesi"}
-                      </button>
-                    </form>
-                  ) : (
-                    <p className="mt-5 text-sm text-zinc-500">
-                      Hanya dapat melihat
-                    </p>
-                  )}
                 </article>
               );
             })}
