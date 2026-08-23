@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   participantCheckInEventSchema,
 } from "@/lib/realtime/participant-check-in-event";
+import { getDashboardRealtimeTopic } from "@/lib/realtime/topics";
 import { createClient } from "@/lib/supabase/client";
 
 const REFRESH_WINDOW_MS = 300;
@@ -54,7 +55,7 @@ export function DashboardRealtimeClient({
         }
 
         for (const sessionId of activeSessionIds) {
-          const channel = supabase.channel(`akkai:display:${sessionId}`, {
+          const channel = supabase.channel(getDashboardRealtimeTopic(sessionId), {
             config: {
               private: true,
               broadcast: {

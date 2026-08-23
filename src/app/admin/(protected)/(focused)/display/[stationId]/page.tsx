@@ -12,17 +12,29 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const sessionIdSchema = z.string().uuid();
+const stationIdSchema = z.string().uuid();
 
+type StationStatus =
+  | "WAITING_PAIRING"
+  | "PAIRED"
+  | "ACTIVE"
+  | "DISCONNECTED"
+  | "CLOSED";
 type SessionStatus = "OPEN" | "CLOSED";
 type DatabaseScanStatus =
   | "SUCCESS"
   | "SUCCESS_WITH_WARNING"
   | "ALREADY_CHECKED_IN";
 
-type SessionRow = LiveDisplaySession & {
+type StationRow = {
   id: string;
+  station_name: string;
+  session_id: string;
+  status: StationStatus;
+  closed_at: string | null;
 };
+
+type SessionRow = LiveDisplaySession;
 
 type DatabaseSessionRow = {
   id: string;
@@ -34,7 +46,6 @@ type DatabaseSessionRow = {
 
 type ScanEventRow = {
   participant_id: string;
-  station_id: string;
   result_status: DatabaseScanStatus;
   scanned_at: string;
 };
@@ -46,11 +57,8 @@ type ParticipantRow = {
   participant_category: string;
 };
 
-type StationRow = {
-  station_name: string;
-};
-
 type DisplayData = {
+  station: StationRow | null;
   session: SessionRow | null;
   initialDisplayEvent: LiveDisplayEvent | null;
 };
@@ -72,13 +80,32 @@ function mapDisplayStatus(status: DatabaseScanStatus): LiveDisplayEvent["status"
   }
 }
 
-async function loadDisplayData(sessionId: string): Promise<DisplayData | null> {
+async function loadDisplayData(stationId: string): Promise<DisplayData | null> {
   try {
     const adminSupabase = createAdminClient();
+    const { data: station, error: stationError } = await adminSupabase
+      .from("scanner_stations")
+      .select("id, station_name, session_id, status, closed_at")
+      .eq("id", stationId)
+      .maybeSingle();
+
+    if (stationError) {
+      return null;
+    }
+
+    if (!station) {
+      return {
+        station: null,
+        session: null,
+        initialDisplayEvent: null,
+      };
+    }
+
+    const stationRow = station as StationRow;
     const { data: session, error: sessionError } = await adminSupabase
       .from("sessions")
       .select("id, code, name, event_date, status")
-      .eq("id", sessionId)
+      .eq("id", stationRow.session_id)
       .maybeSingle();
 
     if (sessionError) {
@@ -86,12 +113,15 @@ async function loadDisplayData(sessionId: string): Promise<DisplayData | null> {
     }
 
     if (!session) {
-      return { session: null, initialDisplayEvent: null };
+      return {
+        station: stationRow,
+        session: null,
+        initialDisplayEvent: null,
+      };
     }
 
     const databaseSession = session as DatabaseSessionRow;
     const sessionRow: SessionRow = {
-      id: databaseSession.id,
       code: databaseSession.code,
       name: databaseSession.name,
       eventDate: databaseSession.event_date,
@@ -99,8 +129,9 @@ async function loadDisplayData(sessionId: string): Promise<DisplayData | null> {
     };
     const { data: scanEvent, error: scanEventError } = await adminSupabase
       .from("scan_events")
-      .select("participant_id, station_id, result_status, scanned_at")
-      .eq("session_id", sessionId)
+      .select("participant_id, result_status, scanned_at")
+      .eq("station_id", stationRow.id)
+      .eq("session_id", stationRow.session_id)
       .in("result_status", eligibleStatuses)
       .not("participant_id", "is", null)
       .order("scanned_at", { ascending: false })
@@ -112,53 +143,45 @@ async function loadDisplayData(sessionId: string): Promise<DisplayData | null> {
     }
 
     if (!scanEvent) {
-      return { session: sessionRow, initialDisplayEvent: null };
+      return {
+        station: stationRow,
+        session: sessionRow,
+        initialDisplayEvent: null,
+      };
     }
 
     const scanEventRow = scanEvent as ScanEventRow;
-    const [participantResult, stationResult] = await Promise.all([
-      adminSupabase
-        .from("participants")
-        .select(
-          "registration_id, full_name, institution, participant_category",
-        )
-        .eq("id", scanEventRow.participant_id)
-        .maybeSingle(),
-      adminSupabase
-        .from("scanner_stations")
-        .select("station_name")
-        .eq("id", scanEventRow.station_id)
-        .maybeSingle(),
-    ]);
+    const { data: participant, error: participantError } = await adminSupabase
+      .from("participants")
+      .select(
+        "registration_id, full_name, institution, participant_category",
+      )
+      .eq("id", scanEventRow.participant_id)
+      .maybeSingle();
 
-    if (
-      participantResult.error ||
-      stationResult.error ||
-      !participantResult.data ||
-      !stationResult.data
-    ) {
+    if (participantError || !participant) {
       return null;
     }
 
-    const participant = participantResult.data as ParticipantRow;
-    const station = stationResult.data as StationRow;
+    const participantRow = participant as ParticipantRow;
 
     return {
+      station: stationRow,
       session: sessionRow,
       initialDisplayEvent: {
         status: mapDisplayStatus(scanEventRow.result_status),
         participant: {
-          registrationId: participant.registration_id,
-          fullName: participant.full_name,
-          institution: participant.institution,
-          participantCategory: participant.participant_category,
+          registrationId: participantRow.registration_id,
+          fullName: participantRow.full_name,
+          institution: participantRow.institution,
+          participantCategory: participantRow.participant_category,
         },
         session: {
           code: sessionRow.code,
           name: sessionRow.name,
         },
         station: {
-          name: station.station_name,
+          name: stationRow.station_name,
         },
         eventAt: scanEventRow.scanned_at,
       },
@@ -207,29 +230,38 @@ function DisplayUnavailable({
 export default async function LiveDisplayPage({
   params,
 }: {
-  params: Promise<{ sessionId: string }>;
+  params: Promise<{ stationId: string }>;
 }) {
   await requireRole(["ADMIN", "OPERATOR"]);
 
-  const { sessionId: rawSessionId } = await params;
-  const parsedSessionId = sessionIdSchema.safeParse(rawSessionId);
+  const { stationId: rawStationId } = await params;
+  const parsedStationId = stationIdSchema.safeParse(rawStationId);
 
-  if (!parsedSessionId.success) {
+  if (!parsedStationId.success) {
     return (
       <DisplayUnavailable
         title="Live Display Tidak Tersedia"
-        message="Sesi Live Display tidak ditemukan. Pilih sesi dari halaman Live Display."
+        message="Station Live Display tidak ditemukan. Pilih station dari halaman Live Display."
       />
     );
   }
 
-  const displayData = await loadDisplayData(parsedSessionId.data);
+  const displayData = await loadDisplayData(parsedStationId.data);
 
   if (!displayData) {
     return (
       <DisplayUnavailable
         title="Live Display Belum Dapat Dimuat"
-        message="Data sesi belum dapat dimuat. Silakan coba kembali."
+        message="Data station belum dapat dimuat. Silakan coba kembali."
+      />
+    );
+  }
+
+  if (!displayData.station) {
+    return (
+      <DisplayUnavailable
+        title="Station Tidak Ditemukan"
+        message="Station Live Display tidak ditemukan. Pilih station lain untuk melanjutkan."
       />
     );
   }
@@ -237,8 +269,20 @@ export default async function LiveDisplayPage({
   if (!displayData.session) {
     return (
       <DisplayUnavailable
-        title="Sesi Tidak Ditemukan"
-        message="Sesi yang dipilih tidak tersedia. Pilih sesi lain untuk melanjutkan."
+        title="Session Tidak Tersedia"
+        message="Session untuk station ini belum dapat digunakan. Pilih station lain untuk melanjutkan."
+      />
+    );
+  }
+
+  if (
+    displayData.station.status === "CLOSED" ||
+    displayData.station.closed_at !== null
+  ) {
+    return (
+      <DisplayUnavailable
+        title="Station Ditutup"
+        message="Station ini sudah ditutup dan tidak dapat digunakan sebagai Live Display."
       />
     );
   }
@@ -246,7 +290,8 @@ export default async function LiveDisplayPage({
   return (
     <LiveDisplayClient
       initialDisplayEvent={displayData.initialDisplayEvent}
-      sessionId={parsedSessionId.data}
+      stationId={displayData.station.id}
+      stationName={displayData.station.station_name}
       session={displayData.session}
     />
   );

@@ -8,6 +8,7 @@ import {
   type ParticipantCheckInEvent,
 } from "@/lib/realtime/participant-check-in-event";
 import { createClient } from "@/lib/supabase/client";
+import { getStationDisplayRealtimeTopic } from "@/lib/realtime/topics";
 
 export type LiveDisplayEvent = ParticipantCheckInEvent;
 
@@ -19,7 +20,8 @@ export type LiveDisplaySession = {
 };
 
 type LiveDisplayClientProps = {
-  sessionId: string;
+  stationId: string;
+  stationName: string;
   session: LiveDisplaySession;
   initialDisplayEvent: LiveDisplayEvent | null;
 };
@@ -186,7 +188,8 @@ function WaitingState({ sessionStatus, sessionName }: { sessionStatus: LiveDispl
 }
 
 export function LiveDisplayClient({
-  sessionId,
+  stationId,
+  stationName,
   session,
   initialDisplayEvent,
 }: LiveDisplayClientProps) {
@@ -209,7 +212,7 @@ export function LiveDisplayClient({
           return;
         }
 
-        channel = supabase.channel(`akkai:display:${sessionId}`, {
+        channel = supabase.channel(getStationDisplayRealtimeTopic(stationId), {
           config: {
             private: true,
             broadcast: {
@@ -282,7 +285,7 @@ export function LiveDisplayClient({
         void supabase.removeChannel(channel);
       }
     };
-  }, [sessionId, supabase]);
+  }, [stationId, supabase]);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#142842] text-[#fffdf8]">
@@ -306,6 +309,9 @@ export function LiveDisplayClient({
             <h1 className="mt-3 max-w-3xl break-words text-[clamp(1rem,1.5vw,1.75rem)] font-medium leading-tight text-white/75">
               {session.name}
             </h1>
+            <p className="mt-2 text-sm font-semibold text-[#ead9ac]">
+              {stationName}
+            </p>
           </div>
 
           <div className="flex shrink-0 flex-col items-end gap-3">
@@ -334,7 +340,7 @@ export function LiveDisplayClient({
 
         <footer className="flex items-end justify-between gap-4 text-[clamp(0.7rem,0.8vw,0.95rem)] text-white/35">
           <span>Rapat Tahunan AKKAI 2026</span>
-          <span className="hidden sm:inline">{session.name}</span>
+          <span className="hidden sm:inline">{stationName} · {session.name}</span>
         </footer>
       </section>
     </main>
