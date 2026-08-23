@@ -156,7 +156,7 @@ export async function resetStationPairing(
     const adminSupabase = createAdminClient();
     const { data: station, error: stationError } = await adminSupabase
       .from("scanner_stations")
-      .select("id, station_name, session_id, status")
+      .select("id, station_name, status, pairing_code_hash")
       .eq("id", stationId)
       .maybeSingle();
 
@@ -170,53 +170,41 @@ export async function resetStationPairing(
       return errorState("Station tidak ditemukan.");
     }
 
-    if (station.status === "CLOSED") {
-      return errorState("Station sudah ditutup.");
-    }
+    const credentials = await createPairingCredentials();
+    const { data: resetResult, error: resetError } = await adminSupabase.rpc(
+      "reset_scanner_station_pairing",
+      {
+        p_station_id: station.id,
+        p_expected_status: station.status,
+        p_expected_pairing_code_hash: station.pairing_code_hash,
+        p_pairing_code_hash: credentials.pairingCodeHash,
+        p_pairing_token_hash: credentials.pairingTokenHash,
+        p_pairing_expires_at: credentials.pairingExpiresAt,
+      },
+    );
 
-    const { data: session, error: sessionError } = await adminSupabase
-      .from("sessions")
-      .select("id, status")
-      .eq("id", station.session_id)
-      .maybeSingle();
-
-    if (sessionError) {
+    if (resetError) {
       return errorState(
         "Terjadi kendala saat memproses station. Silakan coba kembali.",
       );
     }
 
-    if (!session || session.status !== "OPEN") {
+    if (resetResult === "STALE_STATE") {
+      return errorState("Station berubah saat proses reset. Muat ulang dan coba lagi.");
+    }
+
+    if (resetResult === "STATION_CLOSED") {
+      return errorState("Station sudah ditutup.");
+    }
+
+    if (resetResult === "SESSION_CLOSED") {
       return errorState("Session harus dibuka sebelum station dapat digunakan.");
     }
 
-    const credentials = await createPairingCredentials();
-    const { data: updatedStation, error: updateError } = await adminSupabase
-      .from("scanner_stations")
-      .update({
-        status: "WAITING_PAIRING",
-        pairing_code_hash: credentials.pairingCodeHash,
-        pairing_token_hash: credentials.pairingTokenHash,
-        pairing_expires_at: credentials.pairingExpiresAt,
-        paired_operator_id: null,
-        paired_at: null,
-        last_activity_at: null,
-        closed_at: null,
-      })
-      .eq("id", station.id)
-      .eq("session_id", session.id)
-      .neq("status", "CLOSED")
-      .select("id")
-      .maybeSingle();
-
-    if (updateError) {
+    if (resetResult !== "RESET") {
       return errorState(
         "Terjadi kendala saat memproses station. Silakan coba kembali.",
       );
-    }
-
-    if (!updatedStation) {
-      return errorState("Station sudah ditutup.");
     }
 
     revalidatePath("/admin/display/setup");
@@ -259,52 +247,32 @@ export async function closeStation(
 
   try {
     const adminSupabase = createAdminClient();
-    const { data: station, error: stationError } = await adminSupabase
-      .from("scanner_stations")
-      .select("id, status")
-      .eq("id", stationId)
-      .maybeSingle();
-
-    if (stationError) {
-      return errorState(
-        "Terjadi kendala saat memproses station. Silakan coba kembali.",
-      );
-    }
-
-    if (!station) {
-      return errorState("Station tidak ditemukan.");
-    }
-
-    if (station.status === "CLOSED") {
-      return errorState("Station sudah ditutup.");
-    }
-
-    const { data: closedStation, error: closeError } = await adminSupabase
-      .from("scanner_stations")
-      .update({
-        status: "CLOSED",
-        closed_at: new Date().toISOString(),
-      })
-      .eq("id", station.id)
-      .neq("status", "CLOSED")
-      .select("id")
-      .maybeSingle();
+    const { data: closed, error: closeError } = await adminSupabase.rpc(
+      "close_scanner_station",
+      { p_station_id: stationId },
+    );
 
     if (closeError) {
+      if (closeError.message === "Station tidak ditemukan.") {
+        return errorState("Station tidak ditemukan.");
+      }
+
       return errorState(
         "Terjadi kendala saat memproses station. Silakan coba kembali.",
       );
     }
 
-    if (!closedStation) {
-      return errorState("Station sudah ditutup.");
+    if (closed !== true) {
+      return errorState(
+        "Terjadi kendala saat memproses station. Silakan coba kembali.",
+      );
     }
 
     revalidatePath("/admin/display/setup");
     revalidatePath("/admin/scanner/pair");
 
     return successState("close", "Station berhasil ditutup.", {
-      stationId: station.id,
+      stationId,
     });
   } catch {
     return errorState(
