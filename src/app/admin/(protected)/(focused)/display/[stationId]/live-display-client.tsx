@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import {
@@ -187,18 +188,49 @@ function WaitingState({ sessionStatus, sessionName }: { sessionStatus: LiveDispl
   );
 }
 
+function isNewerEvent(
+  incoming: LiveDisplayEvent,
+  current: LiveDisplayEvent | null,
+) {
+  if (!current) {
+    return true;
+  }
+
+  try {
+    return BigInt(incoming.eventSequence) > BigInt(current.eventSequence);
+  } catch {
+    return false;
+  }
+}
+
+function latestEvent(
+  left: LiveDisplayEvent | null,
+  right: LiveDisplayEvent | null,
+) {
+  if (!left) {
+    return right;
+  }
+
+  if (!right) {
+    return left;
+  }
+
+  return isNewerEvent(left, right) ? left : right;
+}
+
 export function LiveDisplayClient({
   stationId,
   stationName,
   session,
   initialDisplayEvent,
 }: LiveDisplayClientProps) {
+  const router = useRouter();
   const [supabase] = useState(createClient);
-  const [displayEvent, setDisplayEvent] = useState<LiveDisplayEvent | null>(
-    initialDisplayEvent,
-  );
+  const [realtimeEvent, setRealtimeEvent] =
+    useState<LiveDisplayEvent | null>(null);
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>("connecting");
+  const displayEvent = latestEvent(initialDisplayEvent, realtimeEvent);
 
   useEffect(() => {
     let isMounted = true;
@@ -236,11 +268,16 @@ export function LiveDisplayClient({
               session: message.payload?.session,
               station: message.payload?.station,
               eventAt: message.payload?.eventAt,
+              eventSequence: message.payload?.eventSequence,
             };
             const parsedEvent = participantCheckInEventSchema.safeParse(candidate);
 
             if (parsedEvent.success) {
-              setDisplayEvent(parsedEvent.data);
+              setRealtimeEvent((current) =>
+                isNewerEvent(parsedEvent.data, current)
+                  ? parsedEvent.data
+                  : current,
+              );
             }
           })
           .on("system", {}, (message) => {
@@ -262,6 +299,7 @@ export function LiveDisplayClient({
             if (status === "SUBSCRIBED") {
               console.info("Live Display realtime subscribed");
               setConnectionStatus("preparing");
+              router.refresh();
             } else if (status === "CHANNEL_ERROR") {
               setConnectionStatus("error");
             } else {
@@ -285,7 +323,7 @@ export function LiveDisplayClient({
         void supabase.removeChannel(channel);
       }
     };
-  }, [stationId, supabase]);
+  }, [router, stationId, supabase]);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#142842] text-[#fffdf8]">
@@ -329,7 +367,7 @@ export function LiveDisplayClient({
           {displayEvent ? (
             <div
               className="live-display-motion w-full motion-safe:animate-[live-display-reveal_240ms_ease-out]"
-              key={`${displayEvent.eventAt}-${displayEvent.participant.registrationId}-${displayEvent.status}`}
+              key={`${displayEvent.eventSequence}-${displayEvent.participant.registrationId}-${displayEvent.status}`}
             >
               <EventDetails event={displayEvent} />
             </div>

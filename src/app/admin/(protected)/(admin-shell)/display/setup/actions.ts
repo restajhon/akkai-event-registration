@@ -69,46 +69,41 @@ export async function createStation(
 
   try {
     const adminSupabase = createAdminClient();
-    const { data: session, error: sessionError } = await adminSupabase
-      .from("sessions")
-      .select("id, status")
-      .eq("id", sessionId)
-      .maybeSingle();
+    const credentials = await createPairingCredentials();
+    const { data: createData, error: createError } = await adminSupabase.rpc(
+      "create_scanner_station",
+      {
+        p_station_name: stationName,
+        p_session_id: sessionId,
+        p_pairing_code_hash: credentials.pairingCodeHash,
+        p_pairing_token_hash: credentials.pairingTokenHash,
+        p_pairing_expires_at: credentials.pairingExpiresAt,
+        p_created_by: profile.id,
+      },
+    );
 
-    if (sessionError) {
+    if (createError) {
       return errorState(
         "Terjadi kendala saat memproses station. Silakan coba kembali.",
       );
     }
 
-    if (!session) {
+    const createResult = Array.isArray(createData)
+      ? createData[0]
+      : createData;
+
+    if (createResult?.status_code === "SESSION_CLOSED") {
+      return errorState("Session harus dibuka sebelum station dapat dibuat.");
+    }
+
+    if (createResult?.status_code === "SESSION_NOT_FOUND") {
       return errorState("Session tidak ditemukan.");
     }
 
-    if (session.status !== "OPEN") {
-      return errorState("Session harus dibuka sebelum station dapat digunakan.");
-    }
-
-    const credentials = await createPairingCredentials();
-    const { data: insertedStation, error: insertError } = await adminSupabase
-      .from("scanner_stations")
-      .insert({
-        station_name: stationName,
-        session_id: session.id,
-        status: "WAITING_PAIRING",
-        pairing_code_hash: credentials.pairingCodeHash,
-        pairing_token_hash: credentials.pairingTokenHash,
-        pairing_expires_at: credentials.pairingExpiresAt,
-        paired_operator_id: null,
-        paired_at: null,
-        last_activity_at: null,
-        created_by: profile.id,
-        closed_at: null,
-      })
-      .select("id")
-      .single();
-
-    if (insertError || !insertedStation) {
+    if (
+      createResult?.status_code !== "CREATED" ||
+      typeof createResult.station_id !== "string"
+    ) {
       return errorState(
         "Terjadi kendala saat memproses station. Silakan coba kembali.",
       );
@@ -121,7 +116,7 @@ export async function createStation(
       "create",
       "Station berhasil dibuat.",
       {
-        stationId: insertedStation.id,
+        stationId: createResult.station_id,
         stationName,
         pairingCode: credentials.pairingCode,
         pairingExpiresAt: credentials.pairingExpiresAt,

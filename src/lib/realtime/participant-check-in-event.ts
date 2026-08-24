@@ -27,6 +27,7 @@ export const participantCheckInEventSchema = z
       })
       .strict(),
     eventAt: z.string().datetime({ offset: true }),
+    eventSequence: z.string().regex(/^[1-9][0-9]*$/),
   })
   .strict();
 

@@ -76,6 +76,7 @@ export function DashboardRealtimeClient({
                 session: message.payload?.session,
                 station: message.payload?.station,
                 eventAt: message.payload?.eventAt,
+                eventSequence: message.payload?.eventSequence,
               };
               const parsedEvent = participantCheckInEventSchema.safeParse(candidate);
 
@@ -87,7 +88,11 @@ export function DashboardRealtimeClient({
                 scheduleRefresh();
               }
             })
-            .subscribe();
+            .subscribe((status) => {
+              if (isMounted && status === "SUBSCRIBED") {
+                scheduleRefresh();
+              }
+            });
 
           channels.push(channel);
         }

@@ -48,6 +48,7 @@ type ScanEventRow = {
   participant_id: string;
   result_status: DatabaseScanStatus;
   scanned_at: string;
+  event_sequence: string;
 };
 
 type ParticipantRow = {
@@ -129,12 +130,12 @@ async function loadDisplayData(stationId: string): Promise<DisplayData | null> {
     };
     const { data: scanEvent, error: scanEventError } = await adminSupabase
       .from("scan_events")
-      .select("participant_id, result_status, scanned_at")
+      .select("participant_id, result_status, scanned_at, event_sequence::text")
       .eq("station_id", stationRow.id)
       .eq("session_id", stationRow.session_id)
       .in("result_status", eligibleStatuses)
       .not("participant_id", "is", null)
-      .order("scanned_at", { ascending: false })
+      .order("event_sequence", { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -184,6 +185,7 @@ async function loadDisplayData(stationId: string): Promise<DisplayData | null> {
           name: stationRow.station_name,
         },
         eventAt: scanEventRow.scanned_at,
+        eventSequence: scanEventRow.event_sequence,
       },
     };
   } catch {
