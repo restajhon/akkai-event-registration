@@ -8,7 +8,7 @@ export type RegistrationActionStatus =
   | "general-error"
   | "submitted";
 
-export type EmailDeliveryStatus = "sent" | "failed" | "not-attempted";
+export type EmailDeliveryStatus = "accepted" | "failed" | "not-attempted";
 
 export type RegistrationActionState = {
   status: RegistrationActionStatus;
@@ -16,6 +16,7 @@ export type RegistrationActionState = {
   generalError?: string;
   registrationId?: string;
   emailDelivery?: EmailDeliveryStatus;
+  emailStatusSyncPending?: boolean;
 };
 
 export const initialRegistrationState: RegistrationActionState = {

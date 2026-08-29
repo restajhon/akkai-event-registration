@@ -125,7 +125,7 @@ export function RegistrationForm() {
   }
 
   if (state.status === "submitted") {
-    const emailWasSent = state.emailDelivery === "sent";
+    const emailWasAccepted = state.emailDelivery === "accepted";
 
     return (
       <section
@@ -145,17 +145,24 @@ export function RegistrationForm() {
             Nomor Registrasi: {state.registrationId}
           </p>
         ) : null}
-        {emailWasSent ? (
+        {emailWasAccepted ? (
           <p className={styles.closedDescription}>
-            Email konfirmasi dan kode QR telah dikirim ke alamat email yang
-            didaftarkan.
+            Layanan pengiriman telah menerima email konfirmasi dan kode QR untuk
+            alamat yang didaftarkan.
           </p>
         ) : (
           <p className={styles.closedDescription}>
-            Email konfirmasi belum dapat dikirim. Simpan nomor registrasi Anda
-            dan hubungi panitia apabila email belum diterima.
+            Email konfirmasi belum dapat diterima oleh layanan pengiriman. Data
+            registrasi tetap tersimpan. Simpan nomor registrasi Anda dan
+            hubungi panitia.
           </p>
         )}
+        {state.emailStatusSyncPending ? (
+          <p className={styles.closedDescription}>
+            Status internal pengiriman belum dapat diperbarui. Jangan mengirim
+            ulang melalui formulir; hubungi panitia bila email belum terlihat.
+          </p>
+        ) : null}
       </section>
     );
   }

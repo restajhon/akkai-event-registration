@@ -276,7 +276,7 @@ export function ParticipantList({
         <section aria-label="Ringkasan peserta" className="mt-4 grid gap-2 sm:grid-cols-3">
           <SummaryCard label="Terdaftar" value={summary.registered} />
           <SummaryCard label="Dibatalkan" value={summary.cancelled} />
-          <SummaryCard label="Email Gagal" value={summary.emailFailed} />
+          <SummaryCard label="Email Gagal Sebelum Diterima" value={summary.emailFailed} />
         </section>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-[#5b6c7c]">

@@ -13,9 +13,7 @@ import type { ParticipantActionState } from "@/lib/participants/participant-acti
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const registrationIdSchema = z.string().regex(/^AKKAI26-[0-9]{6}$/);
-const RESEND_RATE_LIMIT = 5;
-const RESEND_WINDOW_MS = 24 * 60 * 60 * 1000;
-const EMAIL_LOG_IDEMPOTENCY_CONSTRAINT = "email_logs_idempotency_key_unique";
+const STALE_PENDING_WINDOW_MS = 15 * 60 * 1000;
 
 type ParticipantEmailRow = {
   id: string;
@@ -29,6 +27,12 @@ type ParticipantEmailRow = {
 type ExistingResendLog = {
   id: string;
   status: "PENDING" | "SENT" | "FAILED";
+  created_at: string;
+};
+
+type ResendReservation = {
+  result_code: string;
+  email_log_id: string | null;
 };
 
 function errorState(message: string): ParticipantActionState {
@@ -43,27 +47,6 @@ function infoState(message: string): ParticipantActionState {
     status: "info",
     message,
   };
-}
-
-function isUniqueViolation(error: unknown, constraintName: string) {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-
-  const databaseError = error as {
-    code?: unknown;
-    message?: unknown;
-    details?: unknown;
-    hint?: unknown;
-  };
-
-  return (
-    databaseError.code === "23505" &&
-    [databaseError.message, databaseError.details, databaseError.hint].some(
-      (value) =>
-        typeof value === "string" && value.includes(constraintName),
-    )
-  );
 }
 
 function minuteBucket(date: Date) {
@@ -83,13 +66,22 @@ function readRegistrationId(formData: FormData) {
   return typeof value === "string" ? value.trim() : null;
 }
 
+function revalidateParticipantPaths(registrationId: string) {
+  try {
+    revalidatePath("/admin/participants");
+    revalidatePath(`/admin/participants/${registrationId}`);
+  } catch {
+    // Cache refresh failure must not change the provider acceptance result.
+  }
+}
+
 async function getExistingResendLog(
   supabase: ReturnType<typeof createAdminClient>,
   idempotencyKey: string,
 ): Promise<ExistingResendLog | null> {
   const { data, error } = await supabase
     .from("email_logs")
-    .select("id, status")
+    .select("id, status, created_at")
     .eq("idempotency_key", idempotencyKey)
     .maybeSingle();
 
@@ -100,22 +92,35 @@ async function getExistingResendLog(
   return {
     id: data.id,
     status: data.status as ExistingResendLog["status"],
+    created_at: data.created_at,
   };
 }
 
-function existingLogState(log: ExistingResendLog): ParticipantActionState {
+function existingLogState(
+  log: ExistingResendLog,
+  now = new Date(),
+): ParticipantActionState {
   switch (log.status) {
     case "SENT":
       return infoState(
-        "QR registrasi baru saja dikirim. Silakan cek email peserta.",
+        "Email telah diterima oleh layanan pengiriman. Silakan cek email peserta.",
       );
     case "PENDING":
+      if (
+        now.getTime() - new Date(log.created_at).getTime() >=
+        STALE_PENDING_WINDOW_MS
+      ) {
+        return infoState(
+          "Status permintaan email belum diketahui. Jangan mengirim ulang pada menit yang sama; periksa kembali atau coba kirim ulang setelahnya.",
+        );
+      }
+
       return infoState(
-        "Pengiriman QR sedang diproses. Silakan tunggu beberapa saat.",
+        "Permintaan email masih diproses. Silakan tunggu beberapa saat.",
       );
     case "FAILED":
       return infoState(
-        "Pengiriman QR sebelumnya gagal. Silakan coba kembali beberapa saat lagi.",
+        "Upaya email sebelumnya gagal sebelum diterima layanan. Silakan coba kembali beberapa saat lagi.",
       );
   }
 }
@@ -126,20 +131,56 @@ async function markEmailFailed(
   emailLogId: string,
   errorCategory: RegistrationEmailErrorCategory,
 ) {
-  await supabase
-    .from("email_logs")
-    .update({
-      status: "FAILED",
-      provider_message_id: null,
-      error_message: errorCategory,
-      sent_at: null,
-    })
-    .eq("id", emailLogId);
+  try {
+    await supabase
+      .from("email_logs")
+      .update({
+        status: "FAILED",
+        provider_message_id: null,
+        error_message: errorCategory,
+        sent_at: null,
+      })
+      .eq("id", emailLogId);
 
-  await supabase
-    .from("participants")
-    .update({ email_status: "FAILED" })
-    .eq("id", participantId);
+    await supabase
+      .from("participants")
+      .update({ email_status: "FAILED" })
+      .eq("id", participantId);
+  } catch {
+    // The participant remains authoritative even if failure bookkeeping fails.
+  }
+}
+
+async function markEmailAccepted(
+  supabase: ReturnType<typeof createAdminClient>,
+  participantId: string,
+  emailLogId: string,
+  providerMessageId: string,
+) {
+  const sentAt = new Date().toISOString();
+
+  try {
+    const { error: sentLogError } = await supabase
+      .from("email_logs")
+      .update({
+        status: "SENT",
+        provider_message_id: providerMessageId,
+        error_message: null,
+        sent_at: sentAt,
+      })
+      .eq("id", emailLogId);
+    const { error: participantUpdateError } = await supabase
+      .from("participants")
+      .update({
+        email_status: "SENT",
+        last_email_sent_at: sentAt,
+      })
+      .eq("id", participantId);
+
+    return !sentLogError && !participantUpdateError;
+  } catch {
+    return false;
+  }
 }
 
 export async function resendRegistrationQr(
@@ -187,60 +228,64 @@ export async function resendRegistrationQr(
     // The bucket is generated on the server and never supplied by the browser.
     const serverNow = new Date();
     const idempotencyKey = `resend:${participantRow.id}:${minuteBucket(serverNow)}`;
-    const existingLog = await getExistingResendLog(supabase, idempotencyKey);
+    const { data: reservationData, error: reservationError } = await supabase.rpc(
+      "reserve_participant_email_resend",
+      {
+        p_participant_id: participantRow.id,
+        p_recipient_email: participantRow.email,
+        p_sent_by: profile.id,
+        p_idempotency_key: idempotencyKey,
+      },
+    );
 
-    if (existingLog) {
-      return existingLogState(existingLog);
+    if (reservationError) {
+      return errorState("Pengiriman QR belum dapat dimulai. Silakan coba kembali.");
     }
 
-    const cutoff = new Date(
-      serverNow.getTime() - RESEND_WINDOW_MS,
-    ).toISOString();
-    const { count, error: rateLimitError } = await supabase
-      .from("email_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("participant_id", participantRow.id)
-      .eq("email_type", "RESEND")
-      .gte("created_at", cutoff);
+    const reservation = (Array.isArray(reservationData)
+      ? reservationData[0]
+      : reservationData) as ResendReservation | undefined;
 
-    if (rateLimitError) {
-      return errorState(
-        "Status pengiriman QR belum dapat diperiksa. Silakan coba kembali.",
-      );
+    if (!reservation) {
+      return errorState("Pengiriman QR belum dapat dimulai. Silakan coba kembali.");
     }
 
-    if ((count ?? 0) >= RESEND_RATE_LIMIT) {
+    if (reservation.result_code === "LIMIT_REACHED") {
       return errorState(
         "Batas pengiriman ulang QR untuk peserta ini telah tercapai. Silakan coba kembali nanti.",
       );
     }
 
-    const { data: emailLog, error: emailLogError } = await supabase
-      .from("email_logs")
-      .insert({
-        participant_id: participantRow.id,
-        email_type: "RESEND",
-        recipient_email: participantRow.email,
-        status: "PENDING",
-        sent_by: profile.id,
-        provider_message_id: null,
-        error_message: null,
-        sent_at: null,
-        idempotency_key: idempotencyKey,
-      })
-      .select("id")
-      .single();
+    if (reservation.result_code === "CANCELLED") {
+      return errorState(
+        "QR tidak dapat dikirim ulang karena registrasi peserta telah dibatalkan.",
+      );
+    }
 
-    if (emailLogError || !emailLog?.id) {
-      if (isUniqueViolation(emailLogError, EMAIL_LOG_IDEMPOTENCY_CONSTRAINT)) {
-        const racedLog = await getExistingResendLog(supabase, idempotencyKey);
-        return racedLog
-          ? existingLogState(racedLog)
-          : errorState("Pengiriman QR belum dapat dimulai. Silakan coba kembali.");
-      }
+    if (reservation.result_code === "NOT_FOUND") {
+      return errorState("Peserta tidak ditemukan.");
+    }
 
+    if (reservation.result_code === "ALREADY_RESERVED") {
+      const existingLog = await getExistingResendLog(supabase, idempotencyKey);
+      return existingLog
+        ? existingLogState(existingLog, serverNow)
+        : infoState(
+            "Permintaan email dengan kunci yang sama sudah dicatat dan tidak akan dikirim ulang.",
+          );
+    }
+
+    if (reservation.result_code === "RECENTLY_RESERVED") {
+      return infoState(
+        "Permintaan pengiriman ulang baru saja diproses. Email tidak dikirim ulang untuk mencegah pengiriman ganda.",
+      );
+    }
+
+    if (reservation.result_code !== "RESERVED" || !reservation.email_log_id) {
       return errorState("Pengiriman QR belum dapat dimulai. Silakan coba kembali.");
     }
+
+    const emailLogId = reservation.email_log_id;
 
     let qrPngBuffer: Buffer;
 
@@ -250,11 +295,10 @@ export async function resendRegistrationQr(
       await markEmailFailed(
         supabase,
         participantRow.id,
-        emailLog.id,
+        emailLogId,
         "QR_GENERATION_ERROR",
       );
-      revalidatePath("/admin/participants");
-      revalidatePath(`/admin/participants/${registrationId}`);
+      revalidateParticipantPaths(registrationId);
       return errorState("QR belum dapat dibuat. Silakan coba kembali.");
     }
 
@@ -270,44 +314,33 @@ export async function resendRegistrationQr(
       await markEmailFailed(
         supabase,
         participantRow.id,
-        emailLog.id,
+        emailLogId,
         emailResult.errorCategory,
       );
-      revalidatePath("/admin/participants");
-      revalidatePath(`/admin/participants/${registrationId}`);
-      return errorState("QR belum dapat dikirim. Silakan coba kembali.");
+      revalidateParticipantPaths(registrationId);
+      return errorState(
+        "Email belum dapat diterima oleh layanan pengiriman. Silakan coba kembali.",
+      );
     }
 
-    const sentAt = new Date().toISOString();
-    const { error: sentLogError } = await supabase
-      .from("email_logs")
-      .update({
-        status: "SENT",
-        provider_message_id: emailResult.providerMessageId,
-        error_message: null,
-        sent_at: sentAt,
-      })
-      .eq("id", emailLog.id);
-    const { error: participantUpdateError } = await supabase
-      .from("participants")
-      .update({
-        email_status: "SENT",
-        last_email_sent_at: sentAt,
-      })
-      .eq("id", participantRow.id);
+    const persisted = await markEmailAccepted(
+      supabase,
+      participantRow.id,
+      emailLogId,
+      emailResult.providerMessageId,
+    );
 
-    revalidatePath("/admin/participants");
-    revalidatePath(`/admin/participants/${registrationId}`);
+    revalidateParticipantPaths(registrationId);
 
-    if (sentLogError || participantUpdateError) {
-      return errorState(
-        "QR telah diproses, tetapi status pengiriman belum dapat diperbarui. Silakan periksa kembali.",
+    if (!persisted) {
+      return infoState(
+        "Email telah diterima oleh layanan pengiriman, tetapi status internal belum dapat diperbarui. Jangan kirim ulang otomatis; silakan periksa kembali.",
       );
     }
 
     return {
       status: "success",
-      message: "QR registrasi berhasil dikirim ulang.",
+      message: "Email telah diterima oleh layanan pengiriman.",
     };
   } catch {
     return errorState("Terjadi kendala saat mengirim ulang QR. Silakan coba kembali.");

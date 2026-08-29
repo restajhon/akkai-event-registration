@@ -81,6 +81,21 @@ Audit setiap percobaan scan, termasuk invalid QR. `participant_id` dan `attendan
 
 Audit email registration dan resend. Tidak menyimpan credential atau password.
 
+`email_logs` adalah histori detail setiap upaya. `participants.email_status` adalah
+ringkasan operasional dari upaya terakhir yang diketahui, bukan bukti email masuk
+ke inbox. Respons Resend yang sukses berarti layanan pengiriman menerima request;
+status `SENT` mempertahankan nama enum lama untuk kompatibilitas.
+
+Migration `20260828100000_add_atomic_email_resend_reservation.sql` menyediakan
+RPC `reserve_participant_email_resend` untuk mengunci participant, mencegah
+duplikasi idempotency key, dan menghitung maksimal lima `RESEND` dalam rolling 24
+jam sebelum membuat log `PENDING`. RPC hanya dapat dipanggil oleh `service_role`.
+
+`PENDING` yang lebih tua dari 15 menit diperlakukan aplikasi sebagai UNKNOWN atau
+perlu dicek, bukan otomatis dianggap gagal. Kunci resend berbasis bucket menit
+berikutnya dapat membuat reservasi baru sesuai aturan kuota; histori lama tidak
+dihapus dan tetap dihitung sampai melewati jendela 24 jam.
+
 ## Foreign Keys
 
 Seluruh foreign key operasional menggunakan `ON DELETE RESTRICT` agar attendance, scan event, email log, station, dan histori operator tidak hilang. Akun dinonaktifkan melalui `profiles.is_active = false`.

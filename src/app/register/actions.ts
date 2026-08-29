@@ -145,7 +145,7 @@ function getExistingEmailDelivery(
   status: ExistingEmailLog["status"],
 ): EmailDeliveryStatus {
   if (status === "SENT") {
-    return "sent";
+    return "accepted";
   }
 
   if (status === "FAILED") {
@@ -179,10 +179,14 @@ async function markParticipantEmailFailed(
   supabase: ReturnType<typeof createAdminClient>,
   participantId: string,
 ) {
-  await supabase
-    .from("participants")
-    .update({ email_status: "FAILED" })
-    .eq("id", participantId);
+  try {
+    await supabase
+      .from("participants")
+      .update({ email_status: "FAILED" })
+      .eq("id", participantId);
+  } catch {
+    // Email bookkeeping must not affect the authoritative participant row.
+  }
 }
 
 async function markEmailLogFailed(
@@ -190,15 +194,19 @@ async function markEmailLogFailed(
   emailLogId: string,
   errorCategory: RegistrationEmailErrorCategory,
 ) {
-  await supabase
-    .from("email_logs")
-    .update({
-      status: "FAILED",
-      provider_message_id: null,
-      error_message: errorCategory,
-      sent_at: null,
-    })
-    .eq("id", emailLogId);
+  try {
+    await supabase
+      .from("email_logs")
+      .update({
+        status: "FAILED",
+        provider_message_id: null,
+        error_message: errorCategory,
+        sent_at: null,
+      })
+      .eq("id", emailLogId);
+  } catch {
+    // A missing status update is recoverable through the stale-PENDING review.
+  }
 }
 
 async function markEmailDeliveryFailed(
@@ -211,31 +219,35 @@ async function markEmailDeliveryFailed(
   await markParticipantEmailFailed(supabase, participantId);
 }
 
-async function markEmailDeliverySent(
+async function markEmailDeliveryAccepted(
   supabase: ReturnType<typeof createAdminClient>,
   participantId: string,
   emailLogId: string,
   providerMessageId: string,
 ) {
   const sentAt = new Date().toISOString();
-  const { error: emailLogError } = await supabase
-    .from("email_logs")
-    .update({
-      status: "SENT",
-      provider_message_id: providerMessageId,
-      error_message: null,
-      sent_at: sentAt,
-    })
-    .eq("id", emailLogId);
-  const { error: participantError } = await supabase
-    .from("participants")
-    .update({
-      email_status: "SENT",
-      last_email_sent_at: sentAt,
-    })
-    .eq("id", participantId);
+  try {
+    const { error: emailLogError } = await supabase
+      .from("email_logs")
+      .update({
+        status: "SENT",
+        provider_message_id: providerMessageId,
+        error_message: null,
+        sent_at: sentAt,
+      })
+      .eq("id", emailLogId);
+    const { error: participantError } = await supabase
+      .from("participants")
+      .update({
+        email_status: "SENT",
+        last_email_sent_at: sentAt,
+      })
+      .eq("id", participantId);
 
-  return !emailLogError && !participantError;
+    return !emailLogError && !participantError;
+  } catch {
+    return false;
+  }
 }
 
 export async function submitRegistration(
@@ -346,17 +358,17 @@ export async function submitRegistration(
       return submittedState(participant.registration_id, "failed");
     }
 
-    const persisted = await markEmailDeliverySent(
+    const persisted = await markEmailDeliveryAccepted(
       supabase,
       participant.id,
       emailLog.id,
       emailResult.providerMessageId,
     );
 
-    return submittedState(
-      participant.registration_id,
-      persisted ? "sent" : "failed",
-    );
+    return {
+      ...submittedState(participant.registration_id, "accepted"),
+      emailStatusSyncPending: !persisted,
+    };
   } catch {
     return stateWithGeneralError(GENERAL_ERROR);
   }

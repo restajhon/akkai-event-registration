@@ -77,11 +77,11 @@ function statusClassName(status: DatabaseParticipantRow["registration_status"]) 
 function emailStatusLabel(status: DatabaseParticipantRow["email_status"]) {
   switch (status) {
     case "SENT":
-      return "Terkirim";
+      return "Diterima layanan pengiriman";
     case "FAILED":
-      return "Gagal";
+      return "Gagal sebelum diterima layanan";
     case "PENDING":
-      return "Diproses";
+      return "Belum terkonfirmasi / perlu dicek";
   }
 }
 
@@ -318,10 +318,10 @@ export default async function ParticipantDetailPage({
               valueClassName={emailStatusClassName(participant.email_status)}
             />
             <DetailField
-              label="Pengiriman Email Berhasil Terakhir"
+              label="Penerimaan layanan terakhir"
               value={formatDateTime(
                 participant.last_email_sent_at,
-                "Belum ada pengiriman berhasil",
+                "Belum ada penerimaan layanan",
               )}
             />
             <DetailField
