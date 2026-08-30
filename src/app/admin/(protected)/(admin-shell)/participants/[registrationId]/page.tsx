@@ -8,6 +8,7 @@ import {
   ResendQrButton,
   type AttendanceSummary,
 } from "../participant-list";
+import { EmailCorrectionForm } from "../email-correction-form";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ type DatabaseParticipantRow = {
   participant_category: string;
   registration_status: "REGISTERED" | "CANCELLED";
   email_status: "PENDING" | "SENT" | "FAILED";
+  email_generation: number;
   last_email_sent_at: string | null;
   created_at: string;
 };
@@ -104,7 +106,7 @@ async function loadDetailData(
     const { data: participant, error: participantError } = await adminSupabase
       .from("participants")
       .select(
-        "id, registration_id, full_name, email, member_number, institution, participant_category, registration_status, email_status, last_email_sent_at, created_at",
+        "id, registration_id, full_name, email, member_number, institution, participant_category, registration_status, email_status, email_generation, last_email_sent_at, created_at",
       )
       .eq("registration_id", registrationId)
       .maybeSingle();
@@ -313,12 +315,12 @@ export default async function ParticipantDetailPage({
               value={participant.member_number ?? "Tidak diisi"}
             />
             <DetailField
-              label="Status Email Terakhir"
+              label="Status Email ke Alamat Saat Ini"
               value={emailStatusLabel(participant.email_status)}
               valueClassName={emailStatusClassName(participant.email_status)}
             />
             <DetailField
-              label="Penerimaan layanan terakhir"
+              label="Penerimaan Layanan untuk Alamat Saat Ini"
               value={formatDateTime(
                 participant.last_email_sent_at,
                 "Belum ada penerimaan layanan",
@@ -329,6 +331,13 @@ export default async function ParticipantDetailPage({
               value={formatDateTime(participant.created_at)}
             />
           </dl>
+          <div className="mt-5 border-t border-[#eee6d8] pt-4">
+            <EmailCorrectionForm
+              currentEmail={participant.email}
+              emailGeneration={participant.email_generation}
+              registrationId={participant.registration_id}
+            />
+          </div>
         </section>
 
         <section

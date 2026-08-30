@@ -1,8 +1,8 @@
 -- Read-only H-3A1 email reliability verification queries.
 
 -- A. Inspect the atomic resend reservation RPC. Confirm participant locking,
--- exact idempotency lookup, rolling 60-second duplicate suppression, rolling
--- quota, and PENDING insertion are present.
+-- exact generation-aware idempotency lookup, current-generation rolling
+-- 60-second duplicate suppression, rolling quota, and PENDING insertion.
 SELECT pg_get_functiondef(
   'public.reserve_participant_email_resend(uuid,text,uuid,text)'::regprocedure
 ) AS reservation_function_definition;
@@ -113,10 +113,11 @@ ORDER BY CASE age_bucket
   ELSE 3
 END;
 
--- G. Participant/email-log relationship integrity. Expected: 0 rows.
+-- G. Participant/email-log foreign-key integrity. Expected: 0 rows. A
+-- recipient mismatch with the current participant email is allowed for older
+-- email generations and is not checked here as corruption.
 SELECT log.id, log.participant_id, log.email_type, log.status,
-       log.recipient_email, participant.email AS participant_email
+       log.recipient_email
 FROM public.email_logs AS log
 LEFT JOIN public.participants AS participant ON participant.id = log.participant_id
-WHERE participant.id IS NULL
-   OR log.recipient_email <> participant.email;
+WHERE participant.id IS NULL;

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { participantEmailSchema } from "./email";
+
 export const PARTICIPANT_CATEGORIES = [
   "Anggota AKKAI",
   "Pengurus AKKAI",
@@ -52,12 +54,7 @@ export const registrationSchema = z
       .trim()
       .min(3, requiredMessages.full_name)
       .max(100, requiredMessages.full_name),
-    email: z
-      .string()
-      .trim()
-      .min(1, requiredMessages.email)
-      .email("Format email belum sesuai.")
-      .transform((value) => value.toLowerCase()),
+    email: participantEmailSchema,
     phone_number: z.string().trim().min(1, requiredMessages.phone_number),
     institution: z
       .string()

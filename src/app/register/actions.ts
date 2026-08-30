@@ -22,19 +22,26 @@ const DUPLICATE_EMAIL_ERROR =
 const DUPLICATE_MEMBER_NUMBER_ERROR =
   "Nomor anggota ini sudah terdaftar. Silakan cek kembali data Anda atau hubungi panitia.";
 const REGISTRATION_CLOSED_ERROR = "Periode registrasi telah ditutup.";
-const EMAIL_LOG_IDEMPOTENCY_CONSTRAINT =
-  "email_logs_idempotency_key_unique";
 
-type ParticipantEmailData = {
-  id: string;
-  registration_id: string;
-  full_name: string;
-  email: string;
-  qr_token: string;
+type RegistrationReservation = {
+  result_code: string;
+  participant_id: string | null;
+  registration_id: string | null;
+  full_name: string | null;
+  email: string | null;
+  qr_token: string | null;
+  email_log_id: string | null;
+  email_generation: number | null;
 };
 
-type ExistingEmailLog = {
-  id: string;
+type FinalizationResult = {
+  result_code: string;
+};
+
+type ReservedEmailLog = {
+  participant_id: string;
+  recipient_email: string;
+  email_generation: number;
   status: "PENDING" | "SENT" | "FAILED";
 };
 
@@ -78,176 +85,57 @@ function submittedState(
   };
 }
 
-function errorContainsConstraint(error: unknown, constraintName: string) {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-
-  const databaseError = error as {
-    message?: unknown;
-    details?: unknown;
-    hint?: unknown;
-  };
-
-  return [databaseError.message, databaseError.details, databaseError.hint].some(
-    (value) =>
-      typeof value === "string" && value.includes(constraintName),
-  );
-}
-
-function isUniqueViolation(error: unknown, constraintName: string) {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-
-  const databaseError = error as { code?: unknown };
-
-  return (
-    databaseError.code === "23505" &&
-    errorContainsConstraint(error, constraintName)
-  );
-}
-
-function getDatabaseErrorState(error: unknown): RegistrationActionState {
-  const databaseError =
-    error && typeof error === "object"
-      ? (error as { code?: unknown })
-      : {};
-
-  if (
-    databaseError.code === "23505" &&
-    errorContainsConstraint(error, "participants_email_lower_unique")
-  ) {
-    return {
-      status: "duplicate-email",
-      fieldErrors: {},
-      emailDelivery: "not-attempted",
-      generalError: DUPLICATE_EMAIL_ERROR,
-    };
-  }
-
-  if (
-    databaseError.code === "23505" &&
-    errorContainsConstraint(error, "participants_member_number_upper_unique")
-  ) {
-    return {
-      status: "duplicate-member-number",
-      fieldErrors: {},
-      emailDelivery: "not-attempted",
-      generalError: DUPLICATE_MEMBER_NUMBER_ERROR,
-    };
-  }
-
-  return stateWithGeneralError(GENERAL_ERROR);
-}
-
-function getExistingEmailDelivery(
-  status: ExistingEmailLog["status"],
-): EmailDeliveryStatus {
-  if (status === "SENT") {
-    return "accepted";
-  }
-
-  if (status === "FAILED") {
-    return "failed";
-  }
-
-  return "not-attempted";
-}
-
-async function getExistingEmailLog(
+async function finalizeEmailAttempt(
   supabase: ReturnType<typeof createAdminClient>,
-  idempotencyKey: string,
-): Promise<ExistingEmailLog | null> {
-  const { data, error } = await supabase
-    .from("email_logs")
-    .select("id, status")
-    .eq("idempotency_key", idempotencyKey)
-    .maybeSingle();
+  participantId: string,
+  emailLogId: string,
+  emailGeneration: number,
+  finalStatus: "SENT" | "FAILED",
+  providerMessageId: string | null,
+  errorCategory: RegistrationEmailErrorCategory | null,
+): Promise<FinalizationResult | null> {
+  const { data, error } = await supabase.rpc(
+    "finalize_participant_email_attempt",
+    {
+      p_participant_id: participantId,
+      p_email_log_id: emailLogId,
+      p_email_generation: emailGeneration,
+      p_final_status: finalStatus,
+      p_provider_message_id: providerMessageId,
+      p_error_category: errorCategory,
+      p_sent_at: finalStatus === "SENT" ? new Date().toISOString() : null,
+    },
+  );
 
-  if (error || !data) {
+  if (error) {
     return null;
   }
 
-  return {
-    id: data.id,
-    status: data.status as ExistingEmailLog["status"],
-  };
+  return (Array.isArray(data) ? data[0] : data) as FinalizationResult | null;
 }
 
-async function markParticipantEmailFailed(
-  supabase: ReturnType<typeof createAdminClient>,
-  participantId: string,
-) {
-  try {
-    await supabase
-      .from("participants")
-      .update({ email_status: "FAILED" })
-      .eq("id", participantId);
-  } catch {
-    // Email bookkeeping must not affect the authoritative participant row.
-  }
-}
-
-async function markEmailLogFailed(
-  supabase: ReturnType<typeof createAdminClient>,
-  emailLogId: string,
-  errorCategory: RegistrationEmailErrorCategory,
-) {
-  try {
-    await supabase
-      .from("email_logs")
-      .update({
-        status: "FAILED",
-        provider_message_id: null,
-        error_message: errorCategory,
-        sent_at: null,
-      })
-      .eq("id", emailLogId);
-  } catch {
-    // A missing status update is recoverable through the stale-PENDING review.
-  }
-}
-
-async function markEmailDeliveryFailed(
+async function getReservedEmailLog(
   supabase: ReturnType<typeof createAdminClient>,
   participantId: string,
   emailLogId: string,
-  errorCategory: RegistrationEmailErrorCategory,
-) {
-  await markEmailLogFailed(supabase, emailLogId, errorCategory);
-  await markParticipantEmailFailed(supabase, participantId);
-}
+  emailGeneration: number,
+): Promise<ReservedEmailLog | null> {
+  const { data, error } = await supabase
+    .from("email_logs")
+    .select("participant_id, recipient_email, email_generation, status")
+    .eq("id", emailLogId)
+    .maybeSingle();
 
-async function markEmailDeliveryAccepted(
-  supabase: ReturnType<typeof createAdminClient>,
-  participantId: string,
-  emailLogId: string,
-  providerMessageId: string,
-) {
-  const sentAt = new Date().toISOString();
-  try {
-    const { error: emailLogError } = await supabase
-      .from("email_logs")
-      .update({
-        status: "SENT",
-        provider_message_id: providerMessageId,
-        error_message: null,
-        sent_at: sentAt,
-      })
-      .eq("id", emailLogId);
-    const { error: participantError } = await supabase
-      .from("participants")
-      .update({
-        email_status: "SENT",
-        last_email_sent_at: sentAt,
-      })
-      .eq("id", participantId);
-
-    return !emailLogError && !participantError;
-  } catch {
-    return false;
+  if (
+    error ||
+    !data ||
+    data.participant_id !== participantId ||
+    data.email_generation !== emailGeneration
+  ) {
+    return null;
   }
+
+  return data as ReservedEmailLog;
 }
 
 export async function submitRegistration(
@@ -272,102 +160,140 @@ export async function submitRegistration(
 
   try {
     const supabase = createAdminClient();
-    const { data, error } = await supabase
-      .from("participants")
-      .insert({
-        full_name: parsed.data.full_name,
-        email: parsed.data.email,
-        phone_number: parsed.data.phone_number,
-        institution: parsed.data.institution,
-        participant_category: parsed.data.participant_category,
-        member_number: parsed.data.member_number,
-        privacy_consent_at: new Date().toISOString(),
-      })
-      .select("id, registration_id, full_name, email, qr_token")
-      .single();
+    const { data: reservationData, error: reservationError } = await supabase.rpc(
+      "create_participant_with_registration_reservation",
+      {
+        p_full_name: parsed.data.full_name,
+        p_email: parsed.data.email,
+        p_phone_number: parsed.data.phone_number,
+        p_institution: parsed.data.institution,
+        p_participant_category: parsed.data.participant_category,
+        p_member_number: parsed.data.member_number,
+        p_privacy_consent_at: new Date().toISOString(),
+      },
+    );
 
-    if (error || !data?.registration_id) {
-      return getDatabaseErrorState(error);
+    if (reservationError || !reservationData) {
+      return stateWithGeneralError(GENERAL_ERROR);
     }
 
-    const participant = data as ParticipantEmailData;
-    const idempotencyKey = `registration:${participant.id}`;
-    const { data: emailLog, error: emailLogError } = await supabase
-      .from("email_logs")
-      .insert({
-        participant_id: participant.id,
-        email_type: "REGISTRATION",
-        recipient_email: participant.email,
-        status: "PENDING",
-        idempotency_key: idempotencyKey,
-        sent_by: null,
-        provider_message_id: null,
-        error_message: null,
-        sent_at: null,
-      })
-      .select("id")
-      .single();
+    const reservation = (Array.isArray(reservationData)
+      ? reservationData[0]
+      : reservationData) as RegistrationReservation | undefined;
 
-    if (emailLogError || !emailLog?.id) {
-      if (isUniqueViolation(emailLogError, EMAIL_LOG_IDEMPOTENCY_CONSTRAINT)) {
-        const existingEmailLog = await getExistingEmailLog(
-          supabase,
-          idempotencyKey,
-        );
+    if (!reservation) {
+      return stateWithGeneralError(GENERAL_ERROR);
+    }
 
-        return submittedState(
-          participant.registration_id,
-          existingEmailLog
-            ? getExistingEmailDelivery(existingEmailLog.status)
-            : "not-attempted",
-        );
-      }
+    if (reservation.result_code === "DUPLICATE_EMAIL") {
+      return {
+        status: "duplicate-email",
+        fieldErrors: {},
+        emailDelivery: "not-attempted",
+        generalError: DUPLICATE_EMAIL_ERROR,
+      };
+    }
 
-      await markParticipantEmailFailed(supabase, participant.id);
-      return submittedState(participant.registration_id, "failed");
+    if (reservation.result_code === "DUPLICATE_MEMBER_NUMBER") {
+      return {
+        status: "duplicate-member-number",
+        fieldErrors: {},
+        emailDelivery: "not-attempted",
+        generalError: DUPLICATE_MEMBER_NUMBER_ERROR,
+      };
+    }
+
+    if (reservation.result_code === "INVALID_INPUT") {
+      return stateWithGeneralError(
+        "Data pendaftaran belum dapat diproses. Silakan periksa kembali.",
+      );
+    }
+
+    const emailGeneration = reservation.email_generation;
+
+    if (
+      reservation.result_code !== "CREATED" ||
+      !reservation.participant_id ||
+      !reservation.registration_id ||
+      !reservation.full_name ||
+      !reservation.email ||
+      !reservation.qr_token ||
+      !reservation.email_log_id ||
+      emailGeneration === null ||
+      !Number.isSafeInteger(emailGeneration) ||
+      emailGeneration < 0
+    ) {
+      return stateWithGeneralError(GENERAL_ERROR);
+    }
+
+    const participantId = reservation.participant_id;
+    const registrationId = reservation.registration_id;
+    const fullName = reservation.full_name;
+    const qrToken = reservation.qr_token;
+    const emailLogId = reservation.email_log_id;
+    const idempotencyKey = `registration:${participantId}`;
+    const reservedEmailLog = await getReservedEmailLog(
+      supabase,
+      participantId,
+      emailLogId,
+      emailGeneration,
+    );
+
+    if (!reservedEmailLog || reservedEmailLog.status !== "PENDING") {
+      return stateWithGeneralError(GENERAL_ERROR);
     }
 
     let qrPngBuffer: Buffer;
     try {
-      qrPngBuffer = await generateParticipantQrPng(participant.qr_token);
+      qrPngBuffer = await generateParticipantQrPng(qrToken);
     } catch {
-      await markEmailDeliveryFailed(
+      await finalizeEmailAttempt(
         supabase,
-        participant.id,
-        emailLog.id,
+        participantId,
+        emailLogId,
+        reservedEmailLog.email_generation,
+        "FAILED",
+        null,
         "QR_GENERATION_ERROR",
       );
-      return submittedState(participant.registration_id, "failed");
+      return submittedState(registrationId, "failed");
     }
 
     const emailResult = await sendRegistrationEmail({
-      recipientEmail: participant.email,
-      fullName: participant.full_name,
-      registrationId: participant.registration_id,
+      recipientEmail: reservedEmailLog.recipient_email,
+      fullName,
+      registrationId,
       qrPngBuffer,
       idempotencyKey,
     });
 
     if (!emailResult.success) {
-      await markEmailDeliveryFailed(
+      await finalizeEmailAttempt(
         supabase,
-        participant.id,
-        emailLog.id,
+        participantId,
+        emailLogId,
+        reservedEmailLog.email_generation,
+        "FAILED",
+        null,
         emailResult.errorCategory,
       );
-      return submittedState(participant.registration_id, "failed");
+      return submittedState(registrationId, "failed");
     }
 
-    const persisted = await markEmailDeliveryAccepted(
+    const finalization = await finalizeEmailAttempt(
       supabase,
-      participant.id,
-      emailLog.id,
+      participantId,
+      emailLogId,
+      reservedEmailLog.email_generation,
+      "SENT",
       emailResult.providerMessageId,
+      null,
     );
 
     return {
-      ...submittedState(participant.registration_id, "accepted"),
-      emailStatusSyncPending: !persisted,
+      ...submittedState(registrationId, "accepted"),
+      emailStatusSyncPending:
+        finalization?.result_code !== "CURRENT_GENERATION",
     };
   } catch {
     return stateWithGeneralError(GENERAL_ERROR);

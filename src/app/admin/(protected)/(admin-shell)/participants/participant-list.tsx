@@ -6,39 +6,18 @@ import { useActionState, useState } from "react";
 import { initialParticipantActionState } from "@/lib/participants/participant-action-state";
 
 import { resendRegistrationQr } from "./actions";
+import { searchParticipants } from "./search-actions";
+import type {
+  AttendanceSummary,
+  ParticipantListItem,
+  ParticipantPageData,
+} from "./participant-page-data";
 
-export type AttendanceSummary = {
-  checkedIn: boolean;
-  checkedInAt: string | null;
-};
-
-export type ParticipantListItem = {
-  registrationId: string;
-  fullName: string;
-  email: string;
-  institution: string;
-  participantCategory: string;
-  registrationStatus: "REGISTERED" | "CANCELLED";
-  emailStatus: "PENDING" | "SENT" | "FAILED";
-  createdAt: string;
-  arrival: AttendanceSummary;
-  seminar: AttendanceSummary;
-};
-
-export type ParticipantSummary = {
-  registered: number;
-  cancelled: number;
-  emailFailed: number;
-};
-
-type ParticipantListProps = {
-  participants: ParticipantListItem[];
-  summary: ParticipantSummary;
-  query: string;
-  page: number;
-  totalPages: number;
-  totalCount: number;
-};
+export type {
+  AttendanceSummary,
+  ParticipantListItem,
+  ParticipantSummary,
+} from "./participant-page-data";
 
 function formatDateTime(dateValue: string | null, emptyLabel = "Waktu tidak tersedia") {
   if (!dateValue) {
@@ -74,17 +53,6 @@ function attendanceLabel(attendance: AttendanceSummary) {
 
 function attendanceClassName(attendance: AttendanceSummary) {
   return attendance.checkedIn ? "text-[#267044]" : "text-[#897657]";
-}
-
-function pageHref(query: string, page: number) {
-  const params = new URLSearchParams();
-
-  if (query) {
-    params.set("q", query);
-  }
-
-  params.set("page", page.toString());
-  return `/admin/participants?${params.toString()}`;
 }
 
 export function ResendQrButton({
@@ -213,13 +181,17 @@ function ParticipantStatus({
 }
 
 export function ParticipantList({
-  participants,
-  summary,
-  query,
-  page,
-  totalPages,
-  totalCount,
-}: ParticipantListProps) {
+  initialData,
+}: {
+  initialData: ParticipantPageData;
+}) {
+  const [searchState, searchAction, searchPending] = useActionState(
+    searchParticipants,
+    { data: initialData, message: null },
+  );
+  const { participants, summary, query, page, totalPages, totalCount } =
+    searchState.data;
+
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
       <section className="mx-auto max-w-[1380px]">
@@ -243,34 +215,46 @@ export function ParticipantList({
           <p className="mt-1 text-sm text-[#5b6c7c]">
             Cari berdasarkan nama, nomor registrasi, email, atau nomor anggota.
           </p>
-          <form className="mt-3 flex flex-col gap-2.5 sm:flex-row" method="get">
+          <form action={searchAction} className="mt-3 flex flex-col gap-2.5 sm:flex-row">
             <label className="sr-only" htmlFor="participant-search">
               Cari berdasarkan nama, nomor registrasi, email, atau nomor anggota
             </label>
             <input
               className="min-h-11 min-w-0 flex-1 rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none placeholder:text-[#9a9489] focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac]"
               defaultValue={query}
+              disabled={searchPending}
               id="participant-search"
+              key={query}
               maxLength={100}
-              name="q"
+              name="query"
               placeholder="Cari berdasarkan nama, nomor registrasi, email, atau nomor anggota"
               type="search"
             />
+            <input name="page" type="hidden" value="1" />
             <button
-              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-5 text-sm font-semibold text-white outline-none hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-5 text-sm font-semibold text-white outline-none hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={searchPending}
               type="submit"
             >
-              Cari
+              {searchPending ? "Mencari..." : "Cari"}
             </button>
             {query ? (
-              <Link
-                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b99a5a] px-5 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
-                href="/admin/participants"
+              <button
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b99a5a] px-5 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={searchPending}
+                name="reset"
+                type="submit"
+                value="true"
               >
                 Reset
-              </Link>
+              </button>
             ) : null}
           </form>
+          {searchState.message ? (
+            <p className="mt-3 text-sm text-[#9b3d31]" role="alert">
+              {searchState.message}
+            </p>
+          ) : null}
         </section>
 
         <section aria-label="Ringkasan peserta" className="mt-4 grid gap-2 sm:grid-cols-3">
@@ -332,24 +316,34 @@ export function ParticipantList({
 
         <nav aria-label="Pagination peserta" className="mt-5 flex items-center justify-between gap-3">
           {page > 1 ? (
-            <Link
-              aria-label="Halaman sebelumnya"
-              className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
-              href={pageHref(query, page - 1)}
-            >
-              Sebelumnya
-            </Link>
+            <form action={searchAction}>
+              <input name="query" type="hidden" value={query} />
+              <input name="page" type="hidden" value={page - 1} />
+              <button
+                aria-label="Halaman sebelumnya"
+                className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={searchPending}
+                type="submit"
+              >
+                Sebelumnya
+              </button>
+            </form>
           ) : (
             <span aria-hidden="true" className="min-h-11" />
           )}
           {page < totalPages ? (
-            <Link
-              aria-label="Halaman berikutnya"
-              className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
-              href={pageHref(query, page + 1)}
-            >
-              Berikutnya
-            </Link>
+            <form action={searchAction}>
+              <input name="query" type="hidden" value={query} />
+              <input name="page" type="hidden" value={page + 1} />
+              <button
+                aria-label="Halaman berikutnya"
+                className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={searchPending}
+                type="submit"
+              >
+                Berikutnya
+              </button>
+            </form>
           ) : (
             <span aria-hidden="true" className="min-h-11" />
           )}

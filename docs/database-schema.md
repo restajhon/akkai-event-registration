@@ -56,6 +56,8 @@ Data peserta dan tiket digital.
 - member number unique secara case-insensitive melalui `upper(member_number)`
 - `participant_category` adalah text, wajib, tidak boleh kosong, maksimal 100 karakter
 - `registration_status` menggunakan cancel, bukan penghapusan record
+- `email_generation` bertambah setiap kali alamat email dikoreksi. Nilai ini
+  menjaga status aggregate participant tetap terkait dengan alamat saat ini.
 
 ### `scanner_stations`
 
@@ -82,14 +84,34 @@ Audit setiap percobaan scan, termasuk invalid QR. `participant_id` dan `attendan
 Audit email registration dan resend. Tidak menyimpan credential atau password.
 
 `email_logs` adalah histori detail setiap upaya. `participants.email_status` adalah
-ringkasan operasional dari upaya terakhir yang diketahui, bukan bukti email masuk
-ke inbox. Respons Resend yang sukses berarti layanan pengiriman menerima request;
-status `SENT` mempertahankan nama enum lama untuk kompatibilitas.
+ringkasan operasional dari status upaya email terakhir yang diketahui untuk
+`email_generation` saat ini, bukan bukti email masuk ke inbox. Respons Resend yang
+sukses berarti layanan pengiriman menerima request; status `SENT` mempertahankan
+nama enum lama untuk kompatibilitas. `last_email_sent_at` hanya berlaku untuk
+generation saat ini dan tidak dihapus oleh kegagalan berikutnya pada generation
+yang sama.
+
+`email_logs.email_generation` menyimpan generation saat setiap upaya dibuat.
+`email_logs.recipient_email` adalah snapshot historis alamat yang digunakan dan
+boleh berbeda dari alamat participant saat ini jika generation sudah berubah.
+
+`participant_email_changes` menyimpan audit immutable untuk koreksi email. Koreksi
+menaikkan generation, mengembalikan status email ke `PENDING`, dan mengosongkan
+`last_email_sent_at`; pengiriman ulang tetap merupakan aksi admin yang terpisah.
+
+Migration `20260829110000_add_admin_email_correction_and_delivery_generation.sql`
+menyediakan generation tracking, audit koreksi, reservasi registrasi atomik,
+finalisasi generation-aware, dan RPC koreksi email.
+
+PENDING generation saat ini yang berusia kurang dari 15 menit memblokir koreksi.
+PENDING yang lebih lama memerlukan konfirmasi eksplisit bahwa status provider tidak
+diketahui dan alamat lama mungkin masih menerima email sebelumnya.
 
 Migration `20260828100000_add_atomic_email_resend_reservation.sql` menyediakan
 RPC `reserve_participant_email_resend` untuk mengunci participant, mencegah
 duplikasi idempotency key, dan menghitung maksimal lima `RESEND` dalam rolling 24
-jam sebelum membuat log `PENDING`. RPC hanya dapat dipanggil oleh `service_role`.
+jam sebelum membuat log `PENDING`. Resend key dan log menyimpan generation saat
+reservasi. RPC hanya dapat dipanggil oleh `service_role`.
 
 `PENDING` yang lebih tua dari 15 menit diperlakukan aplikasi sebagai UNKNOWN atau
 perlu dicek, bukan otomatis dianggap gagal. Kunci resend berbasis bucket menit
@@ -114,3 +136,8 @@ Policy awal:
 - Tidak ada policy direct client untuk write operasional.
 
 Registration, ticket, admin, dan check-in menggunakan Next.js server route/server action dengan `SUPABASE_SECRET_KEY` yang hanya tersedia di server. Server wajib melakukan validasi dan authorization.
+
+RPC koreksi email, reservasi registrasi awal, reservasi resend, dan finalisasi
+email menggunakan lock order `participants FOR UPDATE` lalu `email_logs FOR
+UPDATE` jika keduanya diperlukan. Pemanggilan provider selalu terjadi setelah
+transaksi database selesai.

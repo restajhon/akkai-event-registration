@@ -11,6 +11,10 @@ import {
 import { generateParticipantQrPng } from "@/lib/qr/participant-qr";
 import type { ParticipantActionState } from "@/lib/participants/participant-action-state";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  emailCorrectionSchema,
+  getEmailCorrectionFieldErrors,
+} from "@/lib/validation/email";
 
 const registrationIdSchema = z.string().regex(/^AKKAI26-[0-9]{6}$/);
 const STALE_PENDING_WINDOW_MS = 15 * 60 * 1000;
@@ -21,6 +25,7 @@ type ParticipantEmailRow = {
   full_name: string;
   email: string;
   qr_token: string;
+  email_generation: number;
   registration_status: "REGISTERED" | "CANCELLED";
 };
 
@@ -33,6 +38,18 @@ type ExistingResendLog = {
 type ResendReservation = {
   result_code: string;
   email_log_id: string | null;
+};
+
+type ReservedEmailLog = {
+  id: string;
+  participant_id: string;
+  recipient_email: string;
+  email_generation: number;
+  status: "PENDING" | "SENT" | "FAILED";
+};
+
+type FinalizationResult = {
+  result_code: string;
 };
 
 function errorState(message: string): ParticipantActionState {
@@ -64,6 +81,11 @@ function minuteBucket(date: Date) {
 function readRegistrationId(formData: FormData) {
   const value = formData.get("registrationId");
   return typeof value === "string" ? value.trim() : null;
+}
+
+function readFormString(formData: FormData, field: string) {
+  const value = formData.get(field);
+  return typeof value === "string" ? value : "";
 }
 
 function revalidateParticipantPaths(registrationId: string) {
@@ -125,61 +147,148 @@ function existingLogState(
   }
 }
 
-async function markEmailFailed(
+async function getReservedEmailLog(
   supabase: ReturnType<typeof createAdminClient>,
-  participantId: string,
   emailLogId: string,
-  errorCategory: RegistrationEmailErrorCategory,
-) {
-  try {
-    await supabase
-      .from("email_logs")
-      .update({
-        status: "FAILED",
-        provider_message_id: null,
-        error_message: errorCategory,
-        sent_at: null,
-      })
-      .eq("id", emailLogId);
+): Promise<ReservedEmailLog | null> {
+  const { data, error } = await supabase
+    .from("email_logs")
+    .select("id, participant_id, recipient_email, email_generation, status")
+    .eq("id", emailLogId)
+    .maybeSingle();
 
-    await supabase
-      .from("participants")
-      .update({ email_status: "FAILED" })
-      .eq("id", participantId);
-  } catch {
-    // The participant remains authoritative even if failure bookkeeping fails.
+  if (error || !data) {
+    return null;
   }
+
+  return data as ReservedEmailLog;
 }
 
-async function markEmailAccepted(
+async function finalizeEmailAttempt(
   supabase: ReturnType<typeof createAdminClient>,
   participantId: string,
   emailLogId: string,
-  providerMessageId: string,
-) {
-  const sentAt = new Date().toISOString();
+  emailGeneration: number,
+  finalStatus: "SENT" | "FAILED",
+  providerMessageId: string | null,
+  errorCategory: RegistrationEmailErrorCategory | null,
+): Promise<FinalizationResult | null> {
+  const { data, error } = await supabase.rpc(
+    "finalize_participant_email_attempt",
+    {
+      p_participant_id: participantId,
+      p_email_log_id: emailLogId,
+      p_email_generation: emailGeneration,
+      p_final_status: finalStatus,
+      p_provider_message_id: providerMessageId,
+      p_error_category: errorCategory,
+      p_sent_at: finalStatus === "SENT" ? new Date().toISOString() : null,
+    },
+  );
+
+  if (error) {
+    return null;
+  }
+
+  return (Array.isArray(data) ? data[0] : data) as FinalizationResult | null;
+}
+
+export async function correctParticipantEmail(
+  previousState: ParticipantActionState,
+  formData: FormData,
+): Promise<ParticipantActionState> {
+  void previousState;
+
+  const profile = await requireRole(["ADMIN"]);
+  const rawRegistrationId = readRegistrationId(formData);
+  const parsedRegistrationId = registrationIdSchema.safeParse(rawRegistrationId);
+  const parsedEmail = emailCorrectionSchema.safeParse({
+    new_email: readFormString(formData, "newEmail"),
+    confirm_new_email: readFormString(formData, "confirmNewEmail"),
+  });
+  const rawGeneration = readFormString(formData, "emailGeneration");
+  const expectedEmailGeneration = Number(rawGeneration);
+
+  if (
+    !parsedRegistrationId.success ||
+    !parsedEmail.success ||
+    !Number.isSafeInteger(expectedEmailGeneration) ||
+    expectedEmailGeneration < 0
+  ) {
+    const fieldErrors = parsedEmail.success
+      ? {}
+      : getEmailCorrectionFieldErrors(parsedEmail.error);
+    const firstError = Object.values(fieldErrors)[0];
+
+    return errorState(firstError ?? "Data email tidak valid.");
+  }
+
+  const registrationId = parsedRegistrationId.data;
+  const newEmail = parsedEmail.data.new_email;
+  const allowStalePending =
+    readFormString(formData, "stalePendingConfirmed") === "true";
 
   try {
-    const { error: sentLogError } = await supabase
-      .from("email_logs")
-      .update({
-        status: "SENT",
-        provider_message_id: providerMessageId,
-        error_message: null,
-        sent_at: sentAt,
-      })
-      .eq("id", emailLogId);
-    const { error: participantUpdateError } = await supabase
+    const supabase = createAdminClient();
+    const { data: participant, error: participantError } = await supabase
       .from("participants")
-      .update({
-        email_status: "SENT",
-        last_email_sent_at: sentAt,
-      })
-      .eq("id", participantId);
+      .select("id")
+      .eq("registration_id", registrationId)
+      .maybeSingle();
 
-    return !sentLogError && !participantUpdateError;
+    if (participantError || !participant) {
+      return errorState("Peserta belum dapat dimuat. Silakan coba kembali.");
+    }
+
+    const { data: resultData, error: correctionError } = await supabase.rpc(
+      "correct_participant_email",
+      {
+        p_participant_id: participant.id,
+        p_new_email: newEmail,
+        p_changed_by: profile.id,
+        p_expected_email_generation: expectedEmailGeneration,
+        p_allow_stale_pending: allowStalePending,
+      },
+    );
+
+    if (correctionError) {
+      return errorState("Email peserta belum dapat diperbarui. Silakan coba kembali.");
+    }
+
+    const result = (Array.isArray(resultData) ? resultData[0] : resultData) as
+      | { result_code: string }
+      | undefined;
+
+    switch (result?.result_code) {
+      case "UPDATED":
+        revalidateParticipantPaths(registrationId);
+        return {
+          status: "success",
+          message:
+            "Email peserta berhasil diperbarui. Nomor registrasi dan QR tidak berubah. Silakan kirim ulang email registrasi ke alamat baru.",
+        };
+      case "NO_CHANGE":
+        return infoState("Email peserta tidak berubah.");
+      case "DUPLICATE_EMAIL":
+        return errorState("Email tersebut sudah digunakan oleh peserta lain.");
+      case "EMAIL_SEND_PENDING":
+        return infoState(
+          "Masih ada proses pengiriman email yang baru saja dimulai. Tunggu hingga proses tersebut selesai sebelum mengubah alamat email.",
+        );
+      case "STALE_PENDING_REQUIRES_CONFIRMATION":
+        return {
+          status: "info",
+          message:
+            "Status pengiriman sebelumnya tidak diketahui. Konfirmasi bahwa alamat lama mungkin masih menerima email sebelumnya sebelum melanjutkan.",
+          requiresStalePendingConfirmation: true,
+        };
+      case "STALE_FORM":
+        return infoState("Data peserta telah berubah. Muat ulang halaman sebelum mencoba lagi.");
+      default:
+        return errorState("Email peserta belum dapat diperbarui. Silakan coba kembali.");
+    }
   } catch {
-    return false;
+    return errorState("Email peserta belum dapat diperbarui. Silakan coba kembali.");
   }
 }
 
@@ -203,7 +312,9 @@ export async function resendRegistrationQr(
     const supabase = createAdminClient();
     const { data: participant, error: participantError } = await supabase
       .from("participants")
-      .select("id, registration_id, full_name, email, qr_token, registration_status")
+      .select(
+        "id, registration_id, full_name, email, qr_token, email_generation, registration_status",
+      )
       .eq("registration_id", registrationId)
       .maybeSingle();
 
@@ -227,7 +338,7 @@ export async function resendRegistrationQr(
 
     // The bucket is generated on the server and never supplied by the browser.
     const serverNow = new Date();
-    const idempotencyKey = `resend:${participantRow.id}:${minuteBucket(serverNow)}`;
+    const idempotencyKey = `resend:${participantRow.id}:g${participantRow.email_generation}:${minuteBucket(serverNow)}`;
     const { data: reservationData, error: reservationError } = await supabase.rpc(
       "reserve_participant_email_resend",
       {
@@ -266,6 +377,12 @@ export async function resendRegistrationQr(
       return errorState("Peserta tidak ditemukan.");
     }
 
+    if (reservation.result_code === "RECIPIENT_MISMATCH") {
+      return infoState(
+        "Data peserta telah berubah. Muat ulang halaman sebelum mencoba lagi.",
+      );
+    }
+
     if (reservation.result_code === "ALREADY_RESERVED") {
       const existingLog = await getExistingResendLog(supabase, idempotencyKey);
       return existingLog
@@ -286,16 +403,28 @@ export async function resendRegistrationQr(
     }
 
     const emailLogId = reservation.email_log_id;
+    const reservedEmailLog = await getReservedEmailLog(supabase, emailLogId);
+
+    if (
+      !reservedEmailLog ||
+      reservedEmailLog.participant_id !== participantRow.id ||
+      reservedEmailLog.status !== "PENDING"
+    ) {
+      return errorState("Pengiriman QR belum dapat dimulai. Silakan coba kembali.");
+    }
 
     let qrPngBuffer: Buffer;
 
     try {
       qrPngBuffer = await generateParticipantQrPng(participantRow.qr_token);
     } catch {
-      await markEmailFailed(
+      await finalizeEmailAttempt(
         supabase,
         participantRow.id,
         emailLogId,
+        reservedEmailLog.email_generation,
+        "FAILED",
+        null,
         "QR_GENERATION_ERROR",
       );
       revalidateParticipantPaths(registrationId);
@@ -303,7 +432,7 @@ export async function resendRegistrationQr(
     }
 
     const emailResult = await sendRegistrationEmail({
-      recipientEmail: participantRow.email,
+      recipientEmail: reservedEmailLog.recipient_email,
       fullName: participantRow.full_name,
       registrationId: participantRow.registration_id,
       qrPngBuffer,
@@ -311,10 +440,13 @@ export async function resendRegistrationQr(
     });
 
     if (!emailResult.success) {
-      await markEmailFailed(
+      await finalizeEmailAttempt(
         supabase,
         participantRow.id,
         emailLogId,
+        reservedEmailLog.email_generation,
+        "FAILED",
+        null,
         emailResult.errorCategory,
       );
       revalidateParticipantPaths(registrationId);
@@ -323,16 +455,31 @@ export async function resendRegistrationQr(
       );
     }
 
-    const persisted = await markEmailAccepted(
+    const finalization = await finalizeEmailAttempt(
       supabase,
       participantRow.id,
       emailLogId,
+      reservedEmailLog.email_generation,
+      "SENT",
       emailResult.providerMessageId,
+      null,
     );
 
     revalidateParticipantPaths(registrationId);
 
-    if (!persisted) {
+    if (!finalization) {
+      return infoState(
+        "Email telah diterima oleh layanan pengiriman, tetapi status internal belum dapat diperbarui. Jangan kirim ulang otomatis; silakan periksa kembali.",
+      );
+    }
+
+    if (finalization.result_code === "STALE_GENERATION") {
+      return infoState(
+        "Email telah diterima oleh layanan pengiriman untuk alamat sebelumnya. Alamat saat ini masih memerlukan pengiriman ulang terpisah.",
+      );
+    }
+
+    if (finalization.result_code !== "CURRENT_GENERATION") {
       return infoState(
         "Email telah diterima oleh layanan pengiriman, tetapi status internal belum dapat diperbarui. Jangan kirim ulang otomatis; silakan periksa kembali.",
       );

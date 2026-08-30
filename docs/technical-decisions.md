@@ -77,6 +77,26 @@ RLS diaktifkan pada seluruh tabel sejak initial migration.
 - Tidak ada direct client write policy untuk data operasional.
 - Privileged server client menjadi jalur akses aplikasi dan RLS tetap menjadi defense-in-depth.
 
+## Email Correction And Delivery Generations
+
+`participants.email_generation` adalah generation alamat email saat ini. Setiap
+koreksi email menaikkan nilainya, mengatur `email_status` menjadi `PENDING`, dan
+mengosongkan `last_email_sent_at`. Status tersebut hanya boleh diperbarui oleh
+finalisasi attempt yang generation-nya masih sama dengan participant.
+
+`email_logs.email_generation` dan `recipient_email` adalah snapshot immutable dari
+attempt historis. Perubahan alamat tidak menulis ulang email log lama. Audit
+koreksi disimpan di `participant_email_changes` dan tidak diekspos melalui policy
+anon atau authenticated.
+
+Koreksi diblokir oleh current-generation `PENDING` yang lebih muda dari 15 menit.
+PENDING yang lebih lama hanya dapat dilewati dengan konfirmasi stale yang diterima
+oleh RPC, bukan UI saja. Lock order untuk transaksi terkait adalah participant
+terlebih dahulu, lalu email log. Provider email selalu dipanggil di luar transaksi.
+
+Participant search menggunakan POST Server Action dengan state ephemeral; query
+tidak disimpan di URL, browser storage, atau cookie.
+
 ### Environment Variable Naming
 
 Nama resmi yang digunakan:
