@@ -97,6 +97,41 @@ terlebih dahulu, lalu email log. Provider email selalu dipanggil di luar transak
 Participant search menggunakan POST Server Action dengan state ephemeral; query
 tidak disimpan di URL, browser storage, atau cookie.
 
+## H-3 Email Delivery
+
+Identitas transactional email final adalah:
+
+```text
+AKKAI 2026 <registration@mail.esi-akkai-event.my.id>
+```
+
+Reply-To sengaja belum diset. Reply-To hanya akan ditambahkan setelah alamat
+mailbox AKKAI atau Eagle Spirit Indonesia yang benar-benar dimonitor telah
+dikonfirmasi. Alamat yang tidak dimonitor tidak boleh digunakan.
+
+DMARC untuk launch tetap menggunakan policy minimum:
+
+```text
+v=DMARC1; p=none;
+```
+
+Belum ada `rua` karena belum ada tujuan pelaporan yang sah. Quarantine dan
+reject adalah langkah hardening setelah event, bukan perubahan sebelum launch.
+
+Status `SENT` berarti provider email menerima request pengiriman. Status ini
+bukan bukti email masuk inbox, dibaca, atau diterima manusia.
+
+Environment contract aplikasi saat ini hanya terdiri dari:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SECRET_KEY`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+
+Konfigurasi Production, deployment Production, dan aktivasi domain Production
+termasuk H-4 dan sengaja belum disiapkan pada H-3.
+
 ### Environment Variable Naming
 
 Nama resmi yang digunakan:

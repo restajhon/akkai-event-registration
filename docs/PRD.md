@@ -264,8 +264,11 @@ Tujuan:
 | Status    | Keterangan             |
 | --------- | ---------------------- |
 | `PENDING` | Email belum diproses   |
-| `SENT`    | Email berhasil dikirim |
+| `SENT`    | Provider menerima request pengiriman |
 | `FAILED`  | Email gagal dikirim    |
+
+`SENT` berarti provider email menerima request pengiriman. Status ini bukan
+jaminan email masuk inbox atau dibaca oleh penerima.
 
 ## 8.3 Session Status
 
@@ -661,7 +664,7 @@ Simpan QR berikut dan tunjukkan kepada panitia saat check-in.
 Contoh:
 
 ```text
-Tiket juga telah dikirim ke re***@gmail.com.
+Provider email telah menerima request pengiriman tiket ke re***@gmail.com.
 ```
 
 ### Tombol
@@ -676,7 +679,7 @@ Apabila fitur download image belum stabil, tombol Simpan QR dapat diarahkan ke i
 #### Email sent
 
 ```text
-Tiket telah dikirim ke email Anda.
+Provider email telah menerima request pengiriman tiket ke alamat email Anda.
 ```
 
 #### Email pending
@@ -859,7 +862,7 @@ Menampilkan kondisi registrasi dan kehadiran secara ringkas.
 
 * Total peserta terdaftar.
 * Total peserta dibatalkan.
-* Email berhasil dikirim.
+* Email diterima oleh layanan pengiriman.
 * Email gagal dikirim.
 * Hadir Registrasi Kedatangan.
 * Belum hadir Registrasi Kedatangan.
@@ -2322,12 +2325,11 @@ MVP dianggap selesai apabila:
 Contoh nama variable:
 
 ```text
-NEXT_PUBLIC_APP_URL=
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SECRET_KEY=
 RESEND_API_KEY=
-EMAIL_FROM=
+RESEND_FROM_EMAIL=
 ```
 
 Aturan:
