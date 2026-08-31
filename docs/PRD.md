@@ -504,25 +504,18 @@ Mengumpulkan data peserta dan membuat pendaftaran baru.
 | Field               | Key                    | Tipe     | Wajib | Validasi                         |
 | ------------------- | ---------------------- | -------- | ----: | -------------------------------- |
 | Nama lengkap        | `full_name`            | Text     |    Ya | Minimal 3 karakter, maksimal 100 |
-| Nomor anggota AKKAI | `member_number`        | Text     |    Ya | Minimal 3 karakter, maksimal 50  |
+| Nomor anggota AKKAI | `member_number`        | Text     |    -  | Opsional; minimal 3 karakter, maksimal 50 bila diisi |
 | Email               | `email`                | Email    |    Ya | Format email valid               |
 | Nomor WhatsApp      | `phone_number`         | Tel/Text |    Ya | 9–15 digit setelah normalisasi   |
-| Institusi/Cabang    | `institution`          | Text     |    Ya | Minimal 2 karakter, maksimal 150 |
-| Jabatan/Kategori    | `participant_category` | Select   |    Ya | Harus memilih satu opsi          |
+| Institusi/Cabang    | `institution`          | Text     |    -  | Data historis nullable; H-3D2 tidak lagi mengumpulkan |
+| Jabatan/Kategori    | `participant_category` | Text     |    Ya | Free text, 1-100 karakter; tanpa whitelist |
 | Persetujuan data    | `privacy_consent`      | Checkbox |    Ya | Harus dicentang                  |
 
-### Opsi kategori peserta
+### Kategori peserta
 
-Opsi awal:
-
-* Anggota AKKAI.
-* Pengurus AKKAI.
-* Narasumber.
-* Tamu Undangan.
-* Panitia.
-* Lainnya.
-
-Daftar akhir harus dikonfirmasi kepada AKKAI sebelum form dibuka.
+`participant_category` disimpan sebagai text bebas, wajib diisi, di-trim, dan
+dibatasi 1-100 karakter. Tidak ada enum atau predefined whitelist. Perubahan
+UI form dari pilihan kategori menjadi free text termasuk H-3D2.
 
 ### Normalisasi data
 
@@ -533,7 +526,7 @@ Sebelum data disimpan:
 * Email diubah menjadi lowercase.
 * Nomor anggota di-trim dan diubah menjadi uppercase.
 * Nomor WhatsApp hanya menyimpan angka dan tanda plus apabila diperlukan.
-* Institusi di-trim.
+* Institusi historis tidak digunakan untuk pendaftaran baru.
 
 ### Validasi duplikasi
 
@@ -1824,11 +1817,14 @@ Laptop display hanya menampilkan data minimum yang diperlukan.
 | `id`                   | UUID      | Primary key              |
 | `registration_id`      | Text      | Unique human-readable ID |
 | `full_name`            | Text      | Nama peserta             |
-| `member_number`        | Text      | Unique, normalized       |
+| `member_number`        | Text      | Nullable, optional, unique normalized |
 | `email`                | Text      | Unique, lowercase        |
 | `phone_number`         | Text      | Nomor WhatsApp           |
-| `institution`          | Text      | Institusi/cabang         |
-| `participant_category` | Text/Enum | Kategori peserta         |
+| `institution`          | Text      | Nullable, data historis  |
+| `participant_category` | Text      | Required free text       |
+| `kka_name`             | Text      | Nullable untuk data lama |
+| `polo_size`            | Text      | Nullable untuk data lama |
+| `polo_model`           | Text      | Nullable untuk data lama |
 | `registration_status`  | Enum      | REGISTERED/CANCELLED     |
 | `email_status`         | Enum      | PENDING/SENT/FAILED      |
 | `qr_token`             | Text      | Unique secure token      |
@@ -1836,6 +1832,11 @@ Laptop display hanya menampilkan data minimum yang diperlukan.
 | `privacy_consent_at`   | Timestamp | Waktu persetujuan        |
 | `created_at`           | Timestamp | Server time              |
 | `updated_at`           | Timestamp | Server time              |
+
+H-3D1 membuat `institution` nullable untuk mempertahankan data historis dan
+menambahkan `kka_name`, `polo_size`, serta `polo_model` secara nullable. Form
+registrasi utama dan RPC yang menggunakannya akan dialihkan pada H-3D2; row
+lama tidak di-backfill.
 
 ## 20.2 Table `sessions`
 
@@ -1931,6 +1932,24 @@ UNIQUE(participant_id, session_id)
 | `sent_by`             | UUID      | Nullable untuk automation |
 | `created_at`          | Timestamp | Server time               |
 | `sent_at`             | Timestamp | Nullable                  |
+
+## 20.8 Table `participant_travel`
+
+Satu row current travel per participant. Tabel ini menyimpan satu tanggal dan
+satu waktu per leg keberangkatan/pulang, moda transportasi text, nomor
+transportasi opsional, titik asal/tujuan, dan `extend_stay`.
+
+## 20.9 Table `participant_room_assignments`
+
+Satu row assignment kamar saat ini per participant. Hotel tetap
+`Hotel Gumaya Semarang` dan tidak disimpan sebagai pilihan hotel peserta.
+`room_number` nullable untuk membedakan assignment yang belum lengkap.
+
+## 20.10 Table `participant_pickup_assignments`
+
+Satu row assignment penjemputan saat ini per participant dengan status
+`SCHEDULED`, `COMPLETED`, atau `CANCELLED`. Tidak adanya row berarti belum ada
+assignment. Mutation dikelola oleh ADMIN.
 
 ---
 

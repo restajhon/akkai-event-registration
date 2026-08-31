@@ -53,8 +53,12 @@ Data peserta dan tiket digital.
 - `registration_id` dibuat database dengan sequence concurrency-safe dalam format `AKKAI26-000001` sampai `AKKAI26-999999`
 - `qr_token` dibuat dari minimal 32 random bytes `pgcrypto`, disimpan plaintext dalam format hex, dan unique
 - email unique secara case-insensitive melalui `lower(email)`
-- member number unique secara case-insensitive melalui `upper(member_number)`
+- member number nullable dan opsional untuk semua kategori; bila diisi, unique secara case-insensitive melalui `upper(member_number)`
 - `participant_category` adalah text, wajib, tidak boleh kosong, maksimal 100 karakter
+- `kka_name`, `polo_size`, dan `polo_model` adalah nullable untuk mempertahankan
+  data peserta lama; pendaftaran baru akan divalidasi oleh RPC V2.
+- `institution` tetap dipertahankan sebagai kolom nullable untuk histori lama dan
+  tidak digunakan sebagai sumber data pendaftaran baru.
 - `registration_status` menggunakan cancel, bukan penghapusan record
 - `email_generation` bertambah setiap kali alamat email dikoreksi. Nilai ini
   menjaga status aggregate participant tetap terkait dengan alamat saat ini.
@@ -102,6 +106,38 @@ menaikkan generation, mengembalikan status email ke `PENDING`, dan mengosongkan
 Migration `20260829110000_add_admin_email_correction_and_delivery_generation.sql`
 menyediakan generation tracking, audit koreksi, reservasi registrasi atomik,
 finalisasi generation-aware, dan RPC koreksi email.
+
+Migration `20260830100000_add_h3d_participant_and_operational_data.sql` menambah
+data KKA dan poloshirt secara nullable, serta tabel modular untuk travel, kamar,
+dan penjemputan. Hotel event tetap `Hotel Gumaya Semarang` dan tidak disimpan
+sebagai pilihan hotel peserta.
+
+Migration `20260830110000_add_h3d_operational_rpcs.sql` menyediakan registration
+RPC V2, travel upsert, serta RPC assignment kamar dan penjemputan. RPC baru
+dibatasi untuk `service_role`. RPC registration lama tetap tersedia sementara
+agar rollout aplikasi tidak memiliki compatibility gap.
+
+### `participant_travel`
+
+Satu row current travel per participant. Data keberangkatan dan kepulangan
+memiliki satu tanggal dan satu waktu per leg, moda transportasi text yang
+dibatasi panjangnya, nomor transportasi opsional, titik asal/tujuan, dan
+`extend_stay`. Upsert identity memerlukan `registration_id` dan email terdaftar
+yang cocok untuk participant `REGISTERED`.
+
+### `participant_room_assignments`
+
+Satu row assignment kamar saat ini per participant. Hotel bersifat tetap pada
+konfigurasi event. `room_number` nullable sehingga status assigned/unassigned
+dapat diturunkan dari data. Tidak ada unique constraint pada nomor kamar karena
+satu kamar dapat ditempati beberapa peserta.
+
+### `participant_pickup_assignments`
+
+Satu row assignment penjemputan saat ini per participant. Status yang diizinkan
+adalah `SCHEDULED`, `COMPLETED`, dan `CANCELLED`; tidak adanya row berarti belum
+ada assignment. Assignment terjadwal atau selesai wajib memiliki waktu dan
+titik penjemputan.
 
 PENDING generation saat ini yang berusia kurang dari 15 menit memblokir koreksi.
 PENDING yang lebih lama memerlukan konfirmasi eksplisit bahwa status provider tidak

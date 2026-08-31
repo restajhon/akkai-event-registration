@@ -132,6 +132,32 @@ Environment contract aplikasi saat ini hanya terdiri dari:
 Konfigurasi Production, deployment Production, dan aktivasi domain Production
 termasuk H-4 dan sengaja belum disiapkan pada H-3.
 
+## H-3D1 Operational Data Model
+
+Migration H-3D1 bersifat additive dan tidak mengubah kontrak scan, manual
+check-in, Live Display, realtime, email, atau QR. `institution` menjadi nullable
+untuk menjaga histori lama, tetapi kolomnya tidak dihapus.
+
+Data pendaftaran baru menggunakan `kka_name`, `polo_size`, dan `polo_model`.
+Ketiganya nullable di database agar row lama tetap valid; validasi wajib untuk
+pendaftaran baru dilakukan oleh `create_participant_with_registration_reservation_v2`.
+`participant_category` tetap text dan tidak menggunakan enum atau whitelist.
+`member_number` tetap nullable dan opsional untuk semua kategori.
+
+Travel disimpan terpisah pada `participant_travel` dan di-submit melalui upsert
+atomic berbasis pasangan `registration_id` dan email terdaftar. Kamar dan
+penjemputan disimpan terpisah sebagai current operational assignments. Hotel
+event tetap `Hotel Gumaya Semarang`; tidak ada hotel selector peserta.
+
+Semua tabel baru memakai RLS tanpa policy direct untuk `anon` atau
+`authenticated`. Mutation menggunakan RPC `SECURITY DEFINER` dengan
+`search_path` eksplisit dan execution hanya untuk `service_role`. Mutation
+kamar dan penjemputan memvalidasi actor aktif dengan role `ADMIN` di dalam RPC.
+
+RPC registration lama tetap dipertahankan sementara untuk rollout kompatibel.
+Tidak ada backfill nilai KKA, poloshirt, travel, kamar, atau penjemputan dan
+tidak ada destructive migration.
+
 ### Environment Variable Naming
 
 Nama resmi yang digunakan:
