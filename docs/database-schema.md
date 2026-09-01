@@ -132,6 +132,20 @@ dibatasi panjangnya, nomor transportasi opsional, titik asal/tujuan, dan
 `extend_stay`. Upsert identity memerlukan `registration_id` dan email terdaftar
 yang cocok untuk participant `REGISTERED`.
 
+Migration H-3D3 menambahkan limiter durable pada schema `private` melalui tabel
+`private.participant_travel_rate_limits`. Tabel ini hanya menyimpan HMAC-SHA256
+key hash, awal window, dan jumlah percobaan. RLS aktif, schema dan tabel tidak
+memiliki akses direct API, dan mutation hanya tersedia melalui
+`consume_participant_travel_rate_limit(text[])` untuk `service_role`. RPC
+mengunci row secara atomik, menerapkan maksimal 12 percobaan per key dalam
+rolling 15 menit, serta membersihkan row yang lebih lama dari satu hari secara
+opportunistic pada setiap request limiter.
+
+Halaman `/travel` tetap tidak membaca atau menulis `participant_travel` secara
+langsung. Server Action menggunakan RPC rate limit lalu memanggil
+`upsert_participant_travel`; response browser hanya status berhasil atau pesan
+error dan tidak memuat UUID participant maupun QR token.
+
 ### `participant_room_assignments`
 
 Satu row assignment kamar saat ini per participant. Hotel bersifat tetap pada

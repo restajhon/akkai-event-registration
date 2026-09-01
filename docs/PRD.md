@@ -1983,6 +1983,33 @@ Satu row current travel per participant. Tabel ini menyimpan satu tanggal dan
 satu waktu per leg keberangkatan/pulang, moda transportasi text, nomor
 transportasi opsional, titik asal/tujuan, dan `extend_stay`.
 
+### H-3D3 Public Travel Form
+
+Halaman `/travel` terpisah dari `/register` dan hanya dapat menyimpan data
+untuk participant yang sudah terdaftar. Verifikasi menggunakan Registration ID
+dan email terdaftar yang cocok pada participant yang sama dan berstatus
+`REGISTERED`; participant `CANCELLED` ditolak dengan pesan identity generic yang
+sama seperti identity lain yang tidak valid. QR token tidak digunakan sebagai
+authentication.
+
+Form memiliki satu tanggal dan satu waktu untuk keberangkatan serta kepulangan,
+free text moda transportasi 1-50 karakter, nomor penerbangan/kereta opsional,
+asal dan tujuan keberangkatan, tujuan kepulangan, serta pilihan wajib Ya/Tidak
+untuk perpanjangan menginap. Tanggal kepulangan tidak boleh lebih awal dari
+tanggal keberangkatan. `Hotel Gumaya Semarang` adalah konteks akomodasi statis
+dan bukan field editable participant.
+
+Submission memakai `upsert_participant_travel` sehingga submission berulang
+mengubah current row yang sama. Tidak ada email yang dikirim setelah submission.
+Server Action tidak mengembalikan participant UUID, QR token, atau data pribadi
+yang tidak diperlukan ke browser, dan tidak menempatkan identity di URL atau
+query parameter.
+
+Verification/submission dilindungi rate limiter durable pada Supabase/Postgres.
+Limiter menyimpan HMAC key hash pada schema private dengan RLS aktif, bersifat
+atomik lintas instance, membatasi 12 percobaan per key dalam rolling 15 menit,
+dan membersihkan row lebih lama dari satu hari secara opportunistic.
+
 ## 20.9 Table `participant_room_assignments`
 
 Satu row assignment kamar saat ini per participant. Hotel tetap

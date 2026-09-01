@@ -58,3 +58,17 @@ Day 3
 - Tidak ada fleet, vehicle inventory, driver, atau room inventory pada fase ini.
 - Data baru tidak memiliki policy direct untuk anon atau authenticated client.
 - Status kelengkapan diturunkan dari row dan nilai data, bukan boolean duplikat.
+
+## H-3D3 Travel Form
+
+- `/travel` adalah halaman publik terpisah dari `/register` untuk peserta yang sudah terdaftar.
+- Verifikasi peserta menggunakan pasangan Registration ID dan email terdaftar; keduanya wajib cocok pada participant yang sama dan berstatus `REGISTERED`.
+- Registration ID dinormalisasi uppercase dan email dinormalisasi trim/lowercase di server. QR token bukan metode autentikasi travel.
+- Kesalahan identity tidak membedakan Registration ID tidak dikenal, email salah, pasangan campuran, atau participant `CANCELLED`; browser menerima pesan generic yang sama.
+- Form memiliki satu tanggal dan satu waktu untuk setiap leg. Moda transportasi adalah free text trim 1-50 karakter, bukan enum atau dropdown.
+- Nomor penerbangan/kereta bersifat opsional dan dibatasi panjangnya. Asal keberangkatan, tujuan keberangkatan, dan tujuan kepulangan adalah free text wajib.
+- Tanggal kepulangan tidak boleh lebih awal dari tanggal keberangkatan. `extend_stay` wajib berupa pilihan Ya atau Tidak.
+- Satu participant memiliki satu current travel row. Submission berikutnya meng-update row yang sama melalui `upsert_participant_travel`.
+- Hotel Gumaya Semarang adalah konteks akomodasi statis untuk semua peserta dan bukan field yang dapat diubah peserta.
+- Submission travel tidak mengirim email registrasi, resend, atau email travel.
+- Verification dan submission dilindungi durable rate limit Supabase/Postgres berbasis hash identity dan IP. Limit rolling 15 menit berakhir otomatis dan tidak mengunci participant secara permanen.

@@ -177,6 +177,46 @@ ARRIVAL tetap dibatasi pada code `SEMINAR`; DAY3 tidak mewarisinya.
 Satu QR participant digunakan kembali untuk ketiga session. Tidak ada token atau
 QR participant baru untuk DAY3.
 
+## H-3D3 Public Travel Form
+
+`/travel` dibuat sebagai route publik terpisah dari `/register`. Peserta tidak
+membuat akun dan tidak memakai QR untuk mengakses form; Server Action menerima
+Registration ID dan email terdaftar, menormalisasi keduanya, lalu menyerahkan
+validasi identity dan upsert kepada `upsert_participant_travel` yang sudah ada.
+RPC tersebut dipakai ulang karena sudah memvalidasi pasangan identity pada
+participant `REGISTERED`, menolak `CANCELLED`, dan memakai `ON CONFLICT
+(participant_id) DO UPDATE` untuk mempertahankan satu current row.
+
+Validasi aplikasi mencerminkan constraint database: satu date dan satu time per
+leg, moda transportasi free text 1-50 karakter, field lokasi wajib dengan batas
+panjang, nomor transportasi opsional, boolean `extend_stay`, dan tanggal pulang
+tidak lebih awal dari tanggal berangkat. Hotel `Hotel Gumaya Semarang` hanya
+ditampilkan sebagai informasi tetap, tanpa hotel field participant.
+
+Tidak ada email pada flow travel. Response success hanya berisi status minimal;
+UUID participant, QR token, dan data personal lain tidak dikembalikan ke
+browser. Identity failure memakai pesan generic yang sama untuk ID salah, email
+salah, pasangan campuran, dan participant `CANCELLED`.
+
+## H-3D3 Durable Rate Limiting
+
+Karena belum ada limiter public yang dapat dipakai ulang, migration additive
+`20260901110000_add_participant_travel_rate_limit.sql` membuat tabel private
+`private.participant_travel_rate_limits` dan RPC
+`consume_participant_travel_rate_limit`. Server-only code membuat HMAC-SHA256
+hash dari pasangan identity dan alamat client menggunakan secret server sebelum
+memanggil RPC; email, Registration ID, IP, dan QR token tidak disimpan mentah.
+
+RPC `SECURITY DEFINER` memakai `search_path` eksplisit, RLS aktif, direct access
+ditutup, dan execution hanya diberikan ke `service_role`. Upsert atomik per key
+menetapkan maksimal 12 percobaan dalam rolling 15 menit. Row limiter berusia
+lebih dari satu hari dibersihkan secara opportunistic, sehingga retention
+terbatas tanpa job tambahan. Limit berlaku sementara dan tidak menjadi permanent
+lock untuk participant valid.
+
+Migration ini belum divalidasi pada database lokal maupun remote pada fase
+implementasi; validasi database lokal wajib dilakukan sebelum Preview QA.
+
 ### Environment Variable Naming
 
 Nama resmi yang digunakan:
