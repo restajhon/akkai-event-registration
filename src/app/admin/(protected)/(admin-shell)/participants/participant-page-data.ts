@@ -7,13 +7,14 @@ export type ParticipantListItem = {
   registrationId: string;
   fullName: string;
   email: string;
-  institution: string;
+  institution: string | null;
   participantCategory: string;
   registrationStatus: "REGISTERED" | "CANCELLED";
   emailStatus: "PENDING" | "SENT" | "FAILED";
   createdAt: string;
   arrival: AttendanceSummary;
   seminar: AttendanceSummary;
+  day3: AttendanceSummary;
 };
 
 export type ParticipantSummary = {

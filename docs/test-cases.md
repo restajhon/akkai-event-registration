@@ -28,3 +28,39 @@
 - Proxy refresh cookie tetapi Server Action tetap melakukan authentication sendiri.
 - Tidak tersedia halaman atau endpoint public signup.
 - Tidak tersedia forgot-password atau social login.
+
+# H-3D2 Registration And Compatibility
+
+## Public Registration Form
+
+- Form publik tidak menampilkan field Institusi/Cabang dan tidak mengirimkan field tersebut.
+- Nama KKA wajib diisi dan menerima 1-150 karakter setelah trim.
+- Kategori peserta wajib diisi sebagai free text 1-100 karakter, tanpa select atau whitelist.
+- Nomor Anggota AKKAI boleh kosong; bila diisi, nilainya di-trim, di-uppercase, dan harus 3-50 karakter.
+- Ukuran Poloshirt hanya menyediakan `S`, `M`, `L`, `XL`, `XXL`, dan `XXXL`.
+- Model Poloshirt hanya menyediakan `Lengan Panjang` dan `Lengan Pendek`.
+- Informasi tetap `Hotel Gumaya Semarang` tampil di homepage dan halaman registrasi tanpa menjadi input.
+- Rundown umum menampilkan Day 1, Day 2, dan Day 3 di homepage, bukan pada halaman registrasi.
+- Rundown tetap umum dan tidak menampilkan waktu, ruangan, pembicara, transportasi, atau agenda tambahan.
+- Server Action menggunakan registration RPC V2 dan mempertahankan hasil `CREATED`, duplicate, `INVALID_INPUT`, serta error umum.
+
+## Legacy Compatibility
+
+- Peserta lama dengan institution terisi tetap dapat diproses.
+- Peserta baru dengan institution NULL tidak menampilkan baris institusi pada scanner, manual check-in, atau Live Display.
+- Peserta lama dengan KKA atau data poloshirt NULL tidak menampilkan `null`, `undefined`, atau `[object Object]` pada halaman admin.
+- QR, Registration ID, attendance, pairing, realtime payload minimum, dan email generation tetap menggunakan kontrak lama.
+
+## H-3D2 DAY3 Session
+
+- Database memiliki session `DAY3` dengan nama `Registrasi Day 3`, tanggal 21 Oktober 2026, dan status awal `CLOSED` setelah migration additive diterapkan.
+- Admin dapat membuka dan menutup DAY3 dari session management.
+- Station dapat dibuat dan dipasangkan ke DAY3 ketika session dibuka.
+- QR yang sama dapat dipindai pada ARRIVAL, SEMINAR, dan DAY3.
+- Scan kedua pada DAY3 mengembalikan status sudah check-in tanpa membuat attendance baru.
+- Manual check-in pada station DAY3 berhasil dan duplicate DAY3 ditolak.
+- Live Display dan dashboard menampilkan hasil serta jumlah attendance DAY3 melalui session_id.
+- DAY3 tidak menampilkan warning SEMINAR tanpa ARRIVAL.
+- Participant detail dan participant list menampilkan status attendance DAY3.
+
+Travel UI, room UI, dan pickup UI belum diimplementasikan pada H-3D2.

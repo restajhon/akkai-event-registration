@@ -10,7 +10,7 @@ Migration awal berada di:
 supabase/migrations/20260801092444_create_initial_schema.sql
 ```
 
-Migration menggunakan `pgcrypto`, server timestamps (`timestamptz default now()`), RLS, sequence Registration ID, trigger `updated_at`, index operasional, dan seed dua session MVP.
+Migration menggunakan `pgcrypto`, server timestamps (`timestamptz default now()`), RLS, sequence Registration ID, trigger `updated_at`, index operasional, dan seed session MVP.
 
 ## Enum
 
@@ -39,12 +39,18 @@ Profile operator/admin dengan `id` yang sama dengan `auth.users.id`.
 
 Session operasional dengan `code`, nama, tanggal, status, dan waktu buka/tutup.
 
-Seed awal:
+Session seed:
 
 - `ARRIVAL`, `Registrasi Kedatangan`, `2026-10-19`, `CLOSED`
 - `SEMINAR`, `Seminar AKKAI 2026`, `2026-10-20`, `CLOSED`
+- `DAY3`, `Registrasi Day 3`, `2026-10-21`, `CLOSED`
 
 Seed menggunakan `ON CONFLICT (code) DO NOTHING`.
+
+Migration `20260901090000_add_day3_session.sql` menambahkan session DAY3
+secara additive dan idempotent. Migration lama tidak diubah. Session tersebut
+memakai schema, status lifecycle, station binding, attendance constraint, dan
+RPC check-in yang sama seperti session lainnya.
 
 ### `participants`
 
@@ -113,7 +119,8 @@ dan penjemputan. Hotel event tetap `Hotel Gumaya Semarang` dan tidak disimpan
 sebagai pilihan hotel peserta.
 
 Migration `20260830110000_add_h3d_operational_rpcs.sql` menyediakan registration
-RPC V2, travel upsert, serta RPC assignment kamar dan penjemputan. RPC baru
+RPC V2, travel upsert, serta RPC assignment kamar dan penjemputan. Form publik
+menggunakan RPC registration V2. RPC baru
 dibatasi untuk `service_role`. RPC registration lama tetap tersedia sementara
 agar rollout aplikasi tidak memiliki compatibility gap.
 

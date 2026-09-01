@@ -5,7 +5,7 @@ import { CornerOrnament, GoldDivider } from "./ornaments";
 export function EventInfoSection() {
   const infoItems = [
     { label: "Tanggal Acara", value: AKKAI_EVENT.date },
-    { label: "Lokasi", value: AKKAI_EVENT.location },
+    { label: "Lokasi", value: AKKAI_EVENT.venue },
     { label: "Registrasi Kedatangan", value: AKKAI_EVENT.arrivalDate },
     { label: "Seminar AKKAI 2026", value: AKKAI_EVENT.seminarDate },
   ];

@@ -11,7 +11,7 @@ export const participantCheckInEventSchema = z
       .object({
         registrationId: z.string().min(1),
         fullName: z.string().min(1),
-        institution: z.string().min(1),
+        institution: z.string().min(1).nullable(),
         participantCategory: z.string().min(1),
       })
       .strict(),

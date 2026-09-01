@@ -150,8 +150,12 @@ function EventDetails({ event }: { event: LiveDisplayEvent }) {
         {event.participant.fullName}
       </h2>
       <div className="mt-7 flex max-w-[min(90vw,1100px)] flex-wrap justify-center gap-x-5 gap-y-2 text-[clamp(1.2rem,2vw,2rem)] leading-tight text-[#ead9ac]">
-        <span className="break-words">{event.participant.institution}</span>
-        <span aria-hidden="true" className="text-[#d9ad45]">·</span>
+        {event.participant.institution ? (
+          <>
+            <span className="break-words">{event.participant.institution}</span>
+            <span aria-hidden="true" className="text-[#d9ad45]">·</span>
+          </>
+        ) : null}
         <span className="break-words">{event.participant.participantCategory}</span>
       </div>
 

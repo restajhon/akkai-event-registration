@@ -39,7 +39,7 @@ export function HeroSection() {
           <div className="text-center">
             <p className="mb-2 text-sm font-medium text-[#667085]">Lokasi</p>
             <p className="font-serif text-xl font-semibold text-[#082b5a]">
-              {AKKAI_EVENT.location}
+              {AKKAI_EVENT.venue}
             </p>
           </div>
         </div>

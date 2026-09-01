@@ -54,7 +54,7 @@ type ScanEventRow = {
 type ParticipantRow = {
   registration_id: string;
   full_name: string;
-  institution: string;
+  institution: string | null;
   participant_category: string;
 };
 

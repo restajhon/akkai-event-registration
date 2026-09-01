@@ -16,7 +16,7 @@ function EventInformation() {
       </div>
       <div className={styles.eventItem}>
         <p className={styles.eventLabel}>Lokasi</p>
-        <p className={styles.eventValue}>{AKKAI_EVENT.location}</p>
+        <p className={styles.eventValue}>{AKKAI_EVENT.venue}</p>
       </div>
       <div className={styles.eventItem}>
         <p className={styles.eventLabel}>Registrasi Kedatangan</p>

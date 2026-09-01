@@ -15,7 +15,7 @@ type DatabaseParticipantRow = {
   registration_id: string;
   full_name: string;
   email: string;
-  institution: string;
+  institution: string | null;
   participant_category: string;
   registration_status: "REGISTERED" | "CANCELLED";
   email_status: "PENDING" | "SENT" | "FAILED";
@@ -24,7 +24,7 @@ type DatabaseParticipantRow = {
 
 type SessionRow = {
   id: string;
-  code: "ARRIVAL" | "SEMINAR";
+  code: "ARRIVAL" | "SEMINAR" | "DAY3";
 };
 
 type AttendanceRow = {
@@ -86,10 +86,10 @@ export async function loadParticipantPage(
         .from("participants")
         .select("id", { count: "exact", head: true })
         .eq("email_status", "FAILED"),
-      adminSupabase
-        .from("sessions")
-        .select("id, code")
-        .in("code", ["ARRIVAL", "SEMINAR"]),
+        adminSupabase
+          .from("sessions")
+          .select("id, code")
+          .in("code", ["ARRIVAL", "SEMINAR", "DAY3"]),
     ]);
 
     if (
@@ -127,13 +127,21 @@ export async function loadParticipantPage(
     );
     const attendanceByParticipant = new Map<
       string,
-      { arrival: AttendanceSummary; seminar: AttendanceSummary }
+      {
+        arrival: AttendanceSummary;
+        seminar: AttendanceSummary;
+        day3: AttendanceSummary;
+      }
     >();
 
     for (const attendance of attendanceRows) {
       const sessionCode = sessionCodeById.get(attendance.session_id);
 
-      if (sessionCode !== "ARRIVAL" && sessionCode !== "SEMINAR") {
+      if (
+        sessionCode !== "ARRIVAL" &&
+        sessionCode !== "SEMINAR" &&
+        sessionCode !== "DAY3"
+      ) {
         continue;
       }
 
@@ -141,6 +149,7 @@ export async function loadParticipantPage(
         attendanceByParticipant.get(attendance.participant_id) ?? {
           arrival: emptyAttendance(),
           seminar: emptyAttendance(),
+          day3: emptyAttendance(),
         };
       const nextAttendance: AttendanceSummary = {
         checkedIn: true,
@@ -149,8 +158,10 @@ export async function loadParticipantPage(
 
       if (sessionCode === "ARRIVAL") {
         current.arrival = nextAttendance;
-      } else {
+      } else if (sessionCode === "SEMINAR") {
         current.seminar = nextAttendance;
+      } else {
+        current.day3 = nextAttendance;
       }
 
       attendanceByParticipant.set(attendance.participant_id, current);
@@ -160,6 +171,7 @@ export async function loadParticipantPage(
       const attendance = attendanceByParticipant.get(participant.id) ?? {
         arrival: emptyAttendance(),
         seminar: emptyAttendance(),
+          day3: emptyAttendance(),
       };
 
       return {
@@ -173,6 +185,7 @@ export async function loadParticipantPage(
         createdAt: participant.created_at,
         arrival: attendance.arrival,
         seminar: attendance.seminar,
+        day3: attendance.day3,
       };
     });
     const totalCount = participantsResult.count ?? 0;

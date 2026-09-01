@@ -16,7 +16,7 @@ export function RegistrationCTA() {
         <div className="mx-auto mb-6 mt-7 h-px w-16 bg-[#c79a35]" />
         <p className="mb-10 text-lg leading-8 text-[#cbd5e1]">
           Selesaikan registrasi Anda dan dapatkan kode QR unik untuk rangkaian
-          acara di {AKKAI_EVENT.location}.
+          acara di {AKKAI_EVENT.venue}.
         </p>
         <RegistrationLink className="inline-flex rounded bg-[#c79a35] px-6 py-3 text-sm font-semibold text-[#082b5a] transition-all hover:bg-[#ddbb6a] hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#fffdf9]" />
       </div>

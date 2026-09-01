@@ -154,9 +154,28 @@ Semua tabel baru memakai RLS tanpa policy direct untuk `anon` atau
 `search_path` eksplisit dan execution hanya untuk `service_role`. Mutation
 kamar dan penjemputan memvalidasi actor aktif dengan role `ADMIN` di dalam RPC.
 
-RPC registration lama tetap dipertahankan sementara untuk rollout kompatibel.
+RPC registration lama tetap dipertahankan sementara untuk rollout kompatibel;
+form publik H-3D2 menggunakan `create_participant_with_registration_reservation_v2`.
 Tidak ada backfill nilai KKA, poloshirt, travel, kamar, atau penjemputan dan
 tidak ada destructive migration.
+
+## H-3D2 Homepage And DAY3 Session
+
+Rundown umum dipresentasikan pada homepage setelah Informasi Acara dan sebelum
+alur registrasi. Halaman `/register` hanya mempertahankan informasi event yang
+ringkas dan form; rundown tidak diduplikasi. Lokasi publik utama adalah
+`Hotel Gumaya Semarang`.
+
+Session `DAY3` ditambahkan melalui migration additive
+`20260901090000_add_day3_session.sql` dengan `ON CONFLICT (code) DO NOTHING`.
+Migration historis dan RPC `process_qr_scan` serta `process_manual_check_in`
+tidak diubah karena keduanya mendapatkan session dari station dan memproses
+attendance secara generik. Constraint `UNIQUE (participant_id, session_id)`
+memisahkan attendance ARRIVAL, SEMINAR, dan DAY3. Warning khusus SEMINAR tanpa
+ARRIVAL tetap dibatasi pada code `SEMINAR`; DAY3 tidak mewarisinya.
+
+Satu QR participant digunakan kembali untuk ketiga session. Tidak ada token atau
+QR participant baru untuk DAY3.
 
 ### Environment Variable Naming
 

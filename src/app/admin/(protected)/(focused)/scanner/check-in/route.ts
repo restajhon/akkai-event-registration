@@ -74,7 +74,6 @@ function participantResponse(row: RpcResult) {
   if (
     row.registration_id === null ||
     row.full_name === null ||
-    row.institution === null ||
     row.participant_category === null ||
     row.session_code === null ||
     row.session_name === null ||

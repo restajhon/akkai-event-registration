@@ -297,8 +297,9 @@ export function ParticipantList({
                     <th className="w-[19%] px-3 py-3" scope="col">Institusi / Kategori</th>
                     <th className="w-[14%] px-3 py-3" scope="col">Status Registrasi</th>
                     <th className="w-[15%] px-3 py-3" scope="col">Registrasi Kedatangan</th>
-                    <th className="w-[13%] px-3 py-3" scope="col">Seminar</th>
-                    <th className="w-[16%] px-3 py-3" scope="col">Aksi</th>
+                     <th className="w-[12%] px-3 py-3" scope="col">Seminar</th>
+                      <th className="w-[12%] px-3 py-3" scope="col">Registrasi Day 3</th>
+                     <th className="w-[11%] px-3 py-3" scope="col">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#eee6d8]">
@@ -376,10 +377,12 @@ function ParticipantCard({ participant }: { participant: ParticipantListItem }) 
       </div>
 
       <dl className="mt-4 grid gap-3 text-sm text-[#5b6c7c] sm:grid-cols-2">
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-[#897657]">Institusi</dt>
-          <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.institution}</dd>
-        </div>
+        {participant.institution ? (
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-[#897657]">Institusi</dt>
+            <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.institution}</dd>
+          </div>
+        ) : null}
         <div>
           <dt className="text-xs uppercase tracking-wide text-[#897657]">Kategori</dt>
           <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.participantCategory}</dd>
@@ -391,6 +394,10 @@ function ParticipantCard({ participant }: { participant: ParticipantListItem }) 
         <div>
           <dt className="text-xs uppercase tracking-wide text-[#897657]">Seminar</dt>
           <dd className="mt-1"><AttendanceCell attendance={participant.seminar} /></dd>
+        </div>
+        <div>
+           <dt className="text-xs uppercase tracking-wide text-[#897657]">Registrasi Day 3</dt>
+           <dd className="mt-1"><AttendanceCell attendance={participant.day3} /></dd>
         </div>
       </dl>
 
@@ -425,7 +432,9 @@ function ParticipantTableRow({
         <p className="mt-1 break-all text-xs font-semibold text-[#9a7526]">{participant.registrationId}</p>
       </td>
       <td className="px-3 py-3.5">
-        <p className="break-words font-medium">{participant.institution}</p>
+        {participant.institution ? (
+          <p className="break-words font-medium">{participant.institution}</p>
+        ) : null}
         <p className="mt-1 break-words text-xs text-[#897657]">{participant.participantCategory}</p>
       </td>
       <td className="px-3 py-3.5">
@@ -436,6 +445,9 @@ function ParticipantTableRow({
       </td>
       <td className="px-3 py-3.5">
         <AttendanceCell attendance={participant.seminar} />
+      </td>
+      <td className="px-3 py-3.5">
+        <AttendanceCell attendance={participant.day3} />
       </td>
       <td className="px-3 py-3.5">
         <div className="grid justify-items-start gap-2">

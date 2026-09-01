@@ -3,8 +3,14 @@ export type AkkaiEventConfig = {
   shortName: string;
   date: string;
   location: string;
+  venue: string;
+  generalRundown: readonly {
+    day: string;
+    items: readonly string[];
+  }[];
   arrivalDate: string;
   seminarDate: string;
+  day3Date: string;
   organizer: string;
   eventHandler: string;
   registrationOpen: boolean;
@@ -15,8 +21,24 @@ export const AKKAI_EVENT: AkkaiEventConfig = {
   shortName: "AKKAI 2026",
   date: "19–21 Oktober 2026",
   location: "Semarang",
+  venue: "Hotel Gumaya Semarang",
+  generalRundown: [
+    {
+      day: "Day 1",
+      items: ["Kedatangan", "AKKAI NIGHT"],
+    },
+    {
+      day: "Day 2",
+      items: ["Registrasi", "Seminar Sesi 1", "Isoma", "Seminar Sesi 2", "Isoma"],
+    },
+    {
+      day: "Day 3",
+      items: ["Registrasi", "City Tour Semarang"],
+    },
+  ],
   arrivalDate: "19 Oktober 2026",
   seminarDate: "20 Oktober 2026",
+  day3Date: "21 Oktober 2026",
   organizer: "AKKAI",
   eventHandler: "Eagle Spirit Indonesia",
   registrationOpen: true,

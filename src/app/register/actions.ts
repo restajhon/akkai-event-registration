@@ -57,9 +57,11 @@ function getFormValues(formData: FormData): RegistrationFormValues {
     full_name: getFormValue(formData, "full_name"),
     email: getFormValue(formData, "email"),
     phone_number: getFormValue(formData, "phone_number"),
-    institution: getFormValue(formData, "institution"),
+    kka_name: getFormValue(formData, "kka_name"),
     participant_category: getFormValue(formData, "participant_category"),
     member_number: getFormValue(formData, "member_number"),
+    polo_size: getFormValue(formData, "polo_size"),
+    polo_model: getFormValue(formData, "polo_model"),
     privacy_consent: privacyConsent === "on" || privacyConsent === "true",
   };
 }
@@ -161,14 +163,16 @@ export async function submitRegistration(
   try {
     const supabase = createAdminClient();
     const { data: reservationData, error: reservationError } = await supabase.rpc(
-      "create_participant_with_registration_reservation",
+      "create_participant_with_registration_reservation_v2",
       {
         p_full_name: parsed.data.full_name,
         p_email: parsed.data.email,
         p_phone_number: parsed.data.phone_number,
-        p_institution: parsed.data.institution,
+        p_kka_name: parsed.data.kka_name,
         p_participant_category: parsed.data.participant_category,
         p_member_number: parsed.data.member_number,
+        p_polo_size: parsed.data.polo_size,
+        p_polo_model: parsed.data.polo_model,
         p_privacy_consent_at: new Date().toISOString(),
       },
     );

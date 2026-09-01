@@ -44,7 +44,7 @@ export function RegistrationFlow() {
           </h3>
           <div className="mb-4 mt-4 h-px w-10 bg-[#c79a35]/60" />
           <p className="mb-4 leading-7 text-[#667085]">
-            Kode QR yang Anda terima akan digunakan untuk dua sesi acara:
+            Kode QR yang Anda terima akan digunakan untuk tiga sesi acara:
           </p>
           <ul className="grid gap-3 text-[#667085] sm:grid-cols-2">
             <li className="flex items-start gap-3">
@@ -58,6 +58,12 @@ export function RegistrationFlow() {
                 •
               </span>
               <span>Seminar AKKAI 2026, {AKKAI_EVENT.seminarDate}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span aria-hidden="true" className="text-lg text-[#c79a35]">
+                •
+              </span>
+              <span>Registrasi Day 3, {AKKAI_EVENT.day3Date}</span>
             </li>
           </ul>
         </div>

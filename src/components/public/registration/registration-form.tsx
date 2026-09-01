@@ -12,8 +12,8 @@ import {
 } from "@/lib/registration/registration-action-state";
 import {
   getRegistrationFieldErrors,
-  MEMBER_CATEGORIES,
-  PARTICIPANT_CATEGORIES,
+  POLO_MODELS,
+  POLO_SIZES,
   registrationSchema,
   type RegistrationField,
   type RegistrationFieldErrors,
@@ -26,15 +26,13 @@ const initialFormData: RegistrationFormValues = {
   full_name: "",
   email: "",
   phone_number: "",
-  institution: "",
+  kka_name: "",
   participant_category: "",
   member_number: "",
+  polo_size: "",
+  polo_model: "",
   privacy_consent: false,
 };
-
-function requiresMemberNumber(category: string) {
-  return MEMBER_CATEGORIES.has(category as (typeof PARTICIPANT_CATEGORIES)[number]);
-}
 
 function ErrorMessage({ id, message }: { id: string; message: string }) {
   return (
@@ -61,9 +59,6 @@ export function RegistrationForm() {
   const [clientErrors, setClientErrors] =
     useState<RegistrationFieldErrors>({});
 
-  const memberNumberVisible = requiresMemberNumber(
-    formData.participant_category,
-  );
   const errors: RegistrationFieldErrors = {
     ...state.fieldErrors,
     ...clientErrors,
@@ -74,26 +69,12 @@ export function RegistrationForm() {
     setFormData((current) => {
       const nextData = { ...current, [field]: value } as RegistrationFormValues;
 
-      if (
-        field === "participant_category" &&
-        !requiresMemberNumber(String(value))
-      ) {
-        nextData.member_number = "";
-      }
-
       return nextData;
     });
 
     setClientErrors((current) => {
       const nextErrors = { ...current };
       delete nextErrors[field];
-
-      if (
-        field === "participant_category" &&
-        !requiresMemberNumber(String(value))
-      ) {
-        delete nextErrors.member_number;
-      }
 
       return nextErrors;
     });
@@ -275,29 +256,30 @@ export function RegistrationForm() {
         </div>
 
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="institution">
-            Institusi atau cabang <span className={styles.required}>(wajib)</span>
+          <label className={styles.label} htmlFor="kka_name">
+            Nama KKA <span className={styles.required}>(wajib)</span>
           </label>
           <input
             aria-describedby={
-              errors.institution ? "institution-error" : undefined
+              errors.kka_name ? "kka_name-error" : undefined
             }
-            aria-invalid={Boolean(errors.institution)}
-            className={`${styles.input} ${errors.institution ? styles.inputError : ""}`}
-            id="institution"
-            name="institution"
+            aria-invalid={Boolean(errors.kka_name)}
+            className={`${styles.input} ${errors.kka_name ? styles.inputError : ""}`}
+            id="kka_name"
+            maxLength={150}
+            name="kka_name"
             onChange={(event) =>
-              updateField("institution", event.target.value)
+              updateField("kka_name", event.target.value)
             }
-            placeholder="Masukkan nama institusi atau cabang"
+            placeholder="Masukkan nama KKA"
             required
             type="text"
-            value={formData.institution}
+            value={formData.kka_name}
           />
-          {errors.institution ? (
+          {errors.kka_name ? (
             <ErrorMessage
-              id="institution-error"
-              message={errors.institution}
+              id="kka_name-error"
+              message={errors.kka_name}
             />
           ) : null}
         </div>
@@ -306,29 +288,25 @@ export function RegistrationForm() {
           <label className={styles.label} htmlFor="participant_category">
             Kategori peserta <span className={styles.required}>(wajib)</span>
           </label>
-          <select
+          <input
             aria-describedby={
               errors.participant_category
                 ? "participant_category-error"
                 : undefined
             }
             aria-invalid={Boolean(errors.participant_category)}
-            className={`${styles.select} ${errors.participant_category ? styles.inputError : ""}`}
+            className={`${styles.input} ${errors.participant_category ? styles.inputError : ""}`}
             id="participant_category"
+            maxLength={100}
             name="participant_category"
             onChange={(event) =>
               updateField("participant_category", event.target.value)
             }
+            placeholder="Masukkan kategori peserta"
             required
+            type="text"
             value={formData.participant_category}
-          >
-            <option value="">Pilih kategori peserta</option>
-            {PARTICIPANT_CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
+          />
           {errors.participant_category ? (
             <ErrorMessage
               id="participant_category-error"
@@ -337,35 +315,80 @@ export function RegistrationForm() {
           ) : null}
         </div>
 
-        {memberNumberVisible ? (
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="member_number">
-              Nomor anggota AKKAI <span className={styles.required}>(wajib)</span>
-            </label>
-            <input
-              aria-describedby={
-                errors.member_number ? "member_number-error" : undefined
-              }
-              aria-invalid={Boolean(errors.member_number)}
-              className={`${styles.input} ${errors.member_number ? styles.inputError : ""}`}
-              id="member_number"
-              name="member_number"
-              onChange={(event) =>
-                updateField("member_number", event.target.value)
-              }
-              placeholder="Contoh: AKKAI-00125"
-              required
-              type="text"
-              value={formData.member_number}
-            />
-            {errors.member_number ? (
-              <ErrorMessage
-                id="member_number-error"
-                message={errors.member_number}
-              />
-            ) : null}
-          </div>
-        ) : null}
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="member_number">
+            Nomor Anggota AKKAI <span className={styles.required}>(opsional)</span>
+          </label>
+          <input
+            aria-describedby={
+              errors.member_number ? "member_number-error" : "member_number-helper"
+            }
+            aria-invalid={Boolean(errors.member_number)}
+            className={`${styles.input} ${errors.member_number ? styles.inputError : ""}`}
+            id="member_number"
+            maxLength={50}
+            name="member_number"
+            onChange={(event) => updateField("member_number", event.target.value)}
+            placeholder="Isi bila memiliki nomor anggota"
+            type="text"
+            value={formData.member_number}
+          />
+          {errors.member_number ? (
+            <ErrorMessage id="member_number-error" message={errors.member_number} />
+          ) : (
+            <p className={styles.helper} id="member_number-helper">
+              Kosongkan bila tidak memiliki nomor anggota.
+            </p>
+          )}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="polo_size">
+            Ukuran Poloshirt <span className={styles.required}>(wajib)</span>
+          </label>
+          <select
+            aria-describedby={errors.polo_size ? "polo_size-error" : undefined}
+            aria-invalid={Boolean(errors.polo_size)}
+            className={`${styles.select} ${errors.polo_size ? styles.inputError : ""}`}
+            id="polo_size"
+            name="polo_size"
+            onChange={(event) => updateField("polo_size", event.target.value)}
+            required
+            value={formData.polo_size}
+          >
+            <option value="">Pilih ukuran</option>
+            {POLO_SIZES.map((size) => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+          {errors.polo_size ? (
+            <ErrorMessage id="polo_size-error" message={errors.polo_size} />
+          ) : null}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="polo_model">
+            Model Poloshirt <span className={styles.required}>(wajib)</span>
+          </label>
+          <select
+            aria-describedby={errors.polo_model ? "polo_model-error" : undefined}
+            aria-invalid={Boolean(errors.polo_model)}
+            className={`${styles.select} ${errors.polo_model ? styles.inputError : ""}`}
+            id="polo_model"
+            name="polo_model"
+            onChange={(event) => updateField("polo_model", event.target.value)}
+            required
+            value={formData.polo_model}
+          >
+            <option value="">Pilih model</option>
+            {POLO_MODELS.map((model) => (
+              <option key={model} value={model}>{model}</option>
+            ))}
+          </select>
+          {errors.polo_model ? (
+            <ErrorMessage id="polo_model-error" message={errors.polo_model} />
+          ) : null}
+        </div>
 
         <div className={styles.consentField}>
           <div className={styles.consentRow}>

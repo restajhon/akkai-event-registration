@@ -6,7 +6,7 @@
 **Status:** MVP Definition
 **Pemilik Produk:** Eagle Spirit Indonesia
 **Event:** Rapat Tahunan AKKAI 2026
-**Lokasi:** Semarang
+**Lokasi:** Hotel Gumaya Semarang
 **Tanggal acara:** 19–21 Oktober 2026
 **Target production:** Maksimal akhir September 2026
 
@@ -14,17 +14,18 @@
 
 # 1. Ringkasan Produk
 
-Sistem Registrasi dan Kehadiran Digital AKKAI 2026 adalah aplikasi web untuk menangani proses registrasi peserta sebelum acara dan pencatatan kehadiran pada dua sesi acara.
+Sistem Registrasi dan Kehadiran Digital AKKAI 2026 adalah aplikasi web untuk menangani proses registrasi peserta sebelum acara dan pencatatan kehadiran pada tiga sesi acara.
 
 Setiap peserta akan:
 
 1. Mengisi form registrasi melalui website.
 2. Mendapatkan Registration ID dan QR unik.
 3. Menerima QR melalui halaman tiket digital dan email.
-4. Menggunakan QR yang sama untuk check-in pada dua sesi:
+4. Menggunakan QR yang sama untuk check-in pada tiga sesi:
 
    * Registrasi Kedatangan.
    * Seminar AKKAI 2026.
+   * Registrasi Day 3.
 
 Pada hari acara, QR peserta akan dipindai menggunakan kamera handphone panitia. Hasil pemindaian akan divalidasi oleh server, disimpan ke database, lalu ditampilkan secara real-time pada laptop yang terhubung dengan handphone scanner tersebut.
 
@@ -40,7 +41,7 @@ MVP harus menyelesaikan kebutuhan berikut:
 2. Mencegah pendaftaran ganda.
 3. Membuat QR unik bagi setiap peserta.
 4. Mengirimkan tiket digital melalui email.
-5. Mencatat kehadiran peserta pada dua sesi yang berbeda.
+5. Mencatat kehadiran peserta pada tiga sesi yang berbeda.
 6. Memungkinkan panitia menggunakan handphone sebagai scanner.
 7. Menampilkan hasil scan pada laptop secara real-time.
 8. Menyediakan check-in manual sebagai fallback.
@@ -62,7 +63,7 @@ Peserta dapat:
 * Melihat konfirmasi registrasi.
 * Melihat tiket digital.
 * Menerima QR melalui email.
-* Menggunakan QR yang sama pada dua sesi.
+* Menggunakan QR yang sama pada tiga sesi.
 
 Peserta tidak perlu membuat akun atau login.
 
@@ -113,7 +114,7 @@ MVP dibangun dengan asumsi berikut:
 
 * Jumlah peserta berkisar 100–500 orang.
 * Sistem hanya digunakan untuk satu event.
-* Terdapat dua sesi kehadiran.
+* Terdapat tiga sesi kehadiran.
 * Terdapat maksimal tiga meja atau perangkat scanner yang aktif bersamaan.
 * Setiap peserta menerima satu QR.
 * QR yang sama digunakan untuk seluruh sesi.
@@ -146,7 +147,7 @@ MVP dibangun dengan asumsi berikut:
 * Detail dan edit peserta.
 * Pembatalan peserta.
 * Pengiriman ulang email.
-* Dua sesi kehadiran.
+* Tiga sesi kehadiran.
 * Pembukaan dan penutupan sesi.
 * Pairing handphone scanner dan laptop display.
 * Scanner QR berbasis browser.
@@ -207,7 +208,7 @@ MVP dibangun dengan asumsi berikut:
 
 # 7. Sesi Acara
 
-MVP memiliki dua sesi tetap.
+MVP memiliki tiga sesi tetap.
 
 ## 7.1 Sesi 1 — Registrasi Kedatangan
 
@@ -235,17 +236,31 @@ Tujuan:
 * Menghasilkan laporan kehadiran seminar.
 * Memisahkan data kedatangan dan seminar.
 
-## 7.3 Aturan sesi
+## 7.3 Sesi 3 — Registrasi Day 3
+
+**Kode:** `DAY3`
+**Nama:** Registrasi Day 3
+**Hari:** Hari ketiga acara
+**Tanggal awal:** 21 Oktober 2026
+
+Tujuan:
+
+* Mencatat peserta pada checkpoint registrasi dan kehadiran Day 3.
+* Menghasilkan laporan kehadiran Day 3 secara terpisah.
+* Menggunakan QR peserta yang sama seperti sesi sebelumnya.
+
+## 7.4 Aturan sesi
 
 * Sesi disimpan di database sejak awal.
 * Admin dapat membuka atau menutup sesi.
 * Operator tidak dapat mengubah sesi.
 * Station hanya boleh terhubung ke satu sesi aktif.
-* Satu QR dapat digunakan pada kedua sesi.
+* Satu QR dapat digunakan pada ketiga sesi.
 * Satu peserta hanya memiliki satu attendance per sesi.
 * Peserta seminar tidak wajib memiliki attendance kedatangan.
 * Jika peserta seminar belum check-in kedatangan, seminar tetap berhasil dicatat.
 * Sistem menampilkan peringatan kepada operator apabila attendance kedatangan tidak ditemukan.
+* Peserta DAY3 tidak wajib memiliki attendance seminar atau kedatangan.
 * Peserta dengan status `CANCELLED` tidak dapat check-in pada sesi mana pun.
 
 ---
@@ -453,6 +468,26 @@ Memberikan informasi singkat tentang acara dan mengarahkan peserta ke form regis
 * Tombol utama `Daftar Sekarang`.
 * Informasi bahwa QR akan dikirim melalui email.
 * Privacy notice singkat.
+* Rundown umum tiga hari.
+
+Rundown publik homepage:
+
+```text
+Day 1
+- Kedatangan
+- AKKAI NIGHT
+
+Day 2
+- Registrasi
+- Seminar Sesi 1
+- Isoma
+- Seminar Sesi 2
+- Isoma
+
+Day 3
+- Registrasi
+- City Tour Semarang
+```
 
 ### Primary CTA
 
@@ -501,21 +536,29 @@ Mengumpulkan data peserta dan membuat pendaftaran baru.
 
 ### Field form
 
-| Field               | Key                    | Tipe     | Wajib | Validasi                         |
-| ------------------- | ---------------------- | -------- | ----: | -------------------------------- |
-| Nama lengkap        | `full_name`            | Text     |    Ya | Minimal 3 karakter, maksimal 100 |
-| Nomor anggota AKKAI | `member_number`        | Text     |    -  | Opsional; minimal 3 karakter, maksimal 50 bila diisi |
-| Email               | `email`                | Email    |    Ya | Format email valid               |
-| Nomor WhatsApp      | `phone_number`         | Tel/Text |    Ya | 9–15 digit setelah normalisasi   |
-| Institusi/Cabang    | `institution`          | Text     |    -  | Data historis nullable; H-3D2 tidak lagi mengumpulkan |
-| Jabatan/Kategori    | `participant_category` | Text     |    Ya | Free text, 1-100 karakter; tanpa whitelist |
-| Persetujuan data    | `privacy_consent`      | Checkbox |    Ya | Harus dicentang                  |
+| Field                 | Key                    | Tipe     | Wajib | Validasi                         |
+| --------------------- | ---------------------- | -------- | ----: | -------------------------------- |
+| Nama lengkap          | `full_name`            | Text     |    Ya | Minimal 3 karakter, maksimal 100 |
+| Email                 | `email`                | Email    |    Ya | Format email valid               |
+| Nomor WhatsApp        | `phone_number`         | Tel/Text |    Ya | Tidak boleh kosong               |
+| Nama KKA              | `kka_name`             | Text     |    Ya | 1-150 karakter                   |
+| Kategori peserta      | `participant_category` | Text     |    Ya | Free text, 1-100 karakter        |
+| Nomor Anggota AKKAI   | `member_number`        | Text     |     - | 3-50 karakter bila diisi         |
+| Ukuran Poloshirt      | `polo_size`            | Select   |    Ya | S, M, L, XL, XXL, XXXL           |
+| Model Poloshirt       | `polo_model`           | Select   |    Ya | Lengan Panjang/Pendek            |
+| Persetujuan data      | `privacy_consent`      | Checkbox |    Ya | Harus dicentang                  |
+
+Informasi event pada halaman registrasi menampilkan `Hotel Gumaya Semarang` sebagai
+informasi tetap, bukan field peserta. Institusi/cabang tidak ditampilkan atau
+dikirim dari form registrasi baru. Rundown umum tiga hari ditampilkan pada halaman
+utama; detail waktu belum ditetapkan.
 
 ### Kategori peserta
 
 `participant_category` disimpan sebagai text bebas, wajib diisi, di-trim, dan
 dibatasi 1-100 karakter. Tidak ada enum atau predefined whitelist. Perubahan
-UI form dari pilihan kategori menjadi free text termasuk H-3D2.
+UI form dari pilihan kategori menjadi free text pada H-3D2 dan implementasinya
+sudah aktif pada route `/register`.
 
 ### Normalisasi data
 
@@ -524,7 +567,8 @@ Sebelum data disimpan:
 * Nama di-trim.
 * Multiple spaces diubah menjadi satu spasi.
 * Email diubah menjadi lowercase.
-* Nomor anggota di-trim dan diubah menjadi uppercase.
+* Nama KKA dan kategori peserta di-trim.
+* Nomor anggota di-trim dan diubah menjadi uppercase bila diisi.
 * Nomor WhatsApp hanya menyimpan angka dan tanda plus apabila diperlukan.
 * Institusi historis tidak digunakan untuk pendaftaran baru.
 
@@ -607,7 +651,7 @@ Primary CTA:
 * Validasi server tetap dilakukan walaupun validasi client dilewati.
 * Double click tidak membuat dua peserta.
 * Email dan nomor anggota ganda ditolak.
-* Data peserta tersimpan ke database.
+* Data peserta tersimpan ke database melalui registration RPC V2.
 * Registration ID dan QR token otomatis dibuat.
 * Peserta diarahkan ke halaman sukses.
 * Informasi sensitif tidak muncul pada URL.
@@ -1163,7 +1207,7 @@ Membuat station dan memasangkan laptop dengan handphone scanner.
 | Field        | Wajib | Keterangan                |
 | ------------ | ----: | ------------------------- |
 | Nama station |    Ya | Contoh: Meja Registrasi 1 |
-| Sesi aktif   |    Ya | ARRIVAL atau SEMINAR      |
+| Sesi aktif   |    Ya | ARRIVAL, SEMINAR, atau DAY3 |
 
 ### Validasi
 
@@ -1422,7 +1466,7 @@ Periksa koneksi internet dan coba kembali.
 * Scanner membaca QR dari layar handphone lain.
 * Scanner membaca QR cetak.
 * Scanner tidak langsung menyatakan berhasil sebelum server mengonfirmasi.
-* QR yang sama dapat digunakan pada dua sesi berbeda.
+* QR yang sama dapat digunakan pada tiga sesi berbeda.
 * QR yang sama ditolak untuk scan kedua pada sesi yang sama.
 * Hasil scan muncul di handphone.
 * Hasil scan dikirim ke laptop.
@@ -1564,7 +1608,7 @@ Manual check-in tersedia dari:
 
 | Field   | Wajib | Keterangan            |
 | ------- | ----: | --------------------- |
-| Session |    Ya | ARRIVAL atau SEMINAR  |
+| Session |    Ya | ARRIVAL, SEMINAR, atau DAY3  |
 | Notes   | Tidak | Maksimal 250 karakter |
 
 ### Flow
@@ -1834,9 +1878,9 @@ Laptop display hanya menampilkan data minimum yang diperlukan.
 | `updated_at`           | Timestamp | Server time              |
 
 H-3D1 membuat `institution` nullable untuk mempertahankan data historis dan
-menambahkan `kka_name`, `polo_size`, serta `polo_model` secara nullable. Form
-registrasi utama dan RPC yang menggunakannya akan dialihkan pada H-3D2; row
-lama tidak di-backfill.
+menambahkan `kka_name`, `polo_size`, serta `polo_model` secara nullable. Pada
+H-3D2, form registrasi utama menggunakan RPC V2 dan mewajibkan KKA serta data
+poloshirt untuk pendaftaran baru; row lama tidak di-backfill.
 
 ## 20.2 Table `sessions`
 
@@ -2202,10 +2246,10 @@ MVP dinyatakan layak digunakan apabila seluruh kondisi berikut terpenuhi:
 
 ## Sesi
 
-22. Dua sesi tersedia di database.
+22. Tiga sesi tersedia di database: ARRIVAL, SEMINAR, dan DAY3.
 23. Admin dapat membuka dan menutup sesi.
 24. Closed session tidak menerima check-in.
-25. QR yang sama dapat digunakan pada kedua sesi.
+25. QR yang sama dapat digunakan pada ketiga sesi.
 26. QR tidak dapat digunakan dua kali pada sesi yang sama.
 27. Seminar tanpa arrival tetap berhasil dengan warning.
 
@@ -2389,7 +2433,7 @@ Apabila terjadi perbedaan antara prompt AI dan PRD, PRD harus diutamakan kecuali
 * Setup authentication.
 * Setup database schema.
 * Setup development deployment.
-* Seed dua sessions.
+* Seed tiga sessions melalui initial seed dan migration DAY3 additive.
 
 ## Phase 2 — Public registration
 

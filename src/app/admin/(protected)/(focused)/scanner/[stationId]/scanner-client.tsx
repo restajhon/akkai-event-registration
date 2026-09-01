@@ -17,7 +17,7 @@ type ScannerClientProps = {
 type ParticipantDisplay = {
   registrationId: string;
   fullName: string;
-  institution: string;
+  institution: string | null;
   participantCategory: string;
 };
 
@@ -105,7 +105,7 @@ function readParticipant(value: unknown): ParticipantDisplay | null {
   if (
     typeof registrationId !== "string" ||
     typeof fullName !== "string" ||
-    typeof institution !== "string" ||
+    (typeof institution !== "string" && institution !== null) ||
     typeof participantCategory !== "string"
   ) {
     return null;
@@ -688,14 +688,16 @@ function ScanResultView({ result }: { result: SafeScanResult }) {
               {result.participant.registrationId}
             </dd>
           </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
-              Institusi
-            </dt>
-            <dd className="mt-1 font-semibold text-[#142842]">
-              {result.participant.institution}
-            </dd>
-          </div>
+          {result.participant.institution ? (
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
+                Institusi
+              </dt>
+              <dd className="mt-1 font-semibold text-[#142842]">
+                {result.participant.institution}
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">
               Kategori

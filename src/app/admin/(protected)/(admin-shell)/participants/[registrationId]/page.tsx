@@ -20,8 +20,11 @@ type DatabaseParticipantRow = {
   full_name: string;
   email: string;
   member_number: string | null;
-  institution: string;
+  institution: string | null;
   participant_category: string;
+  kka_name: string | null;
+  polo_size: string | null;
+  polo_model: string | null;
   registration_status: "REGISTERED" | "CANCELLED";
   email_status: "PENDING" | "SENT" | "FAILED";
   email_generation: number;
@@ -31,7 +34,7 @@ type DatabaseParticipantRow = {
 
 type SessionRow = {
   id: string;
-  code: "ARRIVAL" | "SEMINAR";
+  code: "ARRIVAL" | "SEMINAR" | "DAY3";
 };
 
 type AttendanceRow = {
@@ -43,6 +46,7 @@ type DetailData = {
   participant: DatabaseParticipantRow;
   arrival: AttendanceSummary;
   seminar: AttendanceSummary;
+  day3: AttendanceSummary;
 };
 
 function formatDateTime(
@@ -106,7 +110,7 @@ async function loadDetailData(
     const { data: participant, error: participantError } = await adminSupabase
       .from("participants")
       .select(
-        "id, registration_id, full_name, email, member_number, institution, participant_category, registration_status, email_status, email_generation, last_email_sent_at, created_at",
+        "id, registration_id, full_name, email, member_number, institution, participant_category, kka_name, polo_size, polo_model, registration_status, email_status, email_generation, last_email_sent_at, created_at",
       )
       .eq("registration_id", registrationId)
       .maybeSingle();
@@ -119,7 +123,7 @@ async function loadDetailData(
     const { data: sessions, error: sessionsError } = await adminSupabase
       .from("sessions")
       .select("id, code")
-      .in("code", ["ARRIVAL", "SEMINAR"]);
+      .in("code", ["ARRIVAL", "SEMINAR", "DAY3"]);
 
     if (sessionsError) {
       return null;
@@ -154,6 +158,10 @@ async function loadDetailData(
       checkedIn: false,
       checkedInAt: null,
     };
+    const day3: AttendanceSummary = {
+      checkedIn: false,
+      checkedInAt: null,
+    };
 
     for (const attendance of attendanceRows) {
       const code = sessionCodeById.get(attendance.session_id);
@@ -167,12 +175,18 @@ async function loadDetailData(
         seminar.checkedIn = true;
         seminar.checkedInAt = attendance.check_in_time;
       }
+
+      if (code === "DAY3") {
+        day3.checkedIn = true;
+        day3.checkedInAt = attendance.check_in_time;
+      }
     }
 
     return {
       participant: participantRow,
       arrival,
       seminar,
+      day3,
     };
   } catch {
     return null;
@@ -280,7 +294,9 @@ export default async function ParticipantDetailPage({
                 {participant.registration_id}
               </p>
               <p className="mt-3 break-words text-sm text-[#5b6c7c]">
-                {participant.institution} · {participant.participant_category}
+                {[participant.institution, participant.participant_category]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
             </div>
             <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
@@ -314,6 +330,16 @@ export default async function ParticipantDetailPage({
               label="Nomor Anggota"
               value={participant.member_number ?? "Tidak diisi"}
             />
+            <DetailField label="Nama KKA" value={participant.kka_name ?? "Tidak diisi"} />
+            <DetailField
+              label="Kategori Peserta"
+              value={participant.participant_category}
+            />
+            <DetailField label="Ukuran Poloshirt" value={participant.polo_size ?? "Tidak diisi"} />
+            <DetailField label="Model Poloshirt" value={participant.polo_model ?? "Tidak diisi"} />
+            {participant.institution ? (
+              <DetailField label="Institusi Historis" value={participant.institution} />
+            ) : null}
             <DetailField
               label="Status Email ke Alamat Saat Ini"
               value={emailStatusLabel(participant.email_status)}
@@ -376,6 +402,10 @@ export default async function ParticipantDetailPage({
             <AttendanceCard
               attendance={detailData.seminar}
               label="Seminar AKKAI 2026"
+            />
+            <AttendanceCard
+              attendance={detailData.day3}
+              label="Registrasi Day 3"
             />
           </div>
         </section>

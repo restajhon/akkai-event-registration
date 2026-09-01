@@ -259,10 +259,12 @@ function ParticipantResultCard({
       </div>
 
       <dl className="mt-4 grid gap-3 text-sm text-[#5b6c7c] sm:grid-cols-2">
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">Institusi</dt>
-          <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.institution}</dd>
-        </div>
+        {participant.institution ? (
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">Institusi</dt>
+            <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.institution}</dd>
+          </div>
+        ) : null}
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">Kategori</dt>
           <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.participantCategory}</dd>
@@ -341,7 +343,7 @@ function SelectedParticipant({
 
       <dl className="mt-6 grid gap-4 text-sm text-[#5b6c7c] sm:grid-cols-2">
         <Detail label="Registration ID" value={participant.registrationId} strong />
-        <Detail label="Institusi" value={participant.institution} />
+        {participant.institution ? <Detail label="Institusi" value={participant.institution} /> : null}
         <Detail label="Kategori" value={participant.participantCategory} />
         <Detail label="Sesi" value={sessionName} />
       </dl>
@@ -442,7 +444,7 @@ function ManualResult({
           </h2>
           <dl className="mt-6 grid gap-4 text-sm text-[#344d68] sm:grid-cols-2">
             <Detail label="Registration ID" value={participant.registrationId} strong />
-            <Detail label="Institusi" value={participant.institution} />
+            {participant.institution ? <Detail label="Institusi" value={participant.institution} /> : null}
             <Detail label="Kategori" value={participant.participantCategory} />
             {session ? <Detail label="Sesi" value={session.name} /> : null}
             {state.checkedAt ? <Detail label="Waktu Check-in" value={formatDateTime(state.checkedAt)} /> : null}
