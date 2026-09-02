@@ -156,7 +156,7 @@ function EventDetails({ event }: { event: LiveDisplayEvent }) {
             <span aria-hidden="true" className="text-[#d9ad45]">·</span>
           </>
         ) : null}
-        <span className="break-words">{event.participant.participantCategory}</span>
+         <span className="break-words">{event.participant.participantCategory ?? "-"}</span>
       </div>
 
       <div className="mt-12 w-full max-w-[min(90vw,1100px)] border-t border-white/15 pt-6 sm:mt-16 sm:pt-8">

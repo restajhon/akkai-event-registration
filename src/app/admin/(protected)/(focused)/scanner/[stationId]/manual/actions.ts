@@ -24,7 +24,7 @@ const databaseParticipantRowSchema = z.object({
   registration_id: z.string().min(1),
   full_name: z.string().min(1),
   institution: z.string().nullable(),
-  participant_category: z.string().min(1),
+  participant_category: z.string().min(1).nullable(),
   registration_status: z.enum(["REGISTERED", "CANCELLED"]),
 });
 
@@ -294,8 +294,7 @@ function rpcParticipant(
 ): ManualParticipant | null {
   if (
     row.registration_id === null ||
-    row.full_name === null ||
-    row.participant_category === null
+    row.full_name === null
   ) {
     return null;
   }

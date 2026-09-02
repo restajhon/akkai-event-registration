@@ -60,9 +60,13 @@ Data peserta dan tiket digital.
 - `qr_token` dibuat dari minimal 32 random bytes `pgcrypto`, disimpan plaintext dalam format hex, dan unique
 - email unique secara case-insensitive melalui `lower(email)`
 - member number nullable dan opsional untuk semua kategori; bila diisi, unique secara case-insensitive melalui `upper(member_number)`
-- `participant_category` adalah text, wajib, tidak boleh kosong, maksimal 100 karakter
+- `participant_category` adalah text historis, nullable untuk row baru, dan bila diisi maksimal 100 karakter; nilai lama tidak dihapus
 - `kka_name`, `polo_size`, dan `polo_model` adalah nullable untuk mempertahankan
-  data peserta lama; pendaftaran baru akan divalidasi oleh RPC V2.
+  data peserta lama; pendaftaran baru akan divalidasi oleh RPC V3.
+- `package_type`, `participation_scope`, `actuarial_consultant_status`, dan
+  `attends_pai_congress` adalah nullable untuk peserta lama. Nilai yang diizinkan
+  untuk tiga kolom text dijaga CHECK constraint; attendance PAI disimpan sebagai
+  boolean. RPC V3 mewajibkan keempat jawaban untuk pendaftaran baru.
 - `institution` tetap dipertahankan sebagai kolom nullable untuk histori lama dan
   tidak digunakan sebagai sumber data pendaftaran baru.
 - `registration_status` menggunakan cancel, bukan penghapusan record
@@ -120,9 +124,15 @@ sebagai pilihan hotel peserta.
 
 Migration `20260830110000_add_h3d_operational_rpcs.sql` menyediakan registration
 RPC V2, travel upsert, serta RPC assignment kamar dan penjemputan. Form publik
-menggunakan RPC registration V2. RPC baru
-dibatasi untuk `service_role`. RPC registration lama tetap tersedia sementara
-agar rollout aplikasi tidak memiliki compatibility gap.
+H-3D2 menggunakan RPC registration V2. RPC baru dibatasi untuk `service_role`.
+RPC registration lama dan V2 tetap tersedia sementara agar rollout aplikasi
+tidak memiliki compatibility gap; form hotfix menggunakan RPC V3.
+
+Migration `20260902090000_add_registration_hotfix_fields.sql` mengubah
+`participant_category` menjadi nullable tanpa menghapus nilainya, menambahkan
+empat kolom registrasi hotfix, dan menyediakan
+`create_participant_with_registration_reservation_v3`. RPC V2 dan seluruh kolom
+historis tetap tersedia untuk kompatibilitas deployment.
 
 ### `participant_travel`
 

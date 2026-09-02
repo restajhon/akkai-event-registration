@@ -16,7 +16,7 @@ type DatabaseParticipantRow = {
   full_name: string;
   email: string;
   institution: string | null;
-  participant_category: string;
+  participant_category: string | null;
   registration_status: "REGISTERED" | "CANCELLED";
   email_status: "PENDING" | "SENT" | "FAILED";
   created_at: string;

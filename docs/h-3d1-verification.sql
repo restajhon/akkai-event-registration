@@ -12,11 +12,16 @@ FROM information_schema.columns
 WHERE table_schema = 'public'
   AND (
     (table_name = 'participants' AND column_name IN (
-      'institution',
-      'member_number',
-      'kka_name',
-      'polo_size',
-      'polo_model'
+       'institution',
+       'member_number',
+       'participant_category',
+       'kka_name',
+       'polo_size',
+       'polo_model',
+       'package_type',
+       'participation_scope',
+       'actuarial_consultant_status',
+       'attends_pai_congress'
     ))
     OR table_name IN (
       'participant_travel',
@@ -37,6 +42,10 @@ WHERE connamespace = 'public'::regnamespace
     'participants_kka_name_valid',
     'participants_polo_size_valid',
     'participants_polo_model_valid',
+    'participants_category_valid',
+    'participants_package_type_valid',
+    'participants_participation_scope_valid',
+    'participants_actuarial_consultant_status_valid',
     'participant_travel_dates_valid',
     'participant_travel_outbound_mode_valid',
     'participant_travel_return_mode_valid',
@@ -100,6 +109,9 @@ WHERE schemaname = 'public'
     'participants_polo_size_idx',
     'participants_polo_model_idx',
     'participants_category_idx',
+    'participants_package_type_idx',
+    'participants_participation_scope_idx',
+    'participants_actuarial_consultant_status_idx',
     'participant_travel_outbound_date_idx',
     'participant_travel_return_date_idx',
     'participant_travel_outbound_mode_idx',
@@ -120,8 +132,9 @@ SELECT
 FROM information_schema.routines
 WHERE routine_schema = 'public'
   AND routine_name IN (
-    'create_participant_with_registration_reservation',
-    'create_participant_with_registration_reservation_v2',
+     'create_participant_with_registration_reservation',
+     'create_participant_with_registration_reservation_v2',
+     'create_participant_with_registration_reservation_v3',
     'upsert_participant_travel',
     'upsert_participant_room_assignment',
     'upsert_participant_pickup_assignment'
@@ -139,6 +152,7 @@ WITH audited_functions AS (
   WHERE namespace.nspname = 'public'
     AND p.oid IN (
       'public.create_participant_with_registration_reservation_v2(text,text,text,text,text,text,text,text,timestamptz)'::regprocedure,
+      'public.create_participant_with_registration_reservation_v3(text,text,text,text,text,text,text,text,text,boolean,timestamptz)'::regprocedure,
       'public.upsert_participant_travel(text,text,date,time,text,text,text,text,date,time,text,text,text,boolean)'::regprocedure,
       'public.upsert_participant_room_assignment(text,text,text,date,date,text,uuid)'::regprocedure,
       'public.upsert_participant_pickup_assignment(text,text,timestamptz,text,text,text,text,uuid)'::regprocedure

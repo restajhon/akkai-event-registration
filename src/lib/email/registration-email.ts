@@ -24,6 +24,10 @@ type SendRegistrationEmailInput = {
   recipientEmail: string;
   fullName: string;
   registrationId: string;
+  packageType: string;
+  participationScope: string;
+  actuarialConsultantStatus: string;
+  attendsPaiCongress: boolean | null;
   qrPngBuffer: Buffer;
   idempotencyKey: string;
 };
@@ -32,6 +36,10 @@ export async function sendRegistrationEmail({
   recipientEmail,
   fullName,
   registrationId,
+  packageType,
+  participationScope,
+  actuarialConsultantStatus,
+  attendsPaiCongress,
   qrPngBuffer,
   idempotencyKey,
 }: SendRegistrationEmailInput): Promise<RegistrationEmailResult> {
@@ -49,6 +57,10 @@ export async function sendRegistrationEmail({
     const template = createRegistrationEmailTemplate({
       fullName,
       registrationId,
+      packageType,
+      participationScope,
+      actuarialConsultantStatus,
+      attendsPaiCongress,
     });
     const resend = new Resend(apiKey);
     const { data, error } = await resend.emails.send(

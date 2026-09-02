@@ -12,7 +12,7 @@ export const participantCheckInEventSchema = z
         registrationId: z.string().min(1),
         fullName: z.string().min(1),
         institution: z.string().min(1).nullable(),
-        participantCategory: z.string().min(1),
+        participantCategory: z.string().min(1).nullable(),
       })
       .strict(),
     session: z

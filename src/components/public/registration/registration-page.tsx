@@ -26,6 +26,10 @@ function EventInformation() {
         <p className={styles.eventLabel}>Seminar AKKAI 2026</p>
         <p className={styles.eventValue}>{AKKAI_EVENT.seminarDate}</p>
       </div>
+      <div className={styles.eventItem}>
+        <p className={styles.eventLabel}>Registrasi Day 3</p>
+        <p className={styles.eventValue}>{AKKAI_EVENT.day3Date}</p>
+      </div>
     </div>
   );
 }

@@ -267,7 +267,7 @@ function ParticipantResultCard({
         ) : null}
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-[#897657]">Kategori</dt>
-          <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.participantCategory}</dd>
+           <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.participantCategory ?? "-"}</dd>
         </div>
       </dl>
 
@@ -344,7 +344,7 @@ function SelectedParticipant({
       <dl className="mt-6 grid gap-4 text-sm text-[#5b6c7c] sm:grid-cols-2">
         <Detail label="Registration ID" value={participant.registrationId} strong />
         {participant.institution ? <Detail label="Institusi" value={participant.institution} /> : null}
-        <Detail label="Kategori" value={participant.participantCategory} />
+         <Detail label="Kategori" value={participant.participantCategory ?? "-"} />
         <Detail label="Sesi" value={sessionName} />
       </dl>
 
@@ -445,7 +445,7 @@ function ManualResult({
           <dl className="mt-6 grid gap-4 text-sm text-[#344d68] sm:grid-cols-2">
             <Detail label="Registration ID" value={participant.registrationId} strong />
             {participant.institution ? <Detail label="Institusi" value={participant.institution} /> : null}
-            <Detail label="Kategori" value={participant.participantCategory} />
+             <Detail label="Kategori" value={participant.participantCategory ?? "-"} />
             {session ? <Detail label="Sesi" value={session.name} /> : null}
             {state.checkedAt ? <Detail label="Waktu Check-in" value={formatDateTime(state.checkedAt)} /> : null}
           </dl>
