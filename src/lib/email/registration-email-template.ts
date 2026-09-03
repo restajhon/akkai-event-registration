@@ -100,7 +100,7 @@ export function createRegistrationEmailTemplate({
             <tr>
               <td style="padding:24px 32px;border-top:1px solid #ddbb6a;color:#667085;font-size:13px;line-height:1.6;">
                 <p style="margin:0 0 4px;">Penyelenggara: AKKAI</p>
-                <p style="margin:0;">Didukung oleh Eagle Spirit Indonesia</p>
+                <p style="margin:0;">Didukung oleh Semangat Rajawali Indonesia</p>
               </td>
             </tr>
           </table>
@@ -131,7 +131,7 @@ Kode QR tersedia sebagai lampiran email ini. Simpan email dan kode QR hingga sel
 QR ini bersifat pribadi dan tidak boleh dibagikan kepada orang lain.
 
 Penyelenggara: AKKAI
-Didukung oleh Eagle Spirit Indonesia
+Didukung oleh Semangat Rajawali Indonesia
 `,
   };
 }

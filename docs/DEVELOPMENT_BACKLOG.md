@@ -4,7 +4,7 @@
 
 **Versi:** 1.0
 **Acuan utama:** `docs/PRD.md`
-**Product Owner:** Resta / Eagle Spirit Indonesia
+**Product Owner:** Resta / Semangat Rajawali Indonesia
 **Target MVP production:** Maksimal akhir September 2026
 **Metode pengerjaan:** AI-assisted development
 **Tools utama:** ChatGPT, Gemini, v0, OpenCode, GitHub, Supabase, Vercel
@@ -1481,7 +1481,7 @@ Periksa:
 
 ---
 
-## UAT-001 — Internal UAT Eagle Spirit Indonesia
+## UAT-001 — Internal UAT Semangat Rajawali Indonesia
 
 **Prioritas:** P0
 **Estimasi:** 3–4 jam

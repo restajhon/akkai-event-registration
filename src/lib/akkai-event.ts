@@ -40,7 +40,7 @@ export const AKKAI_EVENT: AkkaiEventConfig = {
   seminarDate: "Selasa, 20 Oktober 2026",
   day3Date: "Rabu, 21 Oktober 2026",
   organizer: "AKKAI",
-  eventHandler: "Eagle Spirit Indonesia",
+  eventHandler: "Semangat Rajawali Indonesia",
   registrationOpen: true,
 };
 

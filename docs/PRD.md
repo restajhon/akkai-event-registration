@@ -4,7 +4,7 @@
 
 **Versi:** 1.0
 **Status:** MVP Definition
-**Pemilik Produk:** Eagle Spirit Indonesia
+**Pemilik Produk:** Semangat Rajawali Indonesia
 **Event:** Rapat Tahunan AKKAI 2026
 **Lokasi:** Hotel Gumaya Semarang
 **Tanggal acara:** 19–21 Oktober 2026
@@ -46,7 +46,7 @@ MVP harus menyelesaikan kebutuhan berikut:
 7. Menampilkan hasil scan pada laptop secara real-time.
 8. Menyediakan check-in manual sebagai fallback.
 9. Menyediakan dashboard dan laporan kehadiran.
-10. Mempermudah Eagle Spirit Indonesia dan AKKAI melakukan rekap peserta.
+10. Mempermudah Semangat Rajawali Indonesia dan AKKAI melakukan rekap peserta.
 
 ---
 
@@ -91,7 +91,7 @@ Operator tidak dapat:
 
 ## 3.3 Admin
 
-Admin adalah PIC dari Eagle Spirit Indonesia atau panitia utama yang bertanggung jawab atas sistem.
+Admin adalah PIC dari Semangat Rajawali Indonesia atau panitia utama yang bertanggung jawab atas sistem.
 
 Admin dapat:
 
@@ -458,7 +458,7 @@ Memberikan informasi singkat tentang acara dan mengarahkan peserta ke form regis
 ### Konten
 
 * Logo atau identitas AKKAI.
-* Logo Eagle Spirit Indonesia apabila diperlukan.
+* Logo Semangat Rajawali Indonesia apabila diperlukan.
 * Nama acara.
 * Lokasi acara.
 * Tanggal acara.
@@ -2152,7 +2152,7 @@ Buka tiket digital:
 
 Salam,
 Panitia Rapat Tahunan AKKAI 2026
-Eagle Spirit Indonesia
+Semangat Rajawali Indonesia
 ```
 
 ## Email requirements
@@ -2336,7 +2336,7 @@ Satu fitur dianggap selesai apabila:
 MVP dianggap selesai apabila:
 
 * Seluruh acceptance criteria prioritas wajib terpenuhi.
-* UAT internal Eagle Spirit Indonesia selesai.
+* UAT internal Semangat Rajawali Indonesia selesai.
 * UAT PIC AKKAI selesai.
 * Data dummy telah dibersihkan.
 * Production environment terpisah dari development.

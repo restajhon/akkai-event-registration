@@ -106,7 +106,7 @@ AKKAI 2026 <registration@mail.esi-akkai-event.my.id>
 ```
 
 Reply-To sengaja belum diset. Reply-To hanya akan ditambahkan setelah alamat
-mailbox AKKAI atau Eagle Spirit Indonesia yang benar-benar dimonitor telah
+mailbox AKKAI atau Semangat Rajawali Indonesia yang benar-benar dimonitor telah
 dikonfirmasi. Alamat yang tidak dimonitor tidak boleh digunakan.
 
 DMARC untuk launch tetap menggunakan policy minimum:
