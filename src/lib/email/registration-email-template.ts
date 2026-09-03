@@ -13,7 +13,7 @@ export type RegistrationEmailTemplate = {
   text: string;
 };
 
-const SUBJECT = "Konfirmasi Registrasi Rapat Tahunan AKKAI 2026";
+const SUBJECT = "Konfirmasi Registrasi Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026";
 
 function escapeHtml(value: string) {
   return value.replace(
@@ -63,7 +63,7 @@ export function createRegistrationEmailTemplate({
             <tr>
               <td style="padding:32px;">
                 <p style="margin:0 0 20px;font-size:16px;line-height:1.7;">Halo ${safeFullName},</p>
-                <p style="margin:0 0 20px;font-size:16px;line-height:1.7;">Pendaftaran Anda untuk Rapat Tahunan AKKAI 2026 telah berhasil.</p>
+                <p style="margin:0 0 20px;font-size:16px;line-height:1.7;">Pendaftaran Anda untuk Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026 telah berhasil.</p>
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;background:#fcf9f2;border-left:4px solid #c79a35;">
                   <tr>
                     <td style="padding:16px 20px;">
@@ -111,7 +111,7 @@ export function createRegistrationEmailTemplate({
 </html>`,
     text: `Halo ${fullName},
 
-Pendaftaran Anda untuk Rapat Tahunan AKKAI 2026 telah berhasil.
+Pendaftaran Anda untuk Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026 telah berhasil.
 
 Nomor Registrasi: ${registrationId}
 Paket yang diambil: ${packageType}

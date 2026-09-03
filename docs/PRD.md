@@ -5,7 +5,7 @@
 **Versi:** 1.0
 **Status:** MVP Definition
 **Pemilik Produk:** Semangat Rajawali Indonesia
-**Event:** Rapat Tahunan AKKAI 2026
+**Event:** Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026
 **Lokasi:** Hotel Gumaya Semarang
 **Tanggal acara:** 19–21 Oktober 2026
 **Target production:** Maksimal akhir September 2026
@@ -696,7 +696,7 @@ Pendaftaran Berhasil
 
 Terima kasih, [Nama Peserta].
 
-Data Anda telah terdaftar untuk Rapat Tahunan AKKAI 2026.
+Data Anda telah terdaftar untuk Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026.
 Simpan QR berikut dan tunjukkan kepada panitia saat check-in.
 ```
 
@@ -2036,7 +2036,7 @@ Data yang dikumpulkan hanya digunakan untuk operasional AKKAI 2026.
 Privacy notice minimum:
 
 ```text
-Dengan mengirimkan formulir ini, Anda menyetujui penggunaan data untuk keperluan registrasi, komunikasi, dan administrasi Rapat Tahunan AKKAI 2026.
+Dengan mengirimkan formulir ini, Anda menyetujui penggunaan data untuk keperluan registrasi, komunikasi, dan administrasi Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026.
 ```
 
 Data yang tidak boleh ditampilkan pada laptop display:
@@ -2122,7 +2122,7 @@ Database tetap dapat menyimpan UTC.
 ## Subject
 
 ```text
-Tiket Registrasi Rapat Tahunan AKKAI 2026
+Tiket Registrasi Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026
 ```
 
 ## Body utama
@@ -2130,7 +2130,7 @@ Tiket Registrasi Rapat Tahunan AKKAI 2026
 ```text
 Halo [Nama Peserta],
 
-Pendaftaran Anda untuk Rapat Tahunan AKKAI 2026 telah berhasil.
+Pendaftaran Anda untuk Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026 telah berhasil.
 
 Registration ID:
 [Registration ID]
@@ -2151,7 +2151,7 @@ Buka tiket digital:
 [Ticket URL]
 
 Salam,
-Panitia Rapat Tahunan AKKAI 2026
+Panitia Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026
 Semangat Rajawali Indonesia
 ```
 

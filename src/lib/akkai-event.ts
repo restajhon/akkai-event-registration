@@ -17,7 +17,7 @@ export type AkkaiEventConfig = {
 };
 
 export const AKKAI_EVENT: AkkaiEventConfig = {
-  name: "Rapat Tahunan AKKAI 2026",
+  name: "Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026",
   shortName: "AKKAI 2026",
   date: "19–21 Oktober 2026",
   location: "Semarang",

@@ -530,7 +530,7 @@ Tentukan:
 ### Prompt v0
 
 ```text
-Create a responsive landing page for Rapat Tahunan AKKAI 2026.
+Create a responsive landing page for Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026.
 
 Requirements:
 - Bahasa Indonesia
