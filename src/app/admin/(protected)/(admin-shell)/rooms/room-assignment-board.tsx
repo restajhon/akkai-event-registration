@@ -42,7 +42,7 @@ export function RoomAssignmentBoard({
       !normalizedQuery ||
       participant.fullName.toLowerCase().includes(normalizedQuery) ||
       participant.registrationId.toLowerCase().includes(normalizedQuery) ||
-      participant.participantCategory.toLowerCase().includes(normalizedQuery);
+      participant.participantCategory?.toLowerCase().includes(normalizedQuery);
     const matchesFilter =
       filter === "all" ||
       (filter === "assigned" && isAssigned(participant)) ||
@@ -122,7 +122,7 @@ export function RoomAssignmentBoard({
                     {participant.registrationId}
                   </td>
                   <td className="px-4 py-4 font-semibold text-[#142842]">{participant.fullName}</td>
-                  <td className="px-4 py-4">{participant.participantCategory}</td>
+                  <td className="px-4 py-4">{participant.participantCategory ?? "Tidak diisi"}</td>
                   <td className="px-4 py-4">
                     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClassName(participant)}`}>
                       {statusLabel(participant)}

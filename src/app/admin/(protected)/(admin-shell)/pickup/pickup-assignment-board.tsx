@@ -68,7 +68,7 @@ export function PickupAssignmentBoard({
       !normalizedQuery ||
       participant.fullName.toLowerCase().includes(normalizedQuery) ||
       participant.registrationId.toLowerCase().includes(normalizedQuery) ||
-      participant.participantCategory.toLowerCase().includes(normalizedQuery);
+      participant.participantCategory?.toLowerCase().includes(normalizedQuery);
 
     return matchesQuery && matchesFilter(participant, filter);
   });
@@ -144,7 +144,7 @@ export function PickupAssignmentBoard({
                 <tr className="align-top" key={participant.registrationId}>
                   <td className="px-4 py-4 font-semibold text-[#9a7526]">{participant.registrationId}</td>
                   <td className="px-4 py-4 font-semibold text-[#142842]">{participant.fullName}</td>
-                  <td className="px-4 py-4">{participant.participantCategory}</td>
+                  <td className="px-4 py-4">{participant.participantCategory ?? "Tidak diisi"}</td>
                   <td className="px-4 py-4">{participant.travel ? "Sudah diisi" : "Belum diisi"}</td>
                   <td className="px-4 py-4">
                     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${assignmentClassName(participant.arrivalAssignment)}`}>

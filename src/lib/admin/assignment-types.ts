@@ -12,7 +12,7 @@ export type RoomAssignment = {
 export type RoomParticipant = {
   registrationId: string;
   fullName: string;
-  participantCategory: string;
+  participantCategory: string | null;
   registrationStatus: ParticipantRegistrationStatus;
   assignment: RoomAssignment | null;
 };
@@ -50,7 +50,7 @@ export type ParticipantTravel = {
 export type PickupParticipant = {
   registrationId: string;
   fullName: string;
-  participantCategory: string;
+  participantCategory: string | null;
   registrationStatus: ParticipantRegistrationStatus;
   travel: ParticipantTravel | null;
   arrivalAssignment: PickupAssignment | null;

@@ -120,7 +120,7 @@ export default async function PickupAssignmentDetailPage({
                 {participant.fullName}
               </h1>
               <p className="mt-1 text-sm font-semibold text-[#9a7526]">{participant.registrationId}</p>
-              <p className="mt-2 text-sm text-[#5b6c7c]">{participant.participantCategory}</p>
+              <p className="mt-2 text-sm text-[#5b6c7c]">{participant.participantCategory ?? "Tidak diisi"}</p>
             </div>
             <Link
               className="inline-flex min-h-11 items-center text-sm font-semibold text-[#344d68] underline underline-offset-4"
@@ -136,7 +136,7 @@ export default async function PickupAssignmentDetailPage({
           <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
             <DetailField label="Registration ID" value={participant.registrationId} />
             <DetailField label="Nama" value={participant.fullName} />
-            <DetailField label="Kategori" value={participant.participantCategory} />
+            <DetailField label="Kategori" value={participant.participantCategory ?? "Tidak diisi"} />
           </dl>
         </section>
 

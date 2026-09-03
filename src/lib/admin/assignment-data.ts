@@ -14,7 +14,7 @@ type ParticipantRow = {
   id: string;
   registration_id: string;
   full_name: string;
-  participant_category: string;
+  participant_category: string | null;
   registration_status: ParticipantRegistrationStatus;
 };
 
