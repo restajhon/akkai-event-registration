@@ -26,6 +26,10 @@ type ParticipantEmailRow = {
   email: string;
   qr_token: string;
   email_generation: number;
+  package_type: string | null;
+  participation_scope: string | null;
+  actuarial_consultant_status: string | null;
+  attends_pai_congress: boolean | null;
   registration_status: "REGISTERED" | "CANCELLED";
 };
 
@@ -313,7 +317,7 @@ export async function resendRegistrationQr(
     const { data: participant, error: participantError } = await supabase
       .from("participants")
       .select(
-        "id, registration_id, full_name, email, qr_token, email_generation, registration_status",
+        "id, registration_id, full_name, email, qr_token, email_generation, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status",
       )
       .eq("registration_id", registrationId)
       .maybeSingle();
@@ -435,6 +439,10 @@ export async function resendRegistrationQr(
       recipientEmail: reservedEmailLog.recipient_email,
       fullName: participantRow.full_name,
       registrationId: participantRow.registration_id,
+      packageType: participantRow.package_type ?? "-",
+      participationScope: participantRow.participation_scope ?? "-",
+      actuarialConsultantStatus: participantRow.actuarial_consultant_status ?? "-",
+      attendsPaiCongress: participantRow.attends_pai_congress,
       qrPngBuffer,
       idempotencyKey,
     });

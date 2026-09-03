@@ -17,7 +17,7 @@ export type AkkaiEventConfig = {
 };
 
 export const AKKAI_EVENT: AkkaiEventConfig = {
-  name: "Rapat Tahunan AKKAI 2026",
+  name: "Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026",
   shortName: "AKKAI 2026",
   date: "19–21 Oktober 2026",
   location: "Semarang",
@@ -36,11 +36,11 @@ export const AKKAI_EVENT: AkkaiEventConfig = {
       items: ["Registrasi", "City Tour Semarang"],
     },
   ],
-  arrivalDate: "19 Oktober 2026",
-  seminarDate: "20 Oktober 2026",
-  day3Date: "21 Oktober 2026",
+  arrivalDate: "Senin, 19 Oktober 2026",
+  seminarDate: "Selasa, 20 Oktober 2026",
+  day3Date: "Rabu, 21 Oktober 2026",
   organizer: "AKKAI",
-  eventHandler: "Eagle Spirit Indonesia",
+  eventHandler: "Semangat Rajawali Indonesia",
   registrationOpen: true,
 };
 

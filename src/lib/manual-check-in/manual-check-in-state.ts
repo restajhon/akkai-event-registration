@@ -2,7 +2,7 @@ export type ManualParticipant = {
   registrationId: string;
   fullName: string;
   institution: string | null;
-  participantCategory: string;
+  participantCategory: string | null;
   registrationStatus: "REGISTERED" | "CANCELLED";
   alreadyCheckedIn: boolean;
   checkedInAt: string | null;

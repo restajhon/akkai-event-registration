@@ -58,10 +58,15 @@ function getFormValues(formData: FormData): RegistrationFormValues {
     email: getFormValue(formData, "email"),
     phone_number: getFormValue(formData, "phone_number"),
     kka_name: getFormValue(formData, "kka_name"),
-    participant_category: getFormValue(formData, "participant_category"),
-    member_number: getFormValue(formData, "member_number"),
     polo_size: getFormValue(formData, "polo_size"),
     polo_model: getFormValue(formData, "polo_model"),
+    package_type: getFormValue(formData, "package_type"),
+    participation_scope: getFormValue(formData, "participation_scope"),
+    actuarial_consultant_status: getFormValue(
+      formData,
+      "actuarial_consultant_status",
+    ),
+    attends_pai_congress: getFormValue(formData, "attends_pai_congress"),
     privacy_consent: privacyConsent === "on" || privacyConsent === "true",
   };
 }
@@ -163,16 +168,18 @@ export async function submitRegistration(
   try {
     const supabase = createAdminClient();
     const { data: reservationData, error: reservationError } = await supabase.rpc(
-      "create_participant_with_registration_reservation_v2",
+      "create_participant_with_registration_reservation_v3",
       {
         p_full_name: parsed.data.full_name,
         p_email: parsed.data.email,
         p_phone_number: parsed.data.phone_number,
         p_kka_name: parsed.data.kka_name,
-        p_participant_category: parsed.data.participant_category,
-        p_member_number: parsed.data.member_number,
         p_polo_size: parsed.data.polo_size,
         p_polo_model: parsed.data.polo_model,
+        p_package_type: parsed.data.package_type,
+        p_participation_scope: parsed.data.participation_scope,
+        p_actuarial_consultant_status: parsed.data.actuarial_consultant_status,
+        p_attends_pai_congress: parsed.data.attends_pai_congress,
         p_privacy_consent_at: new Date().toISOString(),
       },
     );
@@ -267,6 +274,10 @@ export async function submitRegistration(
       recipientEmail: reservedEmailLog.recipient_email,
       fullName,
       registrationId,
+      packageType: parsed.data.package_type,
+      participationScope: parsed.data.participation_scope,
+      actuarialConsultantStatus: parsed.data.actuarial_consultant_status,
+      attendsPaiCongress: parsed.data.attends_pai_congress,
       qrPngBuffer,
       idempotencyKey,
     });

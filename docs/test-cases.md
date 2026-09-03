@@ -31,24 +31,39 @@
 
 # H-3D2 Registration And Compatibility
 
-## Public Registration Form
+## Public Registration Form Hotfix
 
 - Form publik tidak menampilkan field Institusi/Cabang dan tidak mengirimkan field tersebut.
 - Nama KKA wajib diisi dan menerima 1-150 karakter setelah trim.
-- Kategori peserta wajib diisi sebagai free text 1-100 karakter, tanpa select atau whitelist.
-- Nomor Anggota AKKAI boleh kosong; bila diisi, nilainya di-trim, di-uppercase, dan harus 3-50 karakter.
-- Ukuran Poloshirt hanya menyediakan `S`, `M`, `L`, `XL`, `XXL`, dan `XXXL`.
+- Form publik tidak menampilkan `Kategori peserta` atau `Nomor Anggota AKKAI`.
+- `Paket yang diambil` menyediakan `Twin Share` dan `Single` serta wajib dipilih.
+- `Mengikuti` menyediakan `Seluruh acara`, `Rapat Anggota`, dan `Seminar Profesi Konsultan Aktuaria` serta wajib dipilih sebagai satu nilai.
+- `Konsultan Aktuaria` menyediakan `Peserta Baru` dan `Penerima Grandfathering` serta wajib dipilih.
+- `Hadir Kongres PAI` menyediakan `Ya` dan `Tidak` serta wajib dipilih.
+- Ukuran Poloshirt menyediakan `S`, `M`, `L`, `XL`, `XXL`, `XXXL`, dan `XXXXL`.
 - Model Poloshirt hanya menyediakan `Lengan Panjang` dan `Lengan Pendek`.
 - Informasi tetap `Hotel Gumaya Semarang` tampil di homepage dan halaman registrasi tanpa menjadi input.
 - Rundown umum menampilkan Day 1, Day 2, dan Day 3 di homepage, bukan pada halaman registrasi.
 - Rundown tetap umum dan tidak menampilkan waktu, ruangan, pembicara, transportasi, atau agenda tambahan.
-- Server Action menggunakan registration RPC V2 dan mempertahankan hasil `CREATED`, duplicate, `INVALID_INPUT`, serta error umum.
+- Server Action menggunakan registration RPC V3 dan mempertahankan hasil `CREATED`, duplicate, `INVALID_INPUT`, serta error umum.
+- RPC V2 H-3D2 tetap menerima registration lama setelah migration hotfix.
+
+## Registration Hotfix Local QA
+
+- Semua empat pilihan valid menyimpan row baru dengan `participant_category` dan `member_number` NULL.
+- Masing-masing pilihan baru yang hilang ditolak oleh schema, Server Action, dan RPC V3.
+- Nilai pilihan baru di luar daftar ditolak.
+- `XXXXL` diterima; `S`, `M`, `L`, `XL`, `XXL`, dan `XXXL` tetap diterima.
+- Email duplikat tetap mengembalikan hasil duplicate yang sama.
+- Registration ID dibuat database dan QR token tetap dibuat server-side.
+- Kegagalan email tetap menyimpan registrasi dan mengembalikan status delivery gagal sesuai kontrak lama.
+- Participant lama tidak dimutasi; empat kolom hotfix boleh tetap NULL.
 
 ## Legacy Compatibility
 
 - Peserta lama dengan institution terisi tetap dapat diproses.
 - Peserta baru dengan institution NULL tidak menampilkan baris institusi pada scanner, manual check-in, atau Live Display.
-- Peserta lama dengan KKA atau data poloshirt NULL tidak menampilkan `null`, `undefined`, atau `[object Object]` pada halaman admin.
+- Peserta lama dengan kategori, KKA, atau data poloshirt NULL tidak menampilkan `null`, `undefined`, atau `[object Object]` pada halaman admin, scanner, manual check-in, atau Live Display.
 - QR, Registration ID, attendance, pairing, realtime payload minimum, dan email generation tetap menggunakan kontrak lama.
 
 ## H-3D2 DAY3 Session
@@ -62,8 +77,6 @@
 - Live Display dan dashboard menampilkan hasil serta jumlah attendance DAY3 melalui session_id.
 - DAY3 tidak menampilkan warning SEMINAR tanpa ARRIVAL.
 - Participant detail dan participant list menampilkan status attendance DAY3.
-
-H-3D2 tidak mencakup implementasi Travel UI, room UI, atau pickup UI.
 
 # H-3D3 Travel Form
 
@@ -94,3 +107,5 @@ H-3D2 tidak mencakup implementasi Travel UI, room UI, atau pickup UI.
 - Repeated invalid verification dibatasi oleh limiter durable berbasis Supabase/Postgres, bukan `Map` atau counter process-local.
 - Limiter menyimpan HMAC key hash tanpa raw email/Registration ID/IP, aman terhadap request concurrent, berlaku lintas instance, dan retention cleanup dibatasi satu hari.
 - Rate limit tetap efektif pada request independen yang tidak berbagi memory server.
+
+Room UI dan pickup UI tidak termasuk hotfix ini dan tidak tersedia pada worktree hotfix.

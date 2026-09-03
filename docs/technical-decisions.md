@@ -106,7 +106,7 @@ AKKAI 2026 <registration@mail.esi-akkai-event.my.id>
 ```
 
 Reply-To sengaja belum diset. Reply-To hanya akan ditambahkan setelah alamat
-mailbox AKKAI atau Eagle Spirit Indonesia yang benar-benar dimonitor telah
+mailbox AKKAI atau Semangat Rajawali Indonesia yang benar-benar dimonitor telah
 dikonfirmasi. Alamat yang tidak dimonitor tidak boleh digunakan.
 
 DMARC untuk launch tetap menggunakan policy minimum:
@@ -138,10 +138,11 @@ Migration H-3D1 bersifat additive dan tidak mengubah kontrak scan, manual
 check-in, Live Display, realtime, email, atau QR. `institution` menjadi nullable
 untuk menjaga histori lama, tetapi kolomnya tidak dihapus.
 
-Data pendaftaran baru menggunakan `kka_name`, `polo_size`, dan `polo_model`.
-Ketiganya nullable di database agar row lama tetap valid; validasi wajib untuk
-pendaftaran baru dilakukan oleh `create_participant_with_registration_reservation_v2`.
-`participant_category` tetap text dan tidak menggunakan enum atau whitelist.
+Data pendaftaran baru menggunakan `kka_name`, `polo_size`, `polo_model`, dan
+empat pilihan registration hotfix.
+Field-field tersebut nullable di database agar row lama tetap valid; validasi wajib untuk
+pendaftaran baru dilakukan oleh `create_participant_with_registration_reservation_v3`.
+`participant_category` tetap text historis dan nullable untuk row baru.
 `member_number` tetap nullable dan opsional untuk semua kategori.
 
 Travel disimpan terpisah pada `participant_travel` dan di-submit melalui upsert
@@ -154,8 +155,8 @@ Semua tabel baru memakai RLS tanpa policy direct untuk `anon` atau
 `search_path` eksplisit dan execution hanya untuk `service_role`. Mutation
 kamar dan penjemputan memvalidasi actor aktif dengan role `ADMIN` di dalam RPC.
 
-RPC registration lama tetap dipertahankan sementara untuk rollout kompatibel;
-form publik H-3D2 menggunakan `create_participant_with_registration_reservation_v2`.
+RPC registration lama dan V2 tetap dipertahankan untuk rollout kompatibel; form
+publik hotfix menggunakan `create_participant_with_registration_reservation_v3`.
 Tidak ada backfill nilai KKA, poloshirt, travel, kamar, atau penjemputan dan
 tidak ada destructive migration.
 

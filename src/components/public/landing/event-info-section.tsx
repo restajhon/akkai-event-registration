@@ -6,8 +6,9 @@ export function EventInfoSection() {
   const infoItems = [
     { label: "Tanggal Acara", value: AKKAI_EVENT.date },
     { label: "Lokasi", value: AKKAI_EVENT.venue },
-    { label: "Registrasi Kedatangan", value: AKKAI_EVENT.arrivalDate },
-    { label: "Seminar AKKAI 2026", value: AKKAI_EVENT.seminarDate },
+    { label: AKKAI_EVENT.arrivalDate, value: "Registrasi Kedatangan" },
+    { label: AKKAI_EVENT.seminarDate, value: "Seminar AKKAI 2026" },
+    { label: AKKAI_EVENT.day3Date, value: "Registrasi Day 3" },
   ];
 
   return (
@@ -28,7 +29,7 @@ export function EventInfoSection() {
           </p>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
           {infoItems.map((item) => (
             <div
               className="relative min-h-36 bg-[#fcf9f2] p-6 text-center ring-1 ring-[#c79a35]/40 transition-transform hover:-translate-y-1"

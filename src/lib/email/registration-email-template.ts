@@ -1,6 +1,10 @@
 type RegistrationEmailTemplateInput = {
   fullName: string;
   registrationId: string;
+  packageType: string;
+  participationScope: string;
+  actuarialConsultantStatus: string;
+  attendsPaiCongress: boolean | null;
 };
 
 export type RegistrationEmailTemplate = {
@@ -9,7 +13,7 @@ export type RegistrationEmailTemplate = {
   text: string;
 };
 
-const SUBJECT = "Konfirmasi Registrasi Rapat Tahunan AKKAI 2026";
+const SUBJECT = "Konfirmasi Registrasi Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026";
 
 function escapeHtml(value: string) {
   return value.replace(
@@ -28,9 +32,18 @@ function escapeHtml(value: string) {
 export function createRegistrationEmailTemplate({
   fullName,
   registrationId,
+  packageType,
+  participationScope,
+  actuarialConsultantStatus,
+  attendsPaiCongress,
 }: RegistrationEmailTemplateInput): RegistrationEmailTemplate {
   const safeFullName = escapeHtml(fullName);
   const safeRegistrationId = escapeHtml(registrationId);
+  const safePackageType = escapeHtml(packageType);
+  const safeParticipationScope = escapeHtml(participationScope);
+  const safeActuarialConsultantStatus = escapeHtml(actuarialConsultantStatus);
+  const paiCongressAnswer =
+    attendsPaiCongress === null ? "-" : attendsPaiCongress ? "Ya" : "Tidak";
 
   return {
     subject: SUBJECT,
@@ -50,7 +63,7 @@ export function createRegistrationEmailTemplate({
             <tr>
               <td style="padding:32px;">
                 <p style="margin:0 0 20px;font-size:16px;line-height:1.7;">Halo ${safeFullName},</p>
-                <p style="margin:0 0 20px;font-size:16px;line-height:1.7;">Pendaftaran Anda untuk Rapat Tahunan AKKAI 2026 telah berhasil.</p>
+                <p style="margin:0 0 20px;font-size:16px;line-height:1.7;">Pendaftaran Anda untuk Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026 telah berhasil.</p>
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;background:#fcf9f2;border-left:4px solid #c79a35;">
                   <tr>
                     <td style="padding:16px 20px;">
@@ -59,12 +72,19 @@ export function createRegistrationEmailTemplate({
                     </td>
                   </tr>
                 </table>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;font-size:15px;line-height:1.7;">
+                  <tr><td style="padding:3px 0;"><strong>Paket yang diambil:</strong> ${safePackageType}</td></tr>
+                  <tr><td style="padding:3px 0;"><strong>Mengikuti:</strong> ${safeParticipationScope}</td></tr>
+                  <tr><td style="padding:3px 0;"><strong>Konsultan Aktuaria:</strong> ${safeActuarialConsultantStatus}</td></tr>
+                  <tr><td style="padding:3px 0;"><strong>Hadir Kongres PAI:</strong> ${paiCongressAnswer}</td></tr>
+                </table>
                 <p style="margin:0 0 8px;font-size:16px;line-height:1.7;"><strong>Tanggal:</strong> 19–21 Oktober 2026</p>
                 <p style="margin:0 0 20px;font-size:16px;line-height:1.7;"><strong>Lokasi:</strong> Semarang</p>
                 <p style="margin:0 0 12px;font-size:16px;line-height:1.7;">Satu QR yang sama digunakan untuk:</p>
                 <ul style="margin:0 0 24px;padding-left:22px;font-size:16px;line-height:1.7;">
-                  <li>Registrasi Kedatangan</li>
-                  <li>Seminar AKKAI 2026</li>
+                   <li>Registrasi Kedatangan — Senin, 19 Oktober 2026</li>
+                   <li>Seminar AKKAI 2026 — Selasa, 20 Oktober 2026</li>
+                   <li>Registrasi Day 3 — Rabu, 21 Oktober 2026</li>
                 </ul>
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;">
                   <tr>
@@ -80,7 +100,7 @@ export function createRegistrationEmailTemplate({
             <tr>
               <td style="padding:24px 32px;border-top:1px solid #ddbb6a;color:#667085;font-size:13px;line-height:1.6;">
                 <p style="margin:0 0 4px;">Penyelenggara: AKKAI</p>
-                <p style="margin:0;">Didukung oleh Eagle Spirit Indonesia</p>
+                <p style="margin:0;">Didukung oleh Semangat Rajawali Indonesia</p>
               </td>
             </tr>
           </table>
@@ -91,22 +111,27 @@ export function createRegistrationEmailTemplate({
 </html>`,
     text: `Halo ${fullName},
 
-Pendaftaran Anda untuk Rapat Tahunan AKKAI 2026 telah berhasil.
+Pendaftaran Anda untuk Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026 telah berhasil.
 
 Nomor Registrasi: ${registrationId}
+Paket yang diambil: ${packageType}
+Mengikuti: ${participationScope}
+Konsultan Aktuaria: ${actuarialConsultantStatus}
+Hadir Kongres PAI: ${paiCongressAnswer}
 Tanggal: 19–21 Oktober 2026
 Lokasi: Semarang
 
 Satu QR yang sama digunakan untuk:
-1. Registrasi Kedatangan
-2. Seminar AKKAI 2026
+1. Registrasi Kedatangan — Senin, 19 Oktober 2026
+2. Seminar AKKAI 2026 — Selasa, 20 Oktober 2026
+3. Registrasi Day 3 — Rabu, 21 Oktober 2026
 
 Kode QR tersedia sebagai lampiran email ini. Simpan email dan kode QR hingga seluruh rangkaian acara selesai.
 
 QR ini bersifat pribadi dan tidak boleh dibagikan kepada orang lain.
 
 Penyelenggara: AKKAI
-Didukung oleh Eagle Spirit Indonesia
+Didukung oleh Semangat Rajawali Indonesia
 `,
   };
 }

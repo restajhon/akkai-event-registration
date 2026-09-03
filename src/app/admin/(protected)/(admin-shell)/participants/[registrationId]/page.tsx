@@ -21,10 +21,14 @@ type DatabaseParticipantRow = {
   email: string;
   member_number: string | null;
   institution: string | null;
-  participant_category: string;
+  participant_category: string | null;
   kka_name: string | null;
   polo_size: string | null;
   polo_model: string | null;
+  package_type: string | null;
+  participation_scope: string | null;
+  actuarial_consultant_status: string | null;
+  attends_pai_congress: boolean | null;
   registration_status: "REGISTERED" | "CANCELLED";
   email_status: "PENDING" | "SENT" | "FAILED";
   email_generation: number;
@@ -110,7 +114,7 @@ async function loadDetailData(
     const { data: participant, error: participantError } = await adminSupabase
       .from("participants")
       .select(
-        "id, registration_id, full_name, email, member_number, institution, participant_category, kka_name, polo_size, polo_model, registration_status, email_status, email_generation, last_email_sent_at, created_at",
+        "id, registration_id, full_name, email, member_number, institution, participant_category, kka_name, polo_size, polo_model, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status, email_status, email_generation, last_email_sent_at, created_at",
       )
       .eq("registration_id", registrationId)
       .maybeSingle();
@@ -333,10 +337,26 @@ export default async function ParticipantDetailPage({
             <DetailField label="Nama KKA" value={participant.kka_name ?? "Tidak diisi"} />
             <DetailField
               label="Kategori Peserta"
-              value={participant.participant_category}
+              value={participant.participant_category ?? "-"}
             />
             <DetailField label="Ukuran Poloshirt" value={participant.polo_size ?? "Tidak diisi"} />
             <DetailField label="Model Poloshirt" value={participant.polo_model ?? "Tidak diisi"} />
+            <DetailField label="Paket yang diambil" value={participant.package_type ?? "-"} />
+            <DetailField label="Mengikuti" value={participant.participation_scope ?? "-"} />
+            <DetailField
+              label="Konsultan Aktuaria"
+              value={participant.actuarial_consultant_status ?? "-"}
+            />
+            <DetailField
+              label="Hadir Kongres PAI"
+              value={
+                participant.attends_pai_congress === null
+                  ? "-"
+                  : participant.attends_pai_congress
+                    ? "Ya"
+                    : "Tidak"
+              }
+            />
             {participant.institution ? (
               <DetailField label="Institusi Historis" value={participant.institution} />
             ) : null}

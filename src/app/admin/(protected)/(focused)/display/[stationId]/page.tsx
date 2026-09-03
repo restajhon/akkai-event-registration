@@ -55,7 +55,7 @@ type ParticipantRow = {
   registration_id: string;
   full_name: string;
   institution: string | null;
-  participant_category: string;
+  participant_category: string | null;
 };
 
 type DisplayData = {

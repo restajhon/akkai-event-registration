@@ -4,8 +4,8 @@
 
 **Versi:** 1.0
 **Status:** MVP Definition
-**Pemilik Produk:** Eagle Spirit Indonesia
-**Event:** Rapat Tahunan AKKAI 2026
+**Pemilik Produk:** Semangat Rajawali Indonesia
+**Event:** Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026
 **Lokasi:** Hotel Gumaya Semarang
 **Tanggal acara:** 19–21 Oktober 2026
 **Target production:** Maksimal akhir September 2026
@@ -46,7 +46,7 @@ MVP harus menyelesaikan kebutuhan berikut:
 7. Menampilkan hasil scan pada laptop secara real-time.
 8. Menyediakan check-in manual sebagai fallback.
 9. Menyediakan dashboard dan laporan kehadiran.
-10. Mempermudah Eagle Spirit Indonesia dan AKKAI melakukan rekap peserta.
+10. Mempermudah Semangat Rajawali Indonesia dan AKKAI melakukan rekap peserta.
 
 ---
 
@@ -91,7 +91,7 @@ Operator tidak dapat:
 
 ## 3.3 Admin
 
-Admin adalah PIC dari Eagle Spirit Indonesia atau panitia utama yang bertanggung jawab atas sistem.
+Admin adalah PIC dari Semangat Rajawali Indonesia atau panitia utama yang bertanggung jawab atas sistem.
 
 Admin dapat:
 
@@ -458,7 +458,7 @@ Memberikan informasi singkat tentang acara dan mengarahkan peserta ke form regis
 ### Konten
 
 * Logo atau identitas AKKAI.
-* Logo Eagle Spirit Indonesia apabila diperlukan.
+* Logo Semangat Rajawali Indonesia apabila diperlukan.
 * Nama acara.
 * Lokasi acara.
 * Tanggal acara.
@@ -542,10 +542,12 @@ Mengumpulkan data peserta dan membuat pendaftaran baru.
 | Email                 | `email`                | Email    |    Ya | Format email valid               |
 | Nomor WhatsApp        | `phone_number`         | Tel/Text |    Ya | Tidak boleh kosong               |
 | Nama KKA              | `kka_name`             | Text     |    Ya | 1-150 karakter                   |
-| Kategori peserta      | `participant_category` | Text     |    Ya | Free text, 1-100 karakter        |
-| Nomor Anggota AKKAI   | `member_number`        | Text     |     - | 3-50 karakter bila diisi         |
-| Ukuran Poloshirt      | `polo_size`            | Select   |    Ya | S, M, L, XL, XXL, XXXL           |
+| Ukuran Poloshirt      | `polo_size`            | Select   |    Ya | S, M, L, XL, XXL, XXXL, XXXXL    |
 | Model Poloshirt       | `polo_model`           | Select   |    Ya | Lengan Panjang/Pendek            |
+| Paket yang diambil    | `package_type`         | Select   |    Ya | Twin Share/Single                |
+| Mengikuti             | `participation_scope`  | Select   |    Ya | Seluruh acara/Rapat Anggota/Seminar Profesi Konsultan Aktuaria |
+| Konsultan Aktuaria    | `actuarial_consultant_status` | Select | Ya | Peserta Baru/Penerima Grandfathering |
+| Hadir Kongres PAI     | `attends_pai_congress` | Select   |    Ya | Ya/Tidak                         |
 | Persetujuan data      | `privacy_consent`      | Checkbox |    Ya | Harus dicentang                  |
 
 Informasi event pada halaman registrasi menampilkan `Hotel Gumaya Semarang` sebagai
@@ -553,12 +555,14 @@ informasi tetap, bukan field peserta. Institusi/cabang tidak ditampilkan atau
 dikirim dari form registrasi baru. Rundown umum tiga hari ditampilkan pada halaman
 utama; detail waktu belum ditetapkan.
 
-### Kategori peserta
+### Registration hotfix compatibility
 
-`participant_category` disimpan sebagai text bebas, wajib diisi, di-trim, dan
-dibatasi 1-100 karakter. Tidak ada enum atau predefined whitelist. Perubahan
-UI form dari pilihan kategori menjadi free text pada H-3D2 dan implementasinya
-sudah aktif pada route `/register`.
+`participant_category` dan `member_number` tidak lagi diminta pada form publik
+untuk registrant baru. Kolom historis tetap dipertahankan; `participant_category`
+menjadi nullable tanpa menghapus nilai lama dan `member_number` tetap nullable.
+Pendaftaran baru menggunakan
+`create_participant_with_registration_reservation_v3`, sedangkan RPC lama dan
+V2 tetap tersedia untuk aplikasi yang belum di-deploy.
 
 ### Normalisasi data
 
@@ -567,8 +571,7 @@ Sebelum data disimpan:
 * Nama di-trim.
 * Multiple spaces diubah menjadi satu spasi.
 * Email diubah menjadi lowercase.
-* Nama KKA dan kategori peserta di-trim.
-* Nomor anggota di-trim dan diubah menjadi uppercase bila diisi.
+* Nama KKA di-trim.
 * Nomor WhatsApp hanya menyimpan angka dan tanda plus apabila diperlukan.
 * Institusi historis tidak digunakan untuk pendaftaran baru.
 
@@ -577,7 +580,8 @@ Sebelum data disimpan:
 Pendaftaran dianggap duplikat apabila:
 
 * Email sudah digunakan oleh peserta dengan status `REGISTERED`; atau
-* Nomor anggota sudah digunakan oleh peserta dengan status `REGISTERED`.
+* Nomor anggota sudah digunakan oleh peserta dengan status `REGISTERED` melalui
+  kontrak registration lama yang masih dipertahankan.
 
 Perbandingan email tidak membedakan huruf besar dan kecil.
 
@@ -650,8 +654,8 @@ Primary CTA:
 * Semua field wajib divalidasi.
 * Validasi server tetap dilakukan walaupun validasi client dilewati.
 * Double click tidak membuat dua peserta.
-* Email dan nomor anggota ganda ditolak.
-* Data peserta tersimpan ke database melalui registration RPC V2.
+* Email ganda ditolak; validasi nomor anggota tetap berlaku pada RPC historis.
+* Data peserta tersimpan ke database melalui registration RPC V3.
 * Registration ID dan QR token otomatis dibuat.
 * Peserta diarahkan ke halaman sukses.
 * Informasi sensitif tidak muncul pada URL.
@@ -692,7 +696,7 @@ Pendaftaran Berhasil
 
 Terima kasih, [Nama Peserta].
 
-Data Anda telah terdaftar untuk Rapat Tahunan AKKAI 2026.
+Data Anda telah terdaftar untuk Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026.
 Simpan QR berikut dan tunjukkan kepada panitia saat check-in.
 ```
 
@@ -1865,10 +1869,14 @@ Laptop display hanya menampilkan data minimum yang diperlukan.
 | `email`                | Text      | Unique, lowercase        |
 | `phone_number`         | Text      | Nomor WhatsApp           |
 | `institution`          | Text      | Nullable, data historis  |
-| `participant_category` | Text      | Required free text       |
+| `participant_category` | Text      | Nullable historical value |
 | `kka_name`             | Text      | Nullable untuk data lama |
-| `polo_size`            | Text      | Nullable untuk data lama |
+| `polo_size`            | Text      | Nullable untuk data lama; S/M/L/XL/XXL/XXXL/XXXXL |
 | `polo_model`           | Text      | Nullable untuk data lama |
+| `package_type`         | Text      | Nullable untuk peserta lama; Twin Share/Single |
+| `participation_scope`  | Text      | Nullable untuk peserta lama; tiga pilihan hotfix |
+| `actuarial_consultant_status` | Text | Nullable untuk peserta lama; dua pilihan hotfix |
+| `attends_pai_congress` | Boolean   | Nullable untuk peserta lama; Ya/Tidak |
 | `registration_status`  | Enum      | REGISTERED/CANCELLED     |
 | `email_status`         | Enum      | PENDING/SENT/FAILED      |
 | `qr_token`             | Text      | Unique secure token      |
@@ -1878,16 +1886,16 @@ Laptop display hanya menampilkan data minimum yang diperlukan.
 | `updated_at`           | Timestamp | Server time              |
 
 H-3D1 membuat `institution` nullable untuk mempertahankan data historis dan
-menambahkan `kka_name`, `polo_size`, serta `polo_model` secara nullable. Pada
-H-3D2, form registrasi utama menggunakan RPC V2 dan mewajibkan KKA serta data
-poloshirt untuk pendaftaran baru; row lama tidak di-backfill.
+menambahkan `kka_name`, `polo_size`, serta `polo_model` secara nullable. Migration
+hotfix menambahkan empat field registrasi secara nullable dan menggunakan RPC V3
+untuk mewajibkan jawabannya pada pendaftaran baru; row lama tidak di-backfill.
 
 ## 20.2 Table `sessions`
 
 | Column       | Type      | Keterangan      |
 | ------------ | --------- | --------------- |
 | `id`         | UUID      | Primary key     |
-| `code`       | Text      | ARRIVAL/SEMINAR |
+| `code`       | Text      | ARRIVAL/SEMINAR/DAY3 |
 | `name`       | Text      | Nama sesi       |
 | `event_date` | Date      | Tanggal sesi    |
 | `status`     | Enum      | OPEN/CLOSED     |
@@ -2055,7 +2063,7 @@ Data yang dikumpulkan hanya digunakan untuk operasional AKKAI 2026.
 Privacy notice minimum:
 
 ```text
-Dengan mengirimkan formulir ini, Anda menyetujui penggunaan data untuk keperluan registrasi, komunikasi, dan administrasi Rapat Tahunan AKKAI 2026.
+Dengan mengirimkan formulir ini, Anda menyetujui penggunaan data untuk keperluan registrasi, komunikasi, dan administrasi Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026.
 ```
 
 Data yang tidak boleh ditampilkan pada laptop display:
@@ -2141,7 +2149,7 @@ Database tetap dapat menyimpan UTC.
 ## Subject
 
 ```text
-Tiket Registrasi Rapat Tahunan AKKAI 2026
+Tiket Registrasi Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026
 ```
 
 ## Body utama
@@ -2149,7 +2157,7 @@ Tiket Registrasi Rapat Tahunan AKKAI 2026
 ```text
 Halo [Nama Peserta],
 
-Pendaftaran Anda untuk Rapat Tahunan AKKAI 2026 telah berhasil.
+Pendaftaran Anda untuk Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026 telah berhasil.
 
 Registration ID:
 [Registration ID]
@@ -2170,8 +2178,8 @@ Buka tiket digital:
 [Ticket URL]
 
 Salam,
-Panitia Rapat Tahunan AKKAI 2026
-Eagle Spirit Indonesia
+Panitia Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026
+Semangat Rajawali Indonesia
 ```
 
 ## Email requirements
@@ -2355,7 +2363,7 @@ Satu fitur dianggap selesai apabila:
 MVP dianggap selesai apabila:
 
 * Seluruh acceptance criteria prioritas wajib terpenuhi.
-* UAT internal Eagle Spirit Indonesia selesai.
+* UAT internal Semangat Rajawali Indonesia selesai.
 * UAT PIC AKKAI selesai.
 * Data dummy telah dibersihkan.
 * Production environment terpisah dari development.

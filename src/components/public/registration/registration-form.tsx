@@ -11,7 +11,11 @@ import {
   type RegistrationActionState,
 } from "@/lib/registration/registration-action-state";
 import {
+  ACTUARIAL_CONSULTANT_STATUSES,
   getRegistrationFieldErrors,
+  PACKAGE_TYPES,
+  PARTICIPATION_SCOPES,
+  PAI_CONGRESS_OPTIONS,
   POLO_MODELS,
   POLO_SIZES,
   registrationSchema,
@@ -27,10 +31,12 @@ const initialFormData: RegistrationFormValues = {
   email: "",
   phone_number: "",
   kka_name: "",
-  participant_category: "",
-  member_number: "",
   polo_size: "",
   polo_model: "",
+  package_type: "",
+  participation_scope: "",
+  actuarial_consultant_status: "",
+  attends_pai_congress: "",
   privacy_consent: false,
 };
 
@@ -285,64 +291,6 @@ export function RegistrationForm() {
         </div>
 
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="participant_category">
-            Kategori peserta <span className={styles.required}>(wajib)</span>
-          </label>
-          <input
-            aria-describedby={
-              errors.participant_category
-                ? "participant_category-error"
-                : undefined
-            }
-            aria-invalid={Boolean(errors.participant_category)}
-            className={`${styles.input} ${errors.participant_category ? styles.inputError : ""}`}
-            id="participant_category"
-            maxLength={100}
-            name="participant_category"
-            onChange={(event) =>
-              updateField("participant_category", event.target.value)
-            }
-            placeholder="Masukkan kategori peserta"
-            required
-            type="text"
-            value={formData.participant_category}
-          />
-          {errors.participant_category ? (
-            <ErrorMessage
-              id="participant_category-error"
-              message={errors.participant_category}
-            />
-          ) : null}
-        </div>
-
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="member_number">
-            Nomor Anggota AKKAI <span className={styles.required}>(opsional)</span>
-          </label>
-          <input
-            aria-describedby={
-              errors.member_number ? "member_number-error" : "member_number-helper"
-            }
-            aria-invalid={Boolean(errors.member_number)}
-            className={`${styles.input} ${errors.member_number ? styles.inputError : ""}`}
-            id="member_number"
-            maxLength={50}
-            name="member_number"
-            onChange={(event) => updateField("member_number", event.target.value)}
-            placeholder="Isi bila memiliki nomor anggota"
-            type="text"
-            value={formData.member_number}
-          />
-          {errors.member_number ? (
-            <ErrorMessage id="member_number-error" message={errors.member_number} />
-          ) : (
-            <p className={styles.helper} id="member_number-helper">
-              Kosongkan bila tidak memiliki nomor anggota.
-            </p>
-          )}
-        </div>
-
-        <div className={styles.field}>
           <label className={styles.label} htmlFor="polo_size">
             Ukuran Poloshirt <span className={styles.required}>(wajib)</span>
           </label>
@@ -387,6 +335,121 @@ export function RegistrationForm() {
           </select>
           {errors.polo_model ? (
             <ErrorMessage id="polo_model-error" message={errors.polo_model} />
+          ) : null}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="package_type">
+            Paket yang diambil <span className={styles.required}>(wajib)</span>
+          </label>
+          <select
+            aria-describedby={errors.package_type ? "package_type-error" : undefined}
+            aria-invalid={Boolean(errors.package_type)}
+            className={`${styles.select} ${errors.package_type ? styles.inputError : ""}`}
+            id="package_type"
+            name="package_type"
+            onChange={(event) => updateField("package_type", event.target.value)}
+            required
+            value={formData.package_type}
+          >
+            <option value="">Pilih paket</option>
+            {PACKAGE_TYPES.map((packageType) => (
+              <option key={packageType} value={packageType}>{packageType}</option>
+            ))}
+          </select>
+          {errors.package_type ? (
+            <ErrorMessage id="package_type-error" message={errors.package_type} />
+          ) : null}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="participation_scope">
+            Mengikuti <span className={styles.required}>(wajib)</span>
+          </label>
+          <select
+            aria-describedby={
+              errors.participation_scope ? "participation_scope-error" : undefined
+            }
+            aria-invalid={Boolean(errors.participation_scope)}
+            className={`${styles.select} ${errors.participation_scope ? styles.inputError : ""}`}
+            id="participation_scope"
+            name="participation_scope"
+            onChange={(event) => updateField("participation_scope", event.target.value)}
+            required
+            value={formData.participation_scope}
+          >
+            <option value="">Pilih keikutsertaan</option>
+            {PARTICIPATION_SCOPES.map((scope) => (
+              <option key={scope} value={scope}>{scope}</option>
+            ))}
+          </select>
+          {errors.participation_scope ? (
+            <ErrorMessage
+              id="participation_scope-error"
+              message={errors.participation_scope}
+            />
+          ) : null}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="actuarial_consultant_status">
+            Konsultan Aktuaria <span className={styles.required}>(wajib)</span>
+          </label>
+          <select
+            aria-describedby={
+              errors.actuarial_consultant_status
+                ? "actuarial_consultant_status-error"
+                : undefined
+            }
+            aria-invalid={Boolean(errors.actuarial_consultant_status)}
+            className={`${styles.select} ${errors.actuarial_consultant_status ? styles.inputError : ""}`}
+            id="actuarial_consultant_status"
+            name="actuarial_consultant_status"
+            onChange={(event) =>
+              updateField("actuarial_consultant_status", event.target.value)
+            }
+            required
+            value={formData.actuarial_consultant_status}
+          >
+            <option value="">Pilih status</option>
+            {ACTUARIAL_CONSULTANT_STATUSES.map((status) => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
+          {errors.actuarial_consultant_status ? (
+            <ErrorMessage
+              id="actuarial_consultant_status-error"
+              message={errors.actuarial_consultant_status}
+            />
+          ) : null}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="attends_pai_congress">
+            Hadir Kongres PAI <span className={styles.required}>(wajib)</span>
+          </label>
+          <select
+            aria-describedby={
+              errors.attends_pai_congress ? "attends_pai_congress-error" : undefined
+            }
+            aria-invalid={Boolean(errors.attends_pai_congress)}
+            className={`${styles.select} ${errors.attends_pai_congress ? styles.inputError : ""}`}
+            id="attends_pai_congress"
+            name="attends_pai_congress"
+            onChange={(event) => updateField("attends_pai_congress", event.target.value)}
+            required
+            value={formData.attends_pai_congress}
+          >
+            <option value="">Pilih jawaban</option>
+            {PAI_CONGRESS_OPTIONS.map((option) => (
+              <option key={option} value={option}>{option === "true" ? "Ya" : "Tidak"}</option>
+            ))}
+          </select>
+          {errors.attends_pai_congress ? (
+            <ErrorMessage
+              id="attends_pai_congress-error"
+              message={errors.attends_pai_congress}
+            />
           ) : null}
         </div>
 

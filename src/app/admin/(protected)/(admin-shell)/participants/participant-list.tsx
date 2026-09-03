@@ -385,7 +385,7 @@ function ParticipantCard({ participant }: { participant: ParticipantListItem }) 
         ) : null}
         <div>
           <dt className="text-xs uppercase tracking-wide text-[#897657]">Kategori</dt>
-          <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.participantCategory}</dd>
+           <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.participantCategory ?? "-"}</dd>
         </div>
         <div>
           <dt className="text-xs uppercase tracking-wide text-[#897657]">Registrasi Kedatangan</dt>
@@ -435,7 +435,7 @@ function ParticipantTableRow({
         {participant.institution ? (
           <p className="break-words font-medium">{participant.institution}</p>
         ) : null}
-        <p className="mt-1 break-words text-xs text-[#897657]">{participant.participantCategory}</p>
+         <p className="mt-1 break-words text-xs text-[#897657]">{participant.participantCategory ?? "-"}</p>
       </td>
       <td className="px-3 py-3.5">
         <ParticipantStatus status={participant.registrationStatus} />

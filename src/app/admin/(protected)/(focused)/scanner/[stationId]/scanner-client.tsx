@@ -18,7 +18,7 @@ type ParticipantDisplay = {
   registrationId: string;
   fullName: string;
   institution: string | null;
-  participantCategory: string;
+  participantCategory: string | null;
 };
 
 type SessionDisplay = {
@@ -106,7 +106,7 @@ function readParticipant(value: unknown): ParticipantDisplay | null {
     typeof registrationId !== "string" ||
     typeof fullName !== "string" ||
     (typeof institution !== "string" && institution !== null) ||
-    typeof participantCategory !== "string"
+    (typeof participantCategory !== "string" && participantCategory !== null)
   ) {
     return null;
   }
@@ -703,7 +703,7 @@ function ScanResultView({ result }: { result: SafeScanResult }) {
               Kategori
             </dt>
             <dd className="mt-1 font-semibold text-[#142842]">
-              {result.participant.participantCategory}
+              {result.participant.participantCategory ?? "-"}
             </dd>
           </div>
           <div>

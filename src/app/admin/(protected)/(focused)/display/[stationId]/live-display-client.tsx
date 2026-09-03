@@ -156,7 +156,7 @@ function EventDetails({ event }: { event: LiveDisplayEvent }) {
             <span aria-hidden="true" className="text-[#d9ad45]">·</span>
           </>
         ) : null}
-        <span className="break-words">{event.participant.participantCategory}</span>
+         <span className="break-words">{event.participant.participantCategory ?? "-"}</span>
       </div>
 
       <div className="mt-12 w-full max-w-[min(90vw,1100px)] border-t border-white/15 pt-6 sm:mt-16 sm:pt-8">
@@ -381,7 +381,7 @@ export function LiveDisplayClient({
         </div>
 
         <footer className="flex items-end justify-between gap-4 text-[clamp(0.7rem,0.8vw,0.95rem)] text-white/35">
-          <span>Rapat Tahunan AKKAI 2026</span>
+          <span>Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026</span>
           <span className="hidden sm:inline">{stationName} · {session.name}</span>
         </footer>
       </section>

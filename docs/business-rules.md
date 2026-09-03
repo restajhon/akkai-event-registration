@@ -1,11 +1,13 @@
 # Business Rules
 
-## H-3D2 Registration Form
+## Registration Hotfix Form
 
-- Form publik mengumpulkan nama lengkap, email, WhatsApp, nama KKA, kategori peserta, nomor anggota opsional, ukuran poloshirt, model poloshirt, dan persetujuan data.
+- Form publik hotfix mengumpulkan nama lengkap, email, WhatsApp, nama KKA, ukuran poloshirt, model poloshirt, empat pilihan registrasi baru, dan persetujuan data.
+- Field publik `Kategori peserta` dan `Nomor Anggota AKKAI` dihapus dari registrasi baru. Kolom historis tetap dipertahankan; `participant_category` dan `member_number` dapat bernilai NULL untuk row baru.
+- Pilihan wajib registrasi baru adalah `Paket yang diambil` (`Twin Share`, `Single`), `Mengikuti` (`Seluruh acara`, `Rapat Anggota`, `Seminar Profesi Konsultan Aktuaria`), `Konsultan Aktuaria` (`Peserta Baru`, `Penerima Grandfathering`), dan `Hadir Kongres PAI` (`Ya`, `Tidak`). `Mengikuti` adalah satu pilihan, bukan multi-select.
 - `institution` tetap tersedia hanya sebagai data historis nullable dan tidak menjadi input atau payload registrasi baru.
-- `participant_category` adalah free text, bukan select, enum, atau whitelist.
-- Pendaftaran baru menggunakan `create_participant_with_registration_reservation_v2` dan mempertahankan alur reservasi email, QR, serta Registration ID yang sudah ada.
+- Pendaftaran baru menggunakan `create_participant_with_registration_reservation_v3` dan mempertahankan alur reservasi email, QR, serta Registration ID yang sudah ada.
+- RPC H-3D2 `create_participant_with_registration_reservation_v2` tidak diubah dan tetap menerima kontrak lama selama rollout.
 - Informasi event publik menampilkan Hotel Gumaya Semarang; peserta tidak mengedit atau mengirimkan informasi ini.
 - Homepage menampilkan rundown umum Day 1 sampai Day 3. Halaman registrasi tidak menampilkan rundown lengkap dan rundown tidak memuat detail waktu yang belum ditetapkan.
 
@@ -40,11 +42,12 @@ Day 3
 
 ## H-3D1 Participant Data
 
-- `participant_category` adalah text bebas yang wajib, di-trim, dan panjangnya 1-100 karakter.
+- `participant_category` adalah kolom historis text yang dipertahankan dan nullable untuk row baru; nilai lama tidak dihapus.
 - `member_number` tetap tersedia, nullable, dan opsional untuk semua kategori.
 - `kka_name` wajib untuk pendaftaran baru, di-trim, dan panjangnya 1-150 karakter.
-- Ukuran poloshirt pendaftaran baru hanya `S`, `M`, `L`, `XL`, `XXL`, atau `XXXL`.
+- Ukuran poloshirt pendaftaran baru adalah `S`, `M`, `L`, `XL`, `XXL`, `XXXL`, atau `XXXXL`.
 - Model poloshirt pendaftaran baru hanya `Lengan Panjang` atau `Lengan Pendek`.
+- Kolom baru `package_type`, `participation_scope`, `actuarial_consultant_status`, dan `attends_pai_congress` nullable untuk menjaga peserta lama tetap valid; RPC V3 dan Server Action mewajibkan nilainya pada pendaftaran baru.
 - `institution` adalah data historis nullable dan tidak digunakan untuk pendaftaran baru.
 - Registration ID dan QR token tidak berubah karena penambahan data ini.
 

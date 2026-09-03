@@ -2,22 +2,39 @@ import { z } from "zod";
 
 import { participantEmailSchema } from "./email";
 
-export const POLO_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL"] as const;
+export const POLO_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"] as const;
 
 export const POLO_MODELS = ["Lengan Panjang", "Lengan Pendek"] as const;
+export const PACKAGE_TYPES = ["Twin Share", "Single"] as const;
+export const PARTICIPATION_SCOPES = [
+  "Seluruh acara",
+  "Rapat Anggota",
+  "Seminar Profesi Konsultan Aktuaria",
+] as const;
+export const ACTUARIAL_CONSULTANT_STATUSES = [
+  "Peserta Baru",
+  "Penerima Grandfathering",
+] as const;
+export const PAI_CONGRESS_OPTIONS = ["true", "false"] as const;
 
 export type PoloSize = (typeof POLO_SIZES)[number];
 export type PoloModel = (typeof POLO_MODELS)[number];
+export type PackageType = (typeof PACKAGE_TYPES)[number];
+export type ParticipationScope = (typeof PARTICIPATION_SCOPES)[number];
+export type ActuarialConsultantStatus =
+  (typeof ACTUARIAL_CONSULTANT_STATUSES)[number];
 
 export type RegistrationField =
   | "full_name"
   | "email"
   | "phone_number"
   | "kka_name"
-  | "participant_category"
-  | "member_number"
   | "polo_size"
   | "polo_model"
+  | "package_type"
+  | "participation_scope"
+  | "actuarial_consultant_status"
+  | "attends_pai_congress"
   | "privacy_consent";
 
 export type RegistrationFormValues = {
@@ -25,10 +42,12 @@ export type RegistrationFormValues = {
   email: string;
   phone_number: string;
   kka_name: string;
-  participant_category: string;
-  member_number: string;
   polo_size: string;
   polo_model: string;
+  package_type: string;
+  participation_scope: string;
+  actuarial_consultant_status: string;
+  attends_pai_congress: string;
   privacy_consent: boolean;
 };
 
@@ -37,10 +56,12 @@ const requiredMessages = {
   email: "Email wajib diisi.",
   phone_number: "Nomor WhatsApp wajib diisi.",
   kka_name: "Nama KKA wajib diisi.",
-  participant_category: "Kategori peserta wajib diisi.",
-  member_number: "Nomor anggota harus terdiri dari 3-50 karakter bila diisi.",
   polo_size: "Ukuran Poloshirt wajib dipilih.",
   polo_model: "Model Poloshirt wajib dipilih.",
+  package_type: "Paket yang diambil wajib dipilih.",
+  participation_scope: "Mengikuti wajib dipilih.",
+  actuarial_consultant_status: "Konsultan Aktuaria wajib dipilih.",
+  attends_pai_congress: "Kehadiran Kongres PAI wajib dipilih.",
   privacy_consent: "Persetujuan penggunaan data wajib diberikan.",
 } as const;
 
@@ -58,29 +79,22 @@ export const registrationSchema = z
       .trim()
       .min(1, requiredMessages.kka_name)
       .max(150, requiredMessages.kka_name),
-    participant_category: z
-      .string()
-      .trim()
-      .min(1, requiredMessages.participant_category)
-      .max(100, requiredMessages.participant_category),
-    member_number: z
-      .string()
-      .trim()
-      .refine(
-        (value) => value === "" || (value.length >= 3 && value.length <= 50),
-        requiredMessages.member_number,
-      ),
     polo_size: z.enum(POLO_SIZES, { error: requiredMessages.polo_size }),
     polo_model: z.enum(POLO_MODELS, { error: requiredMessages.polo_model }),
+    package_type: z.enum(PACKAGE_TYPES, { error: requiredMessages.package_type }),
+    participation_scope: z.enum(PARTICIPATION_SCOPES, {
+      error: requiredMessages.participation_scope,
+    }),
+    actuarial_consultant_status: z.enum(ACTUARIAL_CONSULTANT_STATUSES, {
+      error: requiredMessages.actuarial_consultant_status,
+    }),
+    attends_pai_congress: z
+      .enum(PAI_CONGRESS_OPTIONS, { error: requiredMessages.attends_pai_congress })
+      .transform((value) => value === "true"),
     privacy_consent: z
       .boolean()
       .refine((value) => value, requiredMessages.privacy_consent),
-  })
-  .transform((data) => ({
-    ...data,
-    member_number:
-      data.member_number === "" ? null : data.member_number.toUpperCase(),
-  }));
+  });
 
 export type NormalizedRegistrationData = z.output<typeof registrationSchema>;
 

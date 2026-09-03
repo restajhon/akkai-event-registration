@@ -51,19 +51,19 @@ export function RegistrationFlow() {
               <span aria-hidden="true" className="text-lg text-[#c79a35]">
                 •
               </span>
-              <span>Registrasi Kedatangan, {AKKAI_EVENT.arrivalDate}</span>
+              <span>Registrasi Kedatangan — {AKKAI_EVENT.arrivalDate}</span>
             </li>
             <li className="flex items-start gap-3">
               <span aria-hidden="true" className="text-lg text-[#c79a35]">
                 •
               </span>
-              <span>Seminar AKKAI 2026, {AKKAI_EVENT.seminarDate}</span>
+              <span>Seminar AKKAI 2026 — {AKKAI_EVENT.seminarDate}</span>
             </li>
             <li className="flex items-start gap-3">
               <span aria-hidden="true" className="text-lg text-[#c79a35]">
                 •
               </span>
-              <span>Registrasi Day 3, {AKKAI_EVENT.day3Date}</span>
+              <span>Registrasi Day 3 — {AKKAI_EVENT.day3Date}</span>
             </li>
           </ul>
         </div>

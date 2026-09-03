@@ -8,7 +8,7 @@ export type ParticipantListItem = {
   fullName: string;
   email: string;
   institution: string | null;
-  participantCategory: string;
+  participantCategory: string | null;
   registrationStatus: "REGISTERED" | "CANCELLED";
   emailStatus: "PENDING" | "SENT" | "FAILED";
   createdAt: string;

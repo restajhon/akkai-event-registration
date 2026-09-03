@@ -10,7 +10,7 @@ export function RegistrationCTA() {
         <p className="mb-4 text-sm font-semibold uppercase tracking-[0.22em] text-[#ddbb6a]">
           Pendaftaran Peserta
         </p>
-        <h2 className="font-serif text-4xl font-bold text-[#fffdf9] sm:text-5xl">
+        <h2 className="font-serif text-3xl font-bold leading-tight text-[#fffdf9] sm:text-4xl">
           Siap mengikuti {AKKAI_EVENT.name}?
         </h2>
         <div className="mx-auto mb-6 mt-7 h-px w-16 bg-[#c79a35]" />
