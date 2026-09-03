@@ -2493,6 +2493,9 @@ Apabila terjadi perbedaan antara prompt AI dan PRD, PRD harus diutamakan kecuali
 * Participant detail.
 * Edit.
 * Cancel.
+* Room assignment untuk participant.
+* Pickup assignment untuk participant.
+* Search dan filter assignment.
 
 ## Phase 5 — Attendance
 
@@ -2619,6 +2622,38 @@ Setelah selesai:
 | Secret bocor                | Risiko keamanan            | Environment variable dan review repository |
 
 ---
+
+## H-3D4C Room And Two-Leg Pickup Assignment
+
+`/admin/rooms` dan `/admin/pickup` adalah list operasional untuk monitoring semua
+participant. Editing hanya tersedia pada detail `/admin/rooms/[registrationId]`
+dan `/admin/pickup/[registrationId]`. Participant `CANCELLED` ditampilkan
+sebagai read-only. Server Action memvalidasi input dan meneruskan mutation ke
+RPC service-role; tidak ada direct client write policy.
+
+Room assignment menyimpan nomor dan tipe kamar, tanggal check-in/check-out, serta
+catatan dengan konteks hotel tetap `Hotel Gumaya Semarang`. Pickup assignment
+memiliki dua leg independen, `ARRIVAL` dan `DEPARTURE`, masing-masing dengan
+status `SCHEDULED`, `COMPLETED`, atau `CANCELLED`, waktu, titik jemput, titik
+antar, kendaraan, PIC/driver, dan catatan. Input pickup dari `datetime-local`
+menggunakan timezone Asia/Jakarta. Pickup detail menampilkan travel participant
+sebagai konteks read-only; ownership travel tidak diduplikasi.
+
+## H-3D5 Operational Spreadsheet Export Requirement
+
+Admin Views / Filters / Export wajib menyediakan `AKKAI Operational Spreadsheet
+(.xlsx)` dengan sheet:
+
+1. `Rooms`: participant operasional dan room assignment.
+2. `Pickup Kedatangan`: participant, konteks transport ARRIVAL, dan assignment ARRIVAL.
+3. `Pickup Kepulangan`: participant, konteks transport RETURN, dan assignment DEPARTURE.
+4. `Kehadiran`: satu participant per row dengan checkpoint ARRIVAL / Day 1,
+   SEMINAR / Day 2, dan DAY3 / Day 3, termasuk status serta timestamp check-in
+   bila tersedia.
+
+Export hanya untuk ADMIN. File tidak boleh memuat QR token, password, secret,
+atau UUID internal yang tidak diperlukan. Implementasi export dijadwalkan pada
+H-3D5 dan bukan bagian wajib revisi H-3D4C.
 
 # 35. Product Decision Final
 

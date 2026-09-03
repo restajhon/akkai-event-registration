@@ -108,7 +108,9 @@ WHERE schemaname = 'public'
     'participant_room_assignments_room_number_idx',
     'participant_room_assignments_room_type_idx',
     'participant_pickup_assignments_status_idx',
-    'participant_pickup_assignments_pickup_at_idx'
+    'participant_pickup_assignments_pickup_at_idx',
+    'participant_pickup_assignments_transfer_type_idx',
+    'participant_pickup_assignments_transfer_status_idx'
   )
 ORDER BY tablename, indexname;
 
@@ -141,7 +143,7 @@ WITH audited_functions AS (
       'public.create_participant_with_registration_reservation_v2(text,text,text,text,text,text,text,text,timestamptz)'::regprocedure,
       'public.upsert_participant_travel(text,text,date,time,text,text,text,text,date,time,text,text,text,boolean)'::regprocedure,
       'public.upsert_participant_room_assignment(text,text,text,date,date,text,uuid)'::regprocedure,
-      'public.upsert_participant_pickup_assignment(text,text,timestamptz,text,text,text,text,uuid)'::regprocedure
+       'public.upsert_participant_pickup_assignment(text,text,text,timestamptz,text,text,text,text,text,uuid)'::regprocedure
     )
 )
 SELECT
@@ -179,6 +181,12 @@ FROM public.participant_pickup_assignments AS pickups
 LEFT JOIN public.participants AS participant
   ON participant.id = pickups.participant_id
 WHERE participant.id IS NULL;
+
+-- The two-leg pickup identity must be unique. Expected zero rows.
+SELECT participant_id, transfer_type, count(*) AS assignment_row_count
+FROM public.participant_pickup_assignments
+GROUP BY participant_id, transfer_type
+HAVING count(*) > 1;
 
 -- J. The primary key makes duplicate travel rows impossible. Expected zero rows.
 SELECT participant_id, count(*) AS travel_row_count

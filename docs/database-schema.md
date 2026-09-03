@@ -155,10 +155,19 @@ satu kamar dapat ditempati beberapa peserta.
 
 ### `participant_pickup_assignments`
 
-Satu row assignment penjemputan saat ini per participant. Status yang diizinkan
-adalah `SCHEDULED`, `COMPLETED`, dan `CANCELLED`; tidak adanya row berarti belum
-ada assignment. Assignment terjadwal atau selesai wajib memiliki waktu dan
-titik penjemputan.
+Satu row assignment per participant dan `transfer_type`. `transfer_type` hanya
+memiliki nilai `ARRIVAL` dan `DEPARTURE`, dengan uniqueness pada
+`(participant_id, transfer_type)`. Status yang diizinkan adalah `SCHEDULED`,
+`COMPLETED`, dan `CANCELLED`; tidak adanya row pada leg berarti leg tersebut
+belum memiliki assignment. Assignment terjadwal atau selesai wajib memiliki
+waktu dan titik penjemputan. Assignment `DEPARTURE` juga wajib memiliki
+`dropoff_point`.
+
+Migration `20260902100000_add_two_leg_pickup_assignments.sql` mengubah primary
+key pickup dari `participant_id` menjadi `(participant_id, transfer_type)` dan
+menambahkan `dropoff_point`. Row pickup generik yang sudah ada dipertahankan
+dan diberi `transfer_type = 'ARRIVAL'`, karena kontrak lama tidak membedakan
+leg dan pickup kedatangan adalah interpretasi kompatibel yang paling aman.
 
 PENDING generation saat ini yang berusia kurang dari 15 menit memblokir koreksi.
 PENDING yang lebih lama memerlukan konfirmasi eksplisit bahwa status provider tidak
@@ -198,3 +207,30 @@ RPC koreksi email, reservasi registrasi awal, reservasi resend, dan finalisasi
 email menggunakan lock order `participants FOR UPDATE` lalu `email_logs FOR
 UPDATE` jika keduanya diperlukan. Pemanggilan provider selalu terjadi setelah
 transaksi database selesai.
+
+## H-3D4C Assignment UI And Two-Leg Pickup
+
+`participant_room_assignments` menyimpan satu current row per participant dengan
+`room_number`, `room_type`, `check_in_date`, `check_out_date`, `notes`,
+`updated_by`, `created_at`, dan `updated_at`. Room number tidak unique karena satu
+kamar dapat ditempati beberapa participant. Room clear mengosongkan field
+assignment dengan `NULL` melalui upsert.
+
+`participant_pickup_assignments` menyimpan satu current row per participant dan
+leg dengan `transfer_type`, `status`, `pickup_at`, `pickup_point`,
+`dropoff_point`, `vehicle_label`, `pic_driver`, `notes`, `updated_by`,
+`created_at`, dan `updated_at`. Status yang tersedia adalah `SCHEDULED`,
+`COMPLETED`, dan `CANCELLED`; status terjadwal atau selesai wajib memiliki
+waktu dan titik pickup, sedangkan DEPARTURE juga wajib memiliki titik antar.
+UI mengonversi waktu Asia/Jakarta ke `timestamptz`, dan cancellation
+mengosongkan detail pickup pada leg yang dipilih.
+
+`/admin/rooms` dan `/admin/pickup` adalah list monitoring tanpa form edit per
+participant. Detail edit berada di `/admin/rooms/[registrationId]` dan
+`/admin/pickup/[registrationId]`. Pickup detail menampilkan travel participant
+sebagai konteks read-only dan menyimpan ARRIVAL serta DEPARTURE secara
+independen. Travel tetap dimiliki oleh `participant_travel`.
+
+Kedua tabel tidak memiliki direct client write policy. Mutation UI menggunakan RPC
+service-role yang memvalidasi actor aktif ber-role `ADMIN` dan participant berstatus
+`REGISTERED`.

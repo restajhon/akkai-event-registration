@@ -94,3 +94,56 @@ H-3D2 tidak mencakup implementasi Travel UI, room UI, atau pickup UI.
 - Repeated invalid verification dibatasi oleh limiter durable berbasis Supabase/Postgres, bukan `Map` atau counter process-local.
 - Limiter menyimpan HMAC key hash tanpa raw email/Registration ID/IP, aman terhadap request concurrent, berlaku lintas instance, dan retention cleanup dibatasi satu hari.
 - Rate limit tetap efektif pada request independen yang tidak berbagi memory server.
+
+# H-3D4C Room And Two-Leg Pickup Assignment
+
+## Access And Display
+
+- Admin aktif dapat membuka `/admin/rooms`, `/admin/rooms/[registrationId]`, `/admin/pickup`, dan `/admin/pickup/[registrationId]`.
+- User `OPERATOR` tidak dapat membuka kedua halaman assignment.
+- User tanpa login diarahkan oleh protected admin layout.
+- Search dapat mencocokkan nama, Registration ID, dan kategori participant.
+- List room mendukung search, Assigned, dan Unassigned tanpa merender form edit per participant.
+- List pickup mendukung search serta filter Arrival/Departure Unassigned, Scheduled, dan Completed tanpa merender form edit per participant.
+- Participant `CANCELLED` ditampilkan sebagai read-only dan tombol mutation disabled.
+
+## Room Assignment
+
+- Admin dapat menyimpan room number, room type, check-in, check-out, dan notes untuk participant `REGISTERED`.
+- Submission kedua untuk participant yang sama meng-update current row dan tidak membuat row kedua.
+- Check-out sebelum check-in ditolak oleh Server Action dan RPC.
+- Field di luar batas panjang ditolak.
+- Clear assignment menyimpan semua field room sebagai `NULL` dan participant tetap ada.
+- Unknown Registration ID mengembalikan error tanpa membuat row.
+- Participant `CANCELLED` tidak dapat dibuatkan atau diperbarui room assignment.
+
+## Pickup Assignment
+
+- Detail room menyediakan satu editor assignment dengan Back to List, Save/Update, dan Clear.
+- Detail pickup menampilkan travel context read-only dan dua editor terpisah untuk ARRIVAL dan DEPARTURE.
+- Admin dapat menyimpan status `SCHEDULED` dengan waktu pickup dan titik pickup pada masing-masing leg.
+- Admin dapat mengubah status menjadi `COMPLETED` tanpa membuat row kedua pada leg yang sama.
+- Status `SCHEDULED` atau `COMPLETED` tanpa waktu atau titik pickup ditolak; DEPARTURE juga wajib memiliki dropoff point.
+- Waktu `datetime-local` disimpan sebagai waktu Asia/Jakarta yang benar pada `timestamptz`.
+- Vehicle label, PIC/driver, dan notes bersifat opsional serta mengikuti batas panjang database.
+- Status `CANCELLED` mengosongkan detail pickup dan menyimpan cancellation pada row yang sama dan leg yang sama.
+- ARRIVAL create/update tidak mengubah DEPARTURE; DEPARTURE create/update/cancel/complete tidak mengubah ARRIVAL.
+- Existing generic pickup rows setelah migration tetap menjadi ARRIVAL rows.
+- Participant `CANCELLED` tidak dapat dibuatkan atau diperbarui pickup assignment.
+
+## Local Two-Leg Pickup QA
+
+- Satu participant synthetic dapat memiliki tepat satu ARRIVAL dan satu DEPARTURE row.
+- ARRIVAL create mengembalikan `SAVED`; repeat ARRIVAL update tetap menghasilkan tepat satu ARRIVAL row.
+- DEPARTURE create mengembalikan `SAVED`; repeat DEPARTURE update tetap menghasilkan tepat satu DEPARTURE row.
+- Update DEPARTURE, cancel ARRIVAL, dan complete DEPARTURE mempertahankan row/detail leg lainnya.
+- Duplicate logical ARRIVAL dan DEPARTURE dicegah oleh primary key `(participant_id, transfer_type)`.
+- Participant `CANCELLED` dan registration ID tidak dikenal ditolak.
+
+## Local Database QA
+
+- Jalankan `npx --no-install supabase db reset --local` dan pastikan replay migration berhasil.
+- Jalankan mutation cases dengan participant dan admin synthetic dalam satu transaction, lalu rollback atau hapus seluruh fixture.
+- Re-run room assign, update, clear, invalid dates, cancelled participant, dan unknown participant cases setelah list/detail refactor.
+- Rollback transaction dan pastikan tidak ada fixture test tertinggal di `auth.users`, `profiles`, `participants`, atau tabel assignment.
+- Static gates untuk perubahan H-3D4: `npm run lint`, `npx tsc --noEmit`, dan `npm run build`.
