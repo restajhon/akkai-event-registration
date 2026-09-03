@@ -10,7 +10,7 @@ export function HeroSection() {
 
       <div className="relative mx-auto max-w-4xl text-center">
         <p className="mb-5 text-sm font-semibold uppercase tracking-[0.22em] text-[#c79a35]">
-          Rapat Tahunan
+          Rapat Anggota
         </p>
         <h1 className="font-serif text-4xl font-bold tracking-tight text-[#082b5a] sm:text-5xl lg:text-6xl">
           {AKKAI_EVENT.name}
