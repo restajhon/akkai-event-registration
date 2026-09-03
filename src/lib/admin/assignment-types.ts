@@ -12,6 +12,7 @@ export type RoomAssignment = {
 export type RoomParticipant = {
   registrationId: string;
   fullName: string;
+  packageType: string | null;
   participantCategory: string | null;
   registrationStatus: ParticipantRegistrationStatus;
   assignment: RoomAssignment | null;

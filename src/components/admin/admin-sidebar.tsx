@@ -57,6 +57,12 @@ const menuItems: MenuItem[] = [
     section: "OPERASIONAL",
   },
   {
+    href: "/admin/attendance",
+    label: "Kehadiran",
+    roles: ["ADMIN"],
+    section: "OPERASIONAL",
+  },
+  {
     href: "/admin/display",
     label: "Live Display",
     roles: ["ADMIN", "OPERATOR"],

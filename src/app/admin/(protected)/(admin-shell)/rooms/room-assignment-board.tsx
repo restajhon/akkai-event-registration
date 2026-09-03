@@ -6,6 +6,8 @@ import { useState } from "react";
 import type { RoomParticipant } from "@/lib/admin/assignment-types";
 
 type AssignmentFilter = "all" | "assigned" | "unassigned";
+type PackageFilter = "all" | "Twin Share" | "Single";
+type RegistrationFilter = "all" | "REGISTERED" | "CANCELLED";
 
 function isAssigned(participant: RoomParticipant) {
   return Boolean(participant.assignment?.roomNumber);
@@ -36,6 +38,8 @@ export function RoomAssignmentBoard({
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<AssignmentFilter>("all");
+  const [packageFilter, setPackageFilter] = useState<PackageFilter>("all");
+  const [registrationFilter, setRegistrationFilter] = useState<RegistrationFilter>("all");
   const normalizedQuery = query.trim().toLowerCase();
   const visibleParticipants = participants.filter((participant) => {
     const matchesQuery =
@@ -46,9 +50,12 @@ export function RoomAssignmentBoard({
     const matchesFilter =
       filter === "all" ||
       (filter === "assigned" && isAssigned(participant)) ||
-      (filter === "unassigned" && !isAssigned(participant));
+       (filter === "unassigned" && !isAssigned(participant));
+    const matchesPackage = packageFilter === "all" || participant.packageType === packageFilter;
+    const matchesRegistration =
+      registrationFilter === "all" || participant.registrationStatus === registrationFilter;
 
-    return matchesQuery && matchesFilter;
+    return matchesQuery && matchesFilter && matchesPackage && matchesRegistration;
   });
 
   return (
@@ -65,7 +72,7 @@ export function RoomAssignmentBoard({
         </header>
 
         <section className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_180px_180px]">
             <div>
               <label className="text-sm font-semibold text-[#142842]" htmlFor="room-search">
                 Cari peserta
@@ -94,6 +101,36 @@ export function RoomAssignmentBoard({
                 <option value="unassigned">Unassigned</option>
               </select>
             </div>
+            <div>
+              <label className="text-sm font-semibold text-[#142842]" htmlFor="room-package-filter">
+                Paket
+              </label>
+              <select
+                className="mt-2 min-h-11 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac]"
+                id="room-package-filter"
+                onChange={(event) => setPackageFilter(event.target.value as PackageFilter)}
+                value={packageFilter}
+              >
+                <option value="all">Semua paket</option>
+                <option value="Twin Share">Twin Share</option>
+                <option value="Single">Single</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-[#142842]" htmlFor="room-registration-filter">
+                Status registrasi
+              </label>
+              <select
+                className="mt-2 min-h-11 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac]"
+                id="room-registration-filter"
+                onChange={(event) => setRegistrationFilter(event.target.value as RegistrationFilter)}
+                value={registrationFilter}
+              >
+                <option value="all">Semua status</option>
+                <option value="REGISTERED">ACTIVE</option>
+                <option value="CANCELLED">CANCELLED</option>
+              </select>
+            </div>
           </div>
           <p className="mt-3 text-sm text-[#5b6c7c]">
             {visibleParticipants.length} dari {participants.length} peserta ditampilkan.
@@ -106,6 +143,8 @@ export function RoomAssignmentBoard({
               <tr>
                 <th className="px-4 py-3 font-semibold">Registration ID</th>
                 <th className="px-4 py-3 font-semibold">Nama</th>
+                <th className="px-4 py-3 font-semibold">Status Registrasi</th>
+                <th className="px-4 py-3 font-semibold">Paket</th>
                 <th className="px-4 py-3 font-semibold">Kategori</th>
                 <th className="px-4 py-3 font-semibold">Status Room</th>
                 <th className="px-4 py-3 font-semibold">Nomor Kamar</th>
@@ -122,6 +161,8 @@ export function RoomAssignmentBoard({
                     {participant.registrationId}
                   </td>
                   <td className="px-4 py-4 font-semibold text-[#142842]">{participant.fullName}</td>
+                  <td className="px-4 py-4">{participant.registrationStatus === "REGISTERED" ? "ACTIVE" : "CANCELLED"}</td>
+                  <td className="px-4 py-4">{participant.packageType ?? "-"}</td>
                   <td className="px-4 py-4">{participant.participantCategory ?? "Tidak diisi"}</td>
                   <td className="px-4 py-4">
                     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClassName(participant)}`}>

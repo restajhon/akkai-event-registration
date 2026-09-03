@@ -14,6 +14,7 @@ type ParticipantRow = {
   id: string;
   registration_id: string;
   full_name: string;
+  package_type: string | null;
   participant_category: string | null;
   registration_status: ParticipantRegistrationStatus;
 };
@@ -57,7 +58,7 @@ type TravelRow = {
 };
 
 const participantSelect =
-  "id, registration_id, full_name, participant_category, registration_status";
+  "id, registration_id, full_name, package_type, participant_category, registration_status";
 
 async function loadParticipants(registrationId?: string) {
   const supabase = createAdminClient();
@@ -86,6 +87,7 @@ function toRoomParticipant(
   return {
     registrationId: participant.registration_id,
     fullName: participant.full_name,
+    packageType: participant.package_type,
     participantCategory: participant.participant_category,
     registrationStatus: participant.registration_status,
     assignment: assignment
