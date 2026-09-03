@@ -199,6 +199,38 @@ UUID participant, QR token, dan data personal lain tidak dikembalikan ke
 browser. Identity failure memakai pesan generic yang sama untuk ID salah, email
 salah, pasangan campuran, dan participant `CANCELLED`.
 
+## H-3D4C Room And Two-Leg Pickup Admin UI
+
+H-3D4C menggunakan migration additive
+`20260902100000_add_two_leg_pickup_assignments.sql`. Existing pickup rows
+dipertahankan dengan default `transfer_type = 'ARRIVAL'`; tidak ada data row yang
+dihapus. Primary key pickup menjadi `(participant_id, transfer_type)` dan
+`dropoff_point` ditambahkan sebagai field terpisah, karena notes tidak boleh
+dipakai sebagai destination.
+
+Halaman `/admin/rooms` dan `/admin/pickup` adalah list monitoring tanpa form edit
+per participant. Detail edit menggunakan `/admin/rooms/[registrationId]` dan
+`/admin/pickup/[registrationId]`, melakukan authorization server-side dengan
+`requireRole(["ADMIN"])`, dan membaca data melalui server-only Supabase admin
+client. Client component hanya menerima data minimum untuk pencarian, filter,
+dan editor detail.
+
+Mutation divalidasi ulang pada Server Action, lalu diteruskan ke RPC
+`upsert_participant_room_assignment` atau `upsert_participant_pickup_assignment`.
+RPC tetap menjadi authority untuk actor aktif, participant `REGISTERED`, batas field,
+transfer type, dan upsert satu row per `(participant, transfer_type)`. Setelah
+mutation berhasil, path assignment detail dan participant list direvalidasi.
+
+Input `datetime-local` pickup diperlakukan sebagai waktu Asia/Jakarta sebelum dikirim
+sebagai `timestamptz`. Room clear mempertahankan current row dengan seluruh field
+assignment bernilai `NULL`; pickup cancellation mempertahankan row pada leg yang
+dipilih dengan status `CANCELLED` dan detail operasional bernilai `NULL`. ARRIVAL
+dan DEPARTURE tidak pernah meng-update row satu sama lain. Pickup detail membaca
+travel sebagai konteks read-only, tanpa memindahkan ownership travel.
+
+Navigation assignment hanya ditampilkan untuk role `ADMIN`. Tidak ada perubahan pada
+route publik, QR, attendance, scanner, realtime, email, atau participant registration.
+
 ## H-3D3 Durable Rate Limiting
 
 Karena belum ada limiter public yang dapat dipakai ulang, migration additive

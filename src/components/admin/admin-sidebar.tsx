@@ -45,6 +45,18 @@ const menuItems: MenuItem[] = [
     section: "OPERASIONAL",
   },
   {
+    href: "/admin/rooms",
+    label: "Room Assignment",
+    roles: ["ADMIN"],
+    section: "OPERASIONAL",
+  },
+  {
+    href: "/admin/pickup",
+    label: "Pickup Assignment",
+    roles: ["ADMIN"],
+    section: "OPERASIONAL",
+  },
+  {
     href: "/admin/display",
     label: "Live Display",
     roles: ["ADMIN", "OPERATOR"],
