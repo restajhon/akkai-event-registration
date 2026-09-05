@@ -2,9 +2,19 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
+import {
+  type Permission,
+  hasPermission,
+} from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 
-export type UserRole = "ADMIN" | "OPERATOR";
+export type UserRole =
+  | "ADMIN"
+  | "OPERATOR"
+  | "SUPER_ADMIN"
+  | "REGISTRATION"
+  | "OPERATIONAL"
+  | "SCANNER";
 
 export type UserProfile = {
   id: string;
@@ -17,7 +27,14 @@ export type UserProfile = {
 const profileColumns = "id, full_name, email, role, is_active";
 
 function isUserRole(value: unknown): value is UserRole {
-  return value === "ADMIN" || value === "OPERATOR";
+  return (
+    value === "ADMIN" ||
+    value === "OPERATOR" ||
+    value === "SUPER_ADMIN" ||
+    value === "REGISTRATION" ||
+    value === "OPERATIONAL" ||
+    value === "SCANNER"
+  );
 }
 
 /**
@@ -83,4 +100,36 @@ export async function requireRole(
   }
 
   return profile;
+}
+
+export async function requirePermission(
+  permission: Permission,
+): Promise<UserProfile> {
+  const profile = await requireAuthenticatedUser();
+
+  if (!hasPermission(profile.role, permission)) {
+    redirect("/admin/unauthorized");
+  }
+
+  return profile;
+}
+
+export async function authorizePermission(permission: Permission) {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile) {
+    return { profile: null, authorized: false, status: 401 as const };
+  }
+
+  if (!hasPermission(profile.role, permission)) {
+    return { profile, authorized: false, status: 403 as const };
+  }
+
+  return { profile, authorized: true, status: 200 as const };
+}
+
+export async function getAuthorizedProfile(permission: Permission) {
+  const profile = await getCurrentUserProfile();
+
+  return profile && hasPermission(profile.role, permission) ? profile : null;
 }

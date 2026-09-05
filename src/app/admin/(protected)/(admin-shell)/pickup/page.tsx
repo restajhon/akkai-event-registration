@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import { loadPickupAssignmentPage } from "@/lib/admin/assignment-data";
 
 import { PickupAssignmentBoard } from "./pickup-assignment-board";
@@ -16,7 +16,7 @@ function PickupPageError() {
 }
 
 export default async function PickupPage() {
-  await requireRole(["ADMIN"]);
+  await requirePermission("pickup.view");
   const participants = await loadPickupAssignmentPage();
 
   if (!participants) {

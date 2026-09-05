@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireRole } from "@/lib/auth/server";
+import { getAuthorizedProfile } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -20,9 +20,9 @@ export async function updateSessionStatus(
 ): Promise<SessionActionState> {
   void previousState;
 
-  const profile = await requireRole(["ADMIN"]);
+  const profile = await getAuthorizedProfile("sessions.manage");
 
-  if (!profile || profile.is_active !== true || profile.role !== "ADMIN") {
+  if (!profile) {
     return {
       status: "error",
       message: "Anda tidak memiliki akses untuk mengubah sesi.",

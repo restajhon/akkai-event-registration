@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "@e965/xlsx";
 
-import { requireRole } from "@/lib/auth/server";
+import { authorizePermission } from "@/lib/auth/server";
 import { loadParticipantExportRows } from "@/lib/admin/revision-export-data";
 import { buildParticipantWorkbook } from "@/lib/admin/revision-exports";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  await requireRole(["ADMIN"]);
+  const authorization = await authorizePermission("participants.export");
+  if (!authorization.authorized) {
+    return NextResponse.json(
+      { error: authorization.status === 401 ? "Authentication required." : "Forbidden." },
+      { status: authorization.status },
+    );
+  }
   const rows = await loadParticipantExportRows();
 
   if (!rows) {

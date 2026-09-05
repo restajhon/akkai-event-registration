@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "@e965/xlsx";
 
-import { requireRole } from "@/lib/auth/server";
+import { authorizePermission } from "@/lib/auth/server";
 import { loadRoomAssignmentPage } from "@/lib/admin/assignment-data";
 import { buildRoomAssignmentWorkbook } from "@/lib/admin/revision-exports";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  await requireRole(["ADMIN"]);
+  const authorization = await authorizePermission("rooms.export");
+  if (!authorization.authorized) {
+    return NextResponse.json(
+      { error: authorization.status === 401 ? "Authentication required." : "Forbidden." },
+      { status: authorization.status },
+    );
+  }
   const participants = await loadRoomAssignmentPage();
 
   if (!participants) {

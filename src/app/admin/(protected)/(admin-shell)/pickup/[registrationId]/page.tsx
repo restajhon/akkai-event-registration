@@ -2,7 +2,7 @@ import Link from "next/link";
 import { z } from "zod";
 
 import { loadPickupAssignmentDetail } from "@/lib/admin/assignment-data";
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import type { ParticipantTravel } from "@/lib/admin/assignment-types";
 
 import { PickupAssignmentForm } from "../pickup-assignment-form";
@@ -95,7 +95,7 @@ export default async function PickupAssignmentDetailPage({
 }: {
   params: Promise<{ registrationId: string }>;
 }) {
-  await requireRole(["ADMIN"]);
+  await requirePermission("pickup.view");
   const { registrationId: rawRegistrationId } = await params;
   const parsed = registrationIdSchema.safeParse(rawRegistrationId);
 

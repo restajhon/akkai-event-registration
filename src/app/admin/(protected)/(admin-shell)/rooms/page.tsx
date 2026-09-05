@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import { loadRoomAssignmentPage } from "@/lib/admin/assignment-data";
 
 import { RoomAssignmentBoard } from "./room-assignment-board";
@@ -16,7 +16,7 @@ function RoomPageError() {
 }
 
 export default async function RoomsPage() {
-  await requireRole(["ADMIN"]);
+  await requirePermission("rooms.view");
   const participants = await loadRoomAssignmentPage();
 
   if (!participants) {

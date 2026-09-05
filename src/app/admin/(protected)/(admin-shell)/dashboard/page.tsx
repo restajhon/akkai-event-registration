@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { requireRole, type UserRole } from "@/lib/auth/server";
+import { hasPermission } from "@/lib/auth/permissions";
+import { requirePermission, type UserProfile } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { DashboardRealtimeClient } from "./dashboard-realtime-client";
@@ -444,38 +445,38 @@ function formatActivityTime(dateValue: string | null) {
   }).format(date)} WIB`;
 }
 
-function getQuickActions(role: UserRole) {
+function getQuickActions(profile: UserProfile) {
   const actions = [
     {
       href: "/admin/scanner/pair",
       label: "Pasangkan Scanner",
       description: "Hubungkan scanner dengan station.",
-      visible: true,
+      visible: hasPermission(profile.role, "scanner.pair"),
     },
     {
       href: "/admin/participants",
       label: "Kelola Peserta",
       description: "Cari dan kelola data peserta.",
-      visible: role === "ADMIN",
+      visible: hasPermission(profile.role, "participants.view"),
     },
     {
       href: "/admin/display",
       label: "Buka Live Display",
       description: "Tampilkan check-in peserta secara real-time.",
-      visible: true,
+      visible: hasPermission(profile.role, "display.view"),
     },
     {
       href: "/admin/sessions",
       label: "Kelola Sesi",
       description: "Atur status sesi operasional.",
-      visible: true,
+      visible: hasPermission(profile.role, "sessions.view"),
       supporting: true,
     },
     {
       href: "/admin/display/setup",
       label: "Siapkan Station",
       description: "Siapkan dan kelola scanner station.",
-      visible: role === "ADMIN",
+      visible: hasPermission(profile.role, "display.manage"),
       supporting: true,
     },
   ];
@@ -484,7 +485,7 @@ function getQuickActions(role: UserRole) {
 }
 
 export default async function AdminDashboardPage() {
-  const profile = await requireRole(["ADMIN", "OPERATOR"]);
+  const profile = await requirePermission("dashboard.view");
   const dashboardData = await loadDashboardData();
 
   if (!dashboardData) {
@@ -504,9 +505,14 @@ export default async function AdminDashboardPage() {
       : activeSessionCount > 1
         ? `${activeSessionCount} sesi sedang aktif`
         : "Belum ada sesi aktif";
-  const quickActions = getQuickActions(profile.role);
+  const quickActions = getQuickActions(profile);
   const primaryActions = quickActions.filter((action) => !action.supporting);
   const supportingActions = quickActions.filter((action) => action.supporting);
+  const stationManagementHref = hasPermission(profile.role, "display.manage")
+    ? "/admin/display/setup"
+    : hasPermission(profile.role, "scanner.pair")
+      ? "/admin/scanner/pair"
+      : null;
 
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
@@ -520,12 +526,14 @@ export default async function AdminDashboardPage() {
               <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">STATUS OPERASIONAL</p>
               <h2 className="mt-1 text-xl font-semibold text-[#142842]" id="active-session-heading">Sesi Aktif</h2>
             </div>
-            <Link
-              className="hidden min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:inline-flex"
-              href="/admin/sessions"
-            >
-              Lihat semua sesi
-            </Link>
+            {hasPermission(profile.role, "sessions.view") ? (
+              <Link
+                className="hidden min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:inline-flex"
+                href="/admin/sessions"
+              >
+                Lihat semua sesi
+              </Link>
+            ) : null}
           </div>
 
           {dashboardData.activeSessions.length === 0 ? (
@@ -533,10 +541,10 @@ export default async function AdminDashboardPage() {
               <div>
                 <p className="font-semibold text-[#142842]">Belum ada sesi aktif</p>
                 <p className="mt-1 text-sm text-[#80631e]">
-                  {profile.role === "ADMIN" ? "Buka sesi untuk mulai menerima check-in peserta." : "Tunggu admin membuka sesi."}
+                  {hasPermission(profile.role, "sessions.manage") ? "Buka sesi untuk mulai menerima check-in peserta." : "Tunggu admin membuka sesi."}
                 </p>
               </div>
-              {profile.role === "ADMIN" ? (
+              {hasPermission(profile.role, "sessions.manage") ? (
                 <Link
                   className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-4 py-2.5 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
                   href="/admin/sessions"
@@ -585,24 +593,28 @@ export default async function AdminDashboardPage() {
                 <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">STATION MONITORING</p>
                 <h2 className="mt-1 text-xl font-semibold text-[#142842]" id="station-heading">Scanner Station</h2>
               </div>
-              <Link
-                className="hidden min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:inline-flex"
-                href={profile.role === "ADMIN" ? "/admin/display/setup" : "/admin/scanner/pair"}
-              >
-                {profile.role === "ADMIN" ? "Siapkan Station" : "Pasangkan Scanner"}
-              </Link>
+              {stationManagementHref ? (
+                <Link
+                  className="hidden min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:inline-flex"
+                  href={stationManagementHref}
+                >
+                  {hasPermission(profile.role, "display.manage") ? "Siapkan Station" : "Pasangkan Scanner"}
+                </Link>
+              ) : null}
             </div>
 
             {dashboardData.stations.length === 0 ? (
               <div className="py-6">
                 <p className="font-semibold text-[#142842]">Belum ada scanner station</p>
                 <p className="mt-1 text-sm text-[#5b6c7c]">Siapkan station untuk mulai memantau perangkat scanner.</p>
-                <Link
-                  className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 py-2.5 text-sm font-semibold text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
-                  href={profile.role === "ADMIN" ? "/admin/display/setup" : "/admin/scanner/pair"}
-                >
-                  {profile.role === "ADMIN" ? "Siapkan Station" : "Pasangkan Scanner"}
-                </Link>
+                {stationManagementHref ? (
+                  <Link
+                    className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 py-2.5 text-sm font-semibold text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                    href={stationManagementHref}
+                  >
+                    {hasPermission(profile.role, "display.manage") ? "Siapkan Station" : "Pasangkan Scanner"}
+                  </Link>
+                ) : null}
               </div>
             ) : (
               <div>

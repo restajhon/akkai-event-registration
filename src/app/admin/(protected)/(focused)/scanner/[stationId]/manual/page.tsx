@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { z } from "zod";
 
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import { loadAuthorizedManualStationContext } from "@/lib/manual-check-in/server";
 
 import { ManualCheckInClient } from "./manual-check-in-client";
@@ -59,7 +59,7 @@ export default async function ManualCheckInPage({
 }: {
   params: Promise<{ stationId: string }>;
 }) {
-  const profile = await requireRole(["ADMIN", "OPERATOR"]);
+  const profile = await requirePermission("scanner.checkin");
   const { stationId: rawStationId } = await params;
   const parsedStationId = stationIdSchema.safeParse(rawStationId);
 

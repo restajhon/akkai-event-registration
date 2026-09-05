@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireRole } from "@/lib/auth/server";
+import { getAuthorizedProfile } from "@/lib/auth/server";
 import type { AssignmentActionState } from "@/lib/admin/assignment-action-state";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -30,7 +30,10 @@ export async function upsertRoomAssignment(
 ): Promise<AssignmentActionState> {
   void previousState;
 
-  const profile = await requireRole(["ADMIN"]);
+  const profile = await getAuthorizedProfile("rooms.manage");
+  if (!profile) {
+    return errorState("Anda tidak memiliki akses untuk mengubah assignment kamar.");
+  }
   const parsed = roomInputSchema.safeParse({
     registrationId: readString(formData, "registrationId"),
     roomNumber: readString(formData, "roomNumber"),

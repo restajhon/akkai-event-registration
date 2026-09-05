@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 
-import { requireRole } from "@/lib/auth/server";
+import { requireAuthenticatedUser } from "@/lib/auth/server";
 import { AdminProfileProvider } from "@/components/admin/admin-sidebar";
 
 export default async function ProtectedAdminLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  const profile = await requireRole(["ADMIN", "OPERATOR"]);
+  const profile = await requireAuthenticatedUser();
 
   return (
     <AdminProfileProvider

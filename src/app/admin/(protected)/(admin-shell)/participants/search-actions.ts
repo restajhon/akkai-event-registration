@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { requireRole } from "@/lib/auth/server";
+import { getAuthorizedProfile } from "@/lib/auth/server";
 
 import { loadParticipantPage } from "./participant-data";
 import type { ParticipantPageData } from "./participant-page-data";
@@ -22,7 +22,12 @@ export async function searchParticipants(
   previousState: ParticipantSearchState,
   formData: FormData,
 ): Promise<ParticipantSearchState> {
-  await requireRole(["ADMIN"]);
+  if (!(await getAuthorizedProfile("participants.view"))) {
+    return {
+      ...previousState,
+      message: "Anda tidak memiliki akses untuk melihat peserta.",
+    };
+  }
 
   const query = formData.get("reset") === "true"
     ? ""

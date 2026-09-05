@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import { loadOperationalData } from "@/lib/admin/operational-data";
 
 import { AttendanceBoard } from "./attendance-board";
@@ -16,7 +16,7 @@ function AttendancePageError() {
 }
 
 export default async function AttendancePage() {
-  await requireRole(["ADMIN"]);
+  await requirePermission("attendance.view");
   const participants = await loadOperationalData();
 
   if (!participants) {

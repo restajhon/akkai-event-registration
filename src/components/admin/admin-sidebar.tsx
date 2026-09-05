@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { createContext, useContext, useState } from "react";
 
 import { signOut } from "@/app/admin/actions";
+import { getRoleLabel, hasPermission, type Permission } from "@/lib/auth/permissions";
 import type { UserRole } from "@/lib/auth/server";
 
 export type AdminSidebarProfile = {
@@ -15,7 +16,7 @@ export type AdminSidebarProfile = {
 type MenuItem = {
   href: string;
   label: string;
-  roles: UserRole[];
+  permission: Permission;
   section: "UTAMA" | "OPERASIONAL" | "MONITORING" | "SETUP";
 };
 
@@ -23,55 +24,61 @@ const menuItems: MenuItem[] = [
   {
     href: "/admin/dashboard",
     label: "Dashboard",
-    roles: ["ADMIN", "OPERATOR"],
+    permission: "dashboard.view",
     section: "UTAMA",
   },
   {
     href: "/admin/sessions",
     label: "Sesi",
-    roles: ["ADMIN", "OPERATOR"],
+    permission: "sessions.view",
     section: "OPERASIONAL",
   },
   {
     href: "/admin/scanner/pair",
     label: "Scanner",
-    roles: ["ADMIN", "OPERATOR"],
+    permission: "scanner.pair",
     section: "OPERASIONAL",
   },
   {
     href: "/admin/participants",
     label: "Peserta",
-    roles: ["ADMIN"],
+    permission: "participants.view",
     section: "OPERASIONAL",
   },
   {
     href: "/admin/rooms",
     label: "Room Assignment",
-    roles: ["ADMIN"],
+    permission: "rooms.view",
     section: "OPERASIONAL",
   },
   {
     href: "/admin/pickup",
     label: "Pickup Assignment",
-    roles: ["ADMIN"],
+    permission: "pickup.view",
     section: "OPERASIONAL",
   },
   {
     href: "/admin/attendance",
     label: "Kehadiran",
-    roles: ["ADMIN"],
+    permission: "attendance.view",
     section: "OPERASIONAL",
   },
   {
     href: "/admin/display",
     label: "Live Display",
-    roles: ["ADMIN", "OPERATOR"],
+    permission: "display.view",
     section: "MONITORING",
   },
   {
     href: "/admin/display/setup",
     label: "Station Scanner",
-    roles: ["ADMIN"],
+    permission: "display.manage",
+    section: "SETUP",
+  },
+  {
+    href: "/admin/access",
+    label: "Akses Pengguna",
+    permission: "access.manage",
     section: "SETUP",
   },
 ];
@@ -114,7 +121,7 @@ function isActivePath(pathname: string, href: string) {
 }
 
 function visibleItems(role: UserRole) {
-  return menuItems.filter((item) => item.roles.includes(role));
+  return menuItems.filter((item) => hasPermission(role, item.permission));
 }
 
 export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
@@ -216,7 +223,7 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
         <div className="border-t border-[#e4d8c4] px-2 pt-4">
           <p className="truncate text-sm font-semibold text-[#142842]">{profile.full_name}</p>
           <p className="mt-1 text-xs font-medium text-[#897657]">
-            {profile.role === "ADMIN" ? "Admin" : "Operator"}
+            {getRoleLabel(profile.role)}
           </p>
           <form action={signOut} className="mt-3">
             <button

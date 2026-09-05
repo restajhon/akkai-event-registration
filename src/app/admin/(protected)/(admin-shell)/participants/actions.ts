@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireRole } from "@/lib/auth/server";
+import { getAuthorizedProfile } from "@/lib/auth/server";
 import {
   sendRegistrationEmail,
   type RegistrationEmailErrorCategory,
@@ -203,7 +203,10 @@ export async function correctParticipantEmail(
 ): Promise<ParticipantActionState> {
   void previousState;
 
-  const profile = await requireRole(["ADMIN"]);
+  const profile = await getAuthorizedProfile("participants.email");
+  if (!profile) {
+    return errorState("Anda tidak memiliki akses untuk mengubah email peserta.");
+  }
   const rawRegistrationId = readRegistrationId(formData);
   const parsedRegistrationId = registrationIdSchema.safeParse(rawRegistrationId);
   const parsedEmail = emailCorrectionSchema.safeParse({
@@ -302,7 +305,10 @@ export async function resendRegistrationQr(
 ): Promise<ParticipantActionState> {
   void previousState;
 
-  const profile = await requireRole(["ADMIN"]);
+  const profile = await getAuthorizedProfile("participants.email");
+  if (!profile) {
+    return errorState("Anda tidak memiliki akses untuk mengirim ulang QR.");
+  }
   const rawRegistrationId = readRegistrationId(formData);
   const parsedRegistrationId = registrationIdSchema.safeParse(rawRegistrationId);
 

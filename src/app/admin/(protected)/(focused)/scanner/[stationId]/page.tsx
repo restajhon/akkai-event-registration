@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { z } from "zod";
 
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { ScannerClient } from "./scanner-client";
@@ -133,7 +133,7 @@ export default async function ScannerPage({
 }: {
   params: Promise<{ stationId: string }>;
 }) {
-  const profile = await requireRole(["ADMIN", "OPERATOR"]);
+  const profile = await requirePermission("scanner.checkin");
   const { stationId: rawStationId } = await params;
   const stationId = stationIdSchema.safeParse(rawStationId);
 

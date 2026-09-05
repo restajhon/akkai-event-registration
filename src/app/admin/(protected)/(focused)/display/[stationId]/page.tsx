@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { z } from "zod";
 
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
@@ -234,7 +234,7 @@ export default async function LiveDisplayPage({
 }: {
   params: Promise<{ stationId: string }>;
 }) {
-  await requireRole(["ADMIN", "OPERATOR"]);
+  await requirePermission("display.view");
 
   const { stationId: rawStationId } = await params;
   const parsedStationId = stationIdSchema.safeParse(rawStationId);

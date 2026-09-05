@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
@@ -133,7 +133,7 @@ async function loadPairingStations(profileId: string) {
 }
 
 export default async function ScannerPairPage() {
-  const profile = await requireRole(["ADMIN", "OPERATOR"]);
+  const profile = await requirePermission("scanner.pair");
   const pairingData = await loadPairingStations(profile.id);
 
   if (!pairingData) {
@@ -142,7 +142,7 @@ export default async function ScannerPairPage() {
 
   return (
     <PairForm
-      isAdmin={profile.role === "ADMIN"}
+       isAdmin={profile.role === "ADMIN" || profile.role === "SUPER_ADMIN"}
       myStations={pairingData.myStations}
       stations={pairingData.pairingStations}
     />

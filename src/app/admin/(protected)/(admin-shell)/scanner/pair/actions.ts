@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireRole } from "@/lib/auth/server";
+import { getAuthorizedProfile } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyPairingCode } from "@/lib/stations/pairing";
 import type { StationActionState } from "@/lib/stations/station-action-state";
@@ -33,12 +33,9 @@ export async function pairStation(
 ): Promise<StationActionState> {
   void previousState;
 
-  const profile = await requireRole(["ADMIN", "OPERATOR"]);
+  const profile = await getAuthorizedProfile("scanner.pair");
 
-  if (
-    profile.is_active !== true ||
-    (profile.role !== "ADMIN" && profile.role !== "OPERATOR")
-  ) {
+  if (!profile) {
     return errorState("Anda tidak memiliki akses untuk melakukan tindakan ini.");
   }
 

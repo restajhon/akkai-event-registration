@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from "react";
 
+import { hasPermission } from "@/lib/auth/permissions";
+import type { UserRole } from "@/lib/auth/server";
 import { updateSessionStatus } from "./actions";
 
 export type Session = {
@@ -14,7 +16,7 @@ export type Session = {
 
 type SessionListProps = {
   sessions: Session[];
-  role: "ADMIN" | "OPERATOR";
+  role: UserRole;
 };
 
 const initialState = {
@@ -168,7 +170,7 @@ export function SessionList({ sessions, role }: SessionListProps) {
                     </div>
 
                     <div className="lg:min-w-[230px]">
-                      {role === "ADMIN" ? (
+                      {hasPermission(role, "sessions.manage") ? (
                         confirmationForSession ? (
                           <div
                             aria-describedby={`session-confirmation-description-${session.id}`}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { z } from "zod";
 
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
@@ -255,7 +255,7 @@ export default async function ParticipantDetailPage({
 }: {
   params: Promise<{ registrationId: string }>;
 }) {
-  await requireRole(["ADMIN"]);
+  await requirePermission("participants.view");
 
   const { registrationId: rawRegistrationId } = await params;
   const parsedRegistrationId = registrationIdSchema.safeParse(rawRegistrationId);

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
@@ -136,7 +136,7 @@ async function loadSetupData() {
 }
 
 export default async function DisplaySetupPage() {
-  await requireRole(["ADMIN"]);
+  await requirePermission("display.manage");
 
   const setupData = await loadSetupData();
 

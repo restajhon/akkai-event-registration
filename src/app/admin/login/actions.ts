@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { getCurrentUserProfile } from "@/lib/auth/server";
+import { getDefaultAdminRoute } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 
 export type LoginState = {
@@ -37,5 +38,5 @@ export async function signIn(
     redirect("/api/auth/cleanup");
   }
 
-  redirect("/admin/dashboard");
+  redirect(getDefaultAdminRoute(profile.role));
 }

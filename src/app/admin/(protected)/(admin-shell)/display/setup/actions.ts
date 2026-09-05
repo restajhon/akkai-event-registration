@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireRole } from "@/lib/auth/server";
+import { getAuthorizedProfile } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   createPairingCredentials,
@@ -48,9 +48,9 @@ export async function createStation(
 ): Promise<StationActionState> {
   void previousState;
 
-  const profile = await requireRole(["ADMIN"]);
+  const profile = await getAuthorizedProfile("display.manage");
 
-  if (profile.is_active !== true || profile.role !== "ADMIN") {
+  if (!profile) {
     return errorState("Anda tidak memiliki akses untuk melakukan tindakan ini.");
   }
 
@@ -135,9 +135,9 @@ export async function resetStationPairing(
 ): Promise<StationActionState> {
   void previousState;
 
-  const profile = await requireRole(["ADMIN"]);
+  const profile = await getAuthorizedProfile("display.manage");
 
-  if (profile.is_active !== true || profile.role !== "ADMIN") {
+  if (!profile) {
     return errorState("Anda tidak memiliki akses untuk melakukan tindakan ini.");
   }
 
@@ -228,9 +228,9 @@ export async function closeStation(
 ): Promise<StationActionState> {
   void previousState;
 
-  const profile = await requireRole(["ADMIN"]);
+  const profile = await getAuthorizedProfile("display.manage");
 
-  if (profile.is_active !== true || profile.role !== "ADMIN") {
+  if (!profile) {
     return errorState("Anda tidak memiliki akses untuk melakukan tindakan ini.");
   }
 

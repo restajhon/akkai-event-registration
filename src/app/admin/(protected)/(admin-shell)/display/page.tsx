@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -145,7 +145,7 @@ function DisplaySelectionError() {
 }
 
 export default async function LiveDisplaySelectionPage() {
-  await requireRole(["ADMIN", "OPERATOR"]);
+  await requirePermission("display.view");
 
   const displayStations = await loadDisplayStations();
 

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import { loadParticipantPage } from "./participant-data";
 
 import { ParticipantList } from "./participant-list";
@@ -28,7 +28,7 @@ export default async function ParticipantsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireRole(["ADMIN"]);
+  await requirePermission("participants.view");
 
   const params = await searchParams;
   if (Object.keys(params).length > 0) {

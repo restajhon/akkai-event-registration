@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { authorizePermission } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -221,38 +221,18 @@ export async function POST(request: Request) {
   }
 
   try {
-    const supabase = await createClient();
-    const { data: claimsData, error: claimsError } =
-      await supabase.auth.getClaims();
-    const userId = claimsData?.claims?.sub;
-
-    if (claimsError || typeof userId !== "string") {
-      return jsonResponse(
-        {
-          status: "unauthorized",
-          message: "Authentication diperlukan.",
-        },
-        401,
-      );
+    const authorization = await authorizePermission("scanner.checkin");
+    if (!authorization.authorized) {
+      return authorization.status === 401
+        ? jsonResponse(
+            { status: "unauthorized", message: "Authentication diperlukan." },
+            401,
+          )
+        : forbiddenResponse();
     }
-
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("id, is_active, role")
-      .eq("id", userId)
-      .maybeSingle();
-
-    if (profileError) {
-      console.error("Failed to validate scanner operator profile");
+    const profile = authorization.profile;
+    if (!profile) {
       return internalErrorResponse();
-    }
-
-    if (
-      !profile ||
-      profile.is_active !== true ||
-      (profile.role !== "ADMIN" && profile.role !== "OPERATOR")
-    ) {
-      return forbiddenResponse();
     }
 
     const adminSupabase = createAdminClient();

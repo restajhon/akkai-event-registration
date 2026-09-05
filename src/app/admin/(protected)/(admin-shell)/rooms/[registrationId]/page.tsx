@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { z } from "zod";
 
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import {
   loadRoomAssignmentDetail,
 } from "@/lib/admin/assignment-data";
@@ -36,7 +36,7 @@ export default async function RoomAssignmentDetailPage({
 }: {
   params: Promise<{ registrationId: string }>;
 }) {
-  await requireRole(["ADMIN"]);
+  await requirePermission("rooms.view");
   const { registrationId: rawRegistrationId } = await params;
   const parsed = registrationIdSchema.safeParse(rawRegistrationId);
 

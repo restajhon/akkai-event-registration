@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireRole } from "@/lib/auth/server";
+import { getAuthorizedProfile } from "@/lib/auth/server";
 import {
   type ManualCheckInErrorCode,
   type ManualCheckInState,
@@ -212,7 +212,10 @@ export async function searchManualParticipants(
 ): Promise<ManualSearchState> {
   void previousState;
 
-  const profile = await requireRole(["ADMIN", "OPERATOR"]);
+  const profile = await getAuthorizedProfile("scanner.checkin");
+  if (!profile) {
+    return searchError("Anda tidak memiliki akses untuk melakukan check-in manual.");
+  }
   const parsedInput = manualSearchInputSchema.safeParse({
     stationId: readFormString(formData, "stationId"),
     query: readFormString(formData, "query") ?? "",
@@ -439,7 +442,10 @@ export async function processManualCheckIn(
 ): Promise<ManualCheckInState> {
   void previousState;
 
-  const profile = await requireRole(["ADMIN", "OPERATOR"]);
+  const profile = await getAuthorizedProfile("scanner.checkin");
+  if (!profile) {
+    return checkInError("Anda tidak memiliki akses untuk melakukan check-in manual.", "unauthorized-operator");
+  }
   const parsedInput = manualCheckInInputSchema.safeParse({
     stationId: readFormString(formData, "stationId"),
     registrationId: readFormString(formData, "registrationId"),

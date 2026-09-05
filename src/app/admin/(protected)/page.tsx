@@ -1,5 +1,10 @@
 import { redirect } from "next/navigation";
 
-export default function AdminPage() {
-  redirect("/admin/dashboard");
+import { getDefaultAdminRoute } from "@/lib/auth/permissions";
+import { requireAuthenticatedUser } from "@/lib/auth/server";
+
+export default async function AdminPage() {
+  const profile = await requireAuthenticatedUser();
+
+  redirect(getDefaultAdminRoute(profile.role));
 }

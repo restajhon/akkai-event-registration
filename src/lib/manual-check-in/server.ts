@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { UserProfile } from "@/lib/auth/server";
+import { hasPermission } from "@/lib/auth/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type StationStatus =
@@ -72,10 +73,7 @@ export async function loadAuthorizedManualStationContext(
   profile: UserProfile,
   stationId: string,
 ): Promise<ManualStationContextResult> {
-  if (
-    profile.is_active !== true ||
-    (profile.role !== "ADMIN" && profile.role !== "OPERATOR")
-  ) {
+  if (!hasPermission(profile.role, "scanner.checkin")) {
     return contextError(
       "invalid-profile",
       "Anda tidak memiliki akses untuk melakukan check-in manual.",

@@ -1,12 +1,12 @@
 import Link from "next/link";
 
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 
 import { SessionList, type Session } from "./session-list";
 
 export default async function AdminSessionsPage() {
-  const profile = await requireRole(["ADMIN", "OPERATOR"]);
+  const profile = await requirePermission("sessions.view");
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("sessions")
