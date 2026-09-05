@@ -8,9 +8,9 @@ type PresenceFilter = "all" | "present" | "absent";
 type RegistrationFilter = "all" | "REGISTERED" | "CANCELLED";
 
 const sessions: { code: OperationalSessionCode; label: string; date: string }[] = [
-  { code: "ARRIVAL", label: "Registrasi Kedatangan", date: "19 Oktober 2026" },
-  { code: "SEMINAR", label: "Seminar AKKAI 2026", date: "20 Oktober 2026" },
-  { code: "DAY3", label: "Registrasi Day 3", date: "21 Oktober 2026" },
+  { code: "ARRIVAL", label: "Registrasi Kedatangan", date: "" },
+  { code: "SEMINAR", label: "Seminar AKKAI 2026", date: "" },
+  { code: "DAY3", label: "Registrasi Kepulangan", date: "" },
 ];
 
 function presenceLabel(present: boolean) {
@@ -115,9 +115,9 @@ export function AttendanceBoard({
                 <option value="CANCELLED">CANCELLED</option>
               </select>
             </div>
-            {sessions.map(({ code, label, date }) => (
+            {sessions.map(({ code, label }) => (
               <div key={code}>
-                <label className="text-sm font-semibold text-[#142842]" htmlFor={`attendance-${code.toLowerCase()}-filter`}>{label} · {date}</label>
+                <label className="text-sm font-semibold text-[#142842]" htmlFor={`attendance-${code.toLowerCase()}-filter`}>{label}</label>
                 <select
                   className="mt-2 min-h-11 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac]"
                   id={`attendance-${code.toLowerCase()}-filter`}

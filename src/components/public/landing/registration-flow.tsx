@@ -63,7 +63,7 @@ export function RegistrationFlow() {
               <span aria-hidden="true" className="text-lg text-[#c79a35]">
                 •
               </span>
-              <span>Registrasi Day 3 — {AKKAI_EVENT.day3Date}</span>
+               <span>Registrasi Kepulangan — {AKKAI_EVENT.day3Date}</span>
             </li>
           </ul>
         </div>

@@ -84,7 +84,7 @@ export function createRegistrationEmailTemplate({
                 <ul style="margin:0 0 24px;padding-left:22px;font-size:16px;line-height:1.7;">
                    <li>Registrasi Kedatangan — Senin, 19 Oktober 2026</li>
                    <li>Seminar AKKAI 2026 — Selasa, 20 Oktober 2026</li>
-                   <li>Registrasi Day 3 — Rabu, 21 Oktober 2026</li>
+                   <li>Registrasi Kepulangan — Rabu, 21 Oktober 2026</li>
                 </ul>
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;">
                   <tr>
@@ -124,7 +124,7 @@ Lokasi: Semarang
 Satu QR yang sama digunakan untuk:
 1. Registrasi Kedatangan — Senin, 19 Oktober 2026
 2. Seminar AKKAI 2026 — Selasa, 20 Oktober 2026
-3. Registrasi Day 3 — Rabu, 21 Oktober 2026
+3. Registrasi Kepulangan — Rabu, 21 Oktober 2026
 
 Kode QR tersedia sebagai lampiran email ini. Simpan email dan kode QR hingga seluruh rangkaian acara selesai.
 

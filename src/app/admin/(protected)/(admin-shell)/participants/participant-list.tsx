@@ -312,7 +312,7 @@ export function ParticipantList({
                     <th className="w-[14%] px-3 py-3" scope="col">Status Registrasi</th>
                     <th className="w-[15%] px-3 py-3" scope="col">Registrasi Kedatangan</th>
                      <th className="w-[12%] px-3 py-3" scope="col">Seminar</th>
-                      <th className="w-[12%] px-3 py-3" scope="col">Registrasi Day 3</th>
+                     <th className="w-[12%] px-3 py-3" scope="col">Registrasi Kepulangan</th>
                      <th className="w-[11%] px-3 py-3" scope="col">Aksi</th>
                   </tr>
                 </thead>
@@ -416,7 +416,7 @@ function ParticipantCard({ participant }: { participant: ParticipantListItem }) 
           <dd className="mt-1"><AttendanceCell attendance={participant.seminar} /></dd>
         </div>
         <div>
-           <dt className="text-xs uppercase tracking-wide text-[#897657]">Registrasi Day 3</dt>
+            <dt className="text-xs uppercase tracking-wide text-[#897657]">Registrasi Kepulangan</dt>
            <dd className="mt-1"><AttendanceCell attendance={participant.day3} /></dd>
         </div>
       </dl>

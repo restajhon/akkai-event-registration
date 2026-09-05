@@ -416,7 +416,7 @@ export default async function ParticipantDetailPage({
             />
             <AttendanceCard
               attendance={detailData.day3}
-              label="Registrasi Day 3"
+              label="Registrasi Kepulangan"
             />
           </div>
         </section>

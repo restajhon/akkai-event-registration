@@ -26,18 +26,20 @@ export function GeneralEventRundown() {
         </div>
 
         <div className="grid gap-5 md:grid-cols-3">
-          {AKKAI_EVENT.generalRundown.map((day) => (
+          {AKKAI_EVENT.participantRundown.map((day) => (
             <article
               className="border-l-4 border-[#c79a35] bg-[#fffdf9] p-6 ring-1 ring-[#c79a35]/30"
               key={day.day}
             >
-              <h3 className="font-serif text-2xl font-bold text-[#082b5a]">
-                {day.day}
-              </h3>
-              <ul className="mt-4 list-disc space-y-2 pl-5 leading-6 text-[#667085]">
-                {day.items.map((item, itemIndex) => (
-                  <li key={`${day.day}-${itemIndex}`}>{item}</li>
-                ))}
+                <h3 className="font-serif text-2xl font-bold text-[#082b5a]">{day.day}</h3>
+                <p className="mt-1 text-sm font-semibold text-[#c79a35]">{day.date}</p>
+                <ul className="mt-5 space-y-3 leading-6 text-[#667085]">
+                  {day.items.map((item) => (
+                    <li className="grid gap-1 border-b border-[#c79a35]/15 pb-3 last:border-0 last:pb-0 sm:grid-cols-[7.5rem_1fr]" key={`${day.day}-${item.time}-${item.title}`}>
+                      <span className="font-semibold text-[#082b5a]">{item.time}</span>
+                      <span>{item.title}</span>
+                    </li>
+                  ))}
               </ul>
             </article>
           ))}

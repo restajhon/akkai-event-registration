@@ -8,7 +8,7 @@ export function EventInfoSection() {
     { label: "Lokasi", value: AKKAI_EVENT.venue },
     { label: AKKAI_EVENT.arrivalDate, value: "Registrasi Kedatangan" },
     { label: AKKAI_EVENT.seminarDate, value: "Seminar AKKAI 2026" },
-    { label: AKKAI_EVENT.day3Date, value: "Registrasi Day 3" },
+    { label: AKKAI_EVENT.day3Date, value: "Registrasi Kepulangan" },
   ];
 
   return (

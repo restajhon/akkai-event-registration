@@ -5,6 +5,7 @@ import { AKKAI_EVENT } from "@/lib/akkai-event";
 import { Footer } from "../landing/footer";
 import { RegistrationForm } from "./registration-form";
 import { RegistrationHeader } from "./registration-header";
+import { RegistrationInformation } from "./registration-information";
 import styles from "./registration.module.css";
 
 function EventInformation() {
@@ -26,8 +27,8 @@ function EventInformation() {
         <p className={styles.eventLabel}>Seminar AKKAI 2026</p>
         <p className={styles.eventValue}>{AKKAI_EVENT.seminarDate}</p>
       </div>
-      <div className={styles.eventItem}>
-        <p className={styles.eventLabel}>Registrasi Day 3</p>
+       <div className={styles.eventItem}>
+         <p className={styles.eventLabel}>Registrasi Kepulangan</p>
         <p className={styles.eventValue}>{AKKAI_EVENT.day3Date}</p>
       </div>
     </div>
@@ -67,10 +68,11 @@ function RegistrationContent() {
         <p className={styles.introDescription}>
           Lengkapi data berikut dengan benar untuk menyimpan pendaftaran Anda.
         </p>
-        <EventInformation />
-      </section>
+         <EventInformation />
+       </section>
 
-      <RegistrationForm />
+       <RegistrationInformation />
+       <RegistrationForm />
     </div>
   );
 }

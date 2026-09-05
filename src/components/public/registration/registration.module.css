@@ -162,6 +162,237 @@
   margin: 0;
 }
 
+.information {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.informationHeading {
+  padding: 1.5rem;
+  border-top: 4px solid var(--gold);
+  background: var(--ivory-deep);
+}
+
+.informationTitle {
+  margin: 0;
+  color: var(--navy);
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  line-height: 1.15;
+}
+
+.informationDescription,
+.infoCardIntro {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.infoGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.infoCard,
+.proofCard,
+.rundownCard {
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid rgb(199 154 53 / 30%);
+  background: var(--ivory-deep);
+}
+
+.infoCardTitle {
+  margin: 0;
+  color: var(--navy);
+  font-size: 1.125rem;
+  line-height: 1.35;
+}
+
+.packageList {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.packageItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  border-left: 3px solid var(--gold);
+  background: var(--ivory);
+  color: var(--navy);
+}
+
+.packageItem strong {
+  white-space: nowrap;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.125rem;
+}
+
+.paymentDetails {
+  display: grid;
+  gap: 0.875rem;
+  margin: 1rem 0 0;
+}
+
+.paymentDetails dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.paymentDetails dd {
+  margin: 0.2rem 0 0;
+  color: var(--navy);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.breakWord {
+  overflow-wrap: anywhere;
+}
+
+.deadlineCard {
+  padding: 1.25rem;
+  border: 1px solid rgb(199 154 53 / 50%);
+  background: var(--navy);
+  color: var(--ivory);
+}
+
+.deadlineLabel {
+  margin: 0;
+  color: var(--gold-light);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.deadlineValue {
+  margin: 0.4rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.proofLinks {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.proofLinks p {
+  margin: 0;
+}
+
+.proofLinks a {
+  color: var(--navy);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.infoList {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  color: var(--ink);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  list-style: none;
+}
+
+.infoListItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.infoListMark {
+  flex: 0 0 auto;
+  color: var(--gold);
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+.rundownHeading {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgb(199 154 53 / 30%);
+}
+
+.rundownList {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.rundownDay {
+  border: 1px solid rgb(199 154 53 / 25%);
+  background: var(--ivory);
+}
+
+.rundownSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3.5rem;
+  padding: 0.875rem 1rem;
+  color: var(--navy);
+  cursor: pointer;
+  list-style: none;
+}
+
+.rundownSummary::-webkit-details-marker {
+  display: none;
+}
+
+.rundownSummary > span:first-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.rundownSummary strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+}
+
+.rundownSummary span span {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.rundownItems {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0 1rem 1rem;
+  list-style: none;
+}
+
+.rundownItem {
+  display: grid;
+  gap: 0.2rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgb(199 154 53 / 15%);
+  color: var(--ink);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.rundownItem span:first-child {
+  color: var(--navy);
+  font-weight: 700;
+}
+
 .eventLabel {
   margin-bottom: 0.35rem;
   color: var(--muted);
@@ -452,6 +683,15 @@
 
   .closedCard {
     padding: 3rem;
+  }
+
+  .infoGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rundownItem {
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    align-items: baseline;
   }
 }
 
