@@ -12,22 +12,15 @@ const pickupInputSchema = z
     registrationId: z.string().trim().regex(/^AKKAI26-[0-9]{6}$/),
     transferType: z.enum(["ARRIVAL", "DEPARTURE"]),
     status: z.enum(["SCHEDULED", "COMPLETED", "CANCELLED"]),
-    pickupAt: z.string().trim(),
     pickupPoint: z.string().trim().max(150),
     dropoffPoint: z.string().trim().max(150),
     vehicleLabel: z.string().trim().max(100),
-    picDriver: z.string().trim().max(150),
     notes: z.string().trim().max(500),
   })
   .superRefine((data, context) => {
-    if (data.pickupAt && !isValidDateTimeLocal(data.pickupAt)) {
-      context.addIssue({ code: "custom", path: ["pickupAt"], message: "Waktu pickup tidak valid." });
-    }
-
     if (
       data.status !== "CANCELLED" &&
-      (!data.pickupAt ||
-        !data.pickupPoint ||
+      ((data.transferType === "ARRIVAL" && !data.pickupPoint) ||
         (data.transferType === "DEPARTURE" && !data.dropoffPoint))
     ) {
       context.addIssue({
@@ -35,36 +28,11 @@ const pickupInputSchema = z
         path: [data.transferType === "DEPARTURE" ? "dropoffPoint" : "pickupPoint"],
         message:
           data.transferType === "DEPARTURE"
-            ? "Pickup kepulangan memerlukan waktu, titik jemput, dan titik antar."
-            : "Pickup terjadwal atau selesai memerlukan waktu dan titik pickup.",
+            ? "Pickup kepulangan memerlukan titik antar."
+            : "Pickup kedatangan memerlukan titik jemput.",
       });
     }
   });
-
-function isValidDateTimeLocal(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
-    return false;
-  }
-
-  const [datePart, timePart] = value.split("T");
-  const [year, month, day] = datePart.split("-").map(Number);
-  const [hour, minute] = timePart.split(":").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day &&
-    hour >= 0 &&
-    hour <= 23 &&
-    minute >= 0 &&
-    minute <= 59
-  );
-}
-
-function toJakartaIso(value: string) {
-  return new Date(`${value}:00+07:00`).toISOString();
-}
 
 function readString(formData: FormData, name: string) {
   const value = formData.get(name);
@@ -86,11 +54,9 @@ export async function upsertPickupAssignment(
     registrationId: readString(formData, "registrationId"),
     transferType: readString(formData, "transferType"),
     status: readString(formData, "status"),
-    pickupAt: readString(formData, "pickupAt"),
     pickupPoint: readString(formData, "pickupPoint"),
     dropoffPoint: readString(formData, "dropoffPoint"),
     vehicleLabel: readString(formData, "vehicleLabel"),
-    picDriver: readString(formData, "picDriver"),
     notes: readString(formData, "notes"),
   });
 
@@ -109,11 +75,11 @@ export async function upsertPickupAssignment(
         p_registration_id: values.registrationId,
         p_transfer_type: values.transferType,
         p_status: values.status,
-        p_pickup_at: isCancelled ? null : toJakartaIso(values.pickupAt),
-        p_pickup_point: isCancelled ? null : values.pickupPoint || null,
-        p_dropoff_point: isCancelled ? null : values.dropoffPoint || null,
+        p_pickup_at: null,
+        p_pickup_point: isCancelled || values.transferType === "DEPARTURE" ? null : values.pickupPoint || null,
+        p_dropoff_point: isCancelled || values.transferType === "ARRIVAL" ? null : values.dropoffPoint || null,
         p_vehicle_label: isCancelled ? null : values.vehicleLabel || null,
-        p_pic_driver: isCancelled ? null : values.picDriver || null,
+        p_pic_driver: null,
         p_notes: isCancelled ? null : values.notes || null,
         p_updated_by: profile.id,
       },

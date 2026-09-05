@@ -15,8 +15,11 @@ type DatabaseParticipantRow = {
   registration_id: string;
   full_name: string;
   email: string;
-  institution: string | null;
-  participant_category: string | null;
+  phone_number: string;
+  package_type: string | null;
+  participation_scope: string | null;
+  actuarial_consultant_status: string | null;
+  attends_pai_congress: boolean | null;
   registration_status: "REGISTERED" | "CANCELLED";
   email_status: "PENDING" | "SENT" | "FAILED";
   created_at: string;
@@ -54,7 +57,7 @@ export async function loadParticipantPage(
     let participantQuery = adminSupabase
       .from("participants")
       .select(
-        "id, registration_id, full_name, email, institution, participant_category, registration_status, email_status, created_at",
+        "id, registration_id, full_name, email, phone_number, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status, email_status, created_at",
         { count: "exact" },
       )
       .order("created_at", { ascending: false });
@@ -178,8 +181,11 @@ export async function loadParticipantPage(
         registrationId: participant.registration_id,
         fullName: participant.full_name,
         email: participant.email,
-        institution: participant.institution,
-        participantCategory: participant.participant_category,
+        phoneNumber: participant.phone_number,
+        packageType: participant.package_type,
+        participationScope: participant.participation_scope,
+        actuarialConsultantStatus: participant.actuarial_consultant_status,
+        attendsPaiCongress: participant.attends_pai_congress,
         registrationStatus: participant.registration_status,
         emailStatus: participant.email_status,
         createdAt: participant.created_at,

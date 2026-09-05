@@ -46,46 +46,10 @@ export function RoomAssignmentForm({ participant }: { participant: RoomParticipa
             type="text"
           />
         </div>
-        <div>
-          <label className="text-sm font-semibold text-[#344d68]" htmlFor="room-type">
-            Tipe kamar
-          </label>
-          <input
-            className="mt-1.5 min-h-11 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac] disabled:bg-[#f2f0eb]"
-            defaultValue={assignment?.roomType ?? ""}
-            disabled={!canEdit || pending}
-            id="room-type"
-            maxLength={100}
-            name="roomType"
-            placeholder="Contoh: Twin"
-            type="text"
-          />
-        </div>
-        <div>
-          <label className="text-sm font-semibold text-[#344d68]" htmlFor="check-in">
-            Check-in
-          </label>
-          <input
-            className="mt-1.5 min-h-11 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac] disabled:bg-[#f2f0eb]"
-            defaultValue={assignment?.checkInDate ?? ""}
-            disabled={!canEdit || pending}
-            id="check-in"
-            name="checkInDate"
-            type="date"
-          />
-        </div>
-        <div>
-          <label className="text-sm font-semibold text-[#344d68]" htmlFor="check-out">
-            Check-out
-          </label>
-          <input
-            className="mt-1.5 min-h-11 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac] disabled:bg-[#f2f0eb]"
-            defaultValue={assignment?.checkOutDate ?? ""}
-            disabled={!canEdit || pending}
-            id="check-out"
-            name="checkOutDate"
-            type="date"
-          />
+        <div className="rounded-lg border border-[#eee6d8] bg-[#fbf5e8] p-3 text-sm text-[#344d68]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#897657]">Paket</p>
+          <p className="mt-1 font-semibold">{participant.packageType ?? "Tidak diisi"}</p>
+          <p className="mt-1 text-xs text-[#5b6c7c]">Bersumber dari Registration V3 dan tidak dapat diubah di sini.</p>
         </div>
         <div className="md:col-span-2">
           <label className="text-sm font-semibold text-[#344d68]" htmlFor="room-notes">

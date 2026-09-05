@@ -19,9 +19,8 @@ type DatabaseParticipantRow = {
   registration_id: string;
   full_name: string;
   email: string;
+  phone_number: string;
   member_number: string | null;
-  institution: string | null;
-  participant_category: string | null;
   kka_name: string | null;
   polo_size: string | null;
   polo_model: string | null;
@@ -114,7 +113,7 @@ async function loadDetailData(
     const { data: participant, error: participantError } = await adminSupabase
       .from("participants")
       .select(
-        "id, registration_id, full_name, email, member_number, institution, participant_category, kka_name, polo_size, polo_model, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status, email_status, email_generation, last_email_sent_at, created_at",
+        "id, registration_id, full_name, email, phone_number, member_number, kka_name, polo_size, polo_model, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status, email_status, email_generation, last_email_sent_at, created_at",
       )
       .eq("registration_id", registrationId)
       .maybeSingle();
@@ -297,11 +296,9 @@ export default async function ParticipantDetailPage({
               <p className="mt-1 break-all text-sm font-semibold text-[#9a7526]">
                 {participant.registration_id}
               </p>
-              <p className="mt-3 break-words text-sm text-[#5b6c7c]">
-                {[participant.institution, participant.participant_category]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
+               <p className="mt-3 break-words text-sm text-[#5b6c7c]">
+                 Konsultan Aktuaria: {participant.actuarial_consultant_status ?? "-"}
+               </p>
             </div>
             <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
               <span
@@ -330,15 +327,12 @@ export default async function ParticipantDetailPage({
           </h2>
           <dl className="mt-5 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
             <DetailField label="Email" value={participant.email} />
+            <DetailField label="WhatsApp / Kontak" value={participant.phone_number} />
             <DetailField
               label="Nomor Anggota"
               value={participant.member_number ?? "Tidak diisi"}
             />
             <DetailField label="Nama KKA" value={participant.kka_name ?? "Tidak diisi"} />
-            <DetailField
-              label="Kategori Peserta"
-              value={participant.participant_category ?? "-"}
-            />
             <DetailField label="Ukuran Poloshirt" value={participant.polo_size ?? "Tidak diisi"} />
             <DetailField label="Model Poloshirt" value={participant.polo_model ?? "Tidak diisi"} />
             <DetailField label="Paket yang diambil" value={participant.package_type ?? "-"} />
@@ -357,9 +351,6 @@ export default async function ParticipantDetailPage({
                     : "Tidak"
               }
             />
-            {participant.institution ? (
-              <DetailField label="Institusi Historis" value={participant.institution} />
-            ) : null}
             <DetailField
               label="Status Email ke Alamat Saat Ini"
               value={emailStatusLabel(participant.email_status)}

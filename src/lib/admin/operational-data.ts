@@ -11,7 +11,7 @@ export type OperationalAttendance = {
 
 export type OperationalRoomAssignment = {
   roomNumber: string | null;
-  roomType: string | null;
+  notes: string | null;
   checkInDate: string | null;
   checkOutDate: string | null;
 };
@@ -23,7 +23,7 @@ export type OperationalPickupAssignment = {
   pickupPoint: string | null;
   dropoffPoint: string | null;
   vehicleLabel: string | null;
-  picDriver: string | null;
+  notes: string | null;
 };
 
 export type OperationalTravel = {
@@ -60,7 +60,7 @@ type ParticipantRow = Pick<OperationalParticipant, "id" | "registrationId" | "fu
 type RoomRow = {
   participant_id: string;
   room_number: string | null;
-  room_type: string | null;
+  notes: string | null;
   check_in_date: string | null;
   check_out_date: string | null;
 };
@@ -73,7 +73,7 @@ type PickupRow = {
   pickup_point: string | null;
   dropoff_point: string | null;
   vehicle_label: string | null;
-  pic_driver: string | null;
+  notes: string | null;
 };
 
 type TravelRow = {
@@ -134,7 +134,7 @@ function toPickup(row: PickupRow): OperationalPickupAssignment {
     pickupPoint: row.pickup_point,
     dropoffPoint: row.dropoff_point,
     vehicleLabel: row.vehicle_label,
-    picDriver: row.pic_driver,
+    notes: row.notes,
   };
 }
 
@@ -173,13 +173,13 @@ export async function loadOperationalData(): Promise<OperationalParticipant[] | 
       participantIds.length > 0
         ? supabase
             .from("participant_room_assignments")
-            .select("participant_id, room_number, room_type, check_in_date, check_out_date")
+            .select("participant_id, room_number, notes, check_in_date, check_out_date")
             .in("participant_id", participantIds)
         : Promise.resolve({ data: [], error: null }),
       participantIds.length > 0
         ? supabase
             .from("participant_pickup_assignments")
-            .select("participant_id, transfer_type, status, pickup_at, pickup_point, dropoff_point, vehicle_label, pic_driver")
+            .select("participant_id, transfer_type, status, pickup_at, pickup_point, dropoff_point, vehicle_label, pic_driver, notes")
             .in("participant_id", participantIds)
         : Promise.resolve({ data: [], error: null }),
       participantIds.length > 0
@@ -267,7 +267,7 @@ export async function loadOperationalData(): Promise<OperationalParticipant[] | 
           return room
             ? {
                 roomNumber: room.room_number,
-                roomType: room.room_type,
+                 notes: room.notes,
                 checkInDate: room.check_in_date,
                 checkOutDate: room.check_out_date,
               }

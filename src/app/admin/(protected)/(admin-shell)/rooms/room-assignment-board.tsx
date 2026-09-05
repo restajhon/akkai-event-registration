@@ -45,8 +45,7 @@ export function RoomAssignmentBoard({
     const matchesQuery =
       !normalizedQuery ||
       participant.fullName.toLowerCase().includes(normalizedQuery) ||
-      participant.registrationId.toLowerCase().includes(normalizedQuery) ||
-      participant.participantCategory?.toLowerCase().includes(normalizedQuery);
+      participant.registrationId.toLowerCase().includes(normalizedQuery);
     const matchesFilter =
       filter === "all" ||
       (filter === "assigned" && isAssigned(participant)) ||
@@ -69,6 +68,13 @@ export function RoomAssignmentBoard({
           <p className="mt-1 text-sm text-[#5b6c7c]">
             Pantau kebutuhan kamar peserta di Hotel Gumaya Semarang.
           </p>
+          <a
+            className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
+            download="AKKAI-2026-Room-Assignment.xlsx"
+            href="/api/admin/room-assignment-export"
+          >
+            Download Excel
+          </a>
         </header>
 
         <section className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
@@ -81,7 +87,7 @@ export function RoomAssignmentBoard({
                 className="mt-2 min-h-11 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none placeholder:text-[#9a9489] focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac]"
                 id="room-search"
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Nama, Registration ID, atau kategori"
+               placeholder="Nama atau Registration ID"
                 type="search"
                 value={query}
               />
@@ -145,12 +151,9 @@ export function RoomAssignmentBoard({
                 <th className="px-4 py-3 font-semibold">Nama</th>
                 <th className="px-4 py-3 font-semibold">Status Registrasi</th>
                 <th className="px-4 py-3 font-semibold">Paket</th>
-                <th className="px-4 py-3 font-semibold">Kategori</th>
                 <th className="px-4 py-3 font-semibold">Status Room</th>
                 <th className="px-4 py-3 font-semibold">Nomor Kamar</th>
-                <th className="px-4 py-3 font-semibold">Tipe Kamar</th>
-                <th className="px-4 py-3 font-semibold">Check-in</th>
-                <th className="px-4 py-3 font-semibold">Check-out</th>
+                <th className="px-4 py-3 font-semibold">Catatan</th>
                 <th className="px-4 py-3 font-semibold">Aksi</th>
               </tr>
             </thead>
@@ -163,16 +166,13 @@ export function RoomAssignmentBoard({
                   <td className="px-4 py-4 font-semibold text-[#142842]">{participant.fullName}</td>
                   <td className="px-4 py-4">{participant.registrationStatus === "REGISTERED" ? "ACTIVE" : "CANCELLED"}</td>
                   <td className="px-4 py-4">{participant.packageType ?? "-"}</td>
-                  <td className="px-4 py-4">{participant.participantCategory ?? "Tidak diisi"}</td>
-                  <td className="px-4 py-4">
+                   <td className="px-4 py-4">
                     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClassName(participant)}`}>
                       {statusLabel(participant)}
                     </span>
                   </td>
-                  <td className="px-4 py-4">{participant.assignment?.roomNumber ?? "-"}</td>
-                  <td className="px-4 py-4">{participant.assignment?.roomType ?? "-"}</td>
-                  <td className="px-4 py-4">{participant.assignment?.checkInDate ?? "-"}</td>
-                  <td className="px-4 py-4">{participant.assignment?.checkOutDate ?? "-"}</td>
+                   <td className="px-4 py-4">{participant.assignment?.roomNumber ?? "-"}</td>
+                   <td className="px-4 py-4">{participant.assignment?.notes ?? "-"}</td>
                   <td className="px-4 py-4">
                     <Link
                       className="font-semibold text-[#344d68] underline underline-offset-4 hover:text-[#142842]"

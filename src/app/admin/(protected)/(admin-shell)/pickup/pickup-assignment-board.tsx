@@ -42,23 +42,6 @@ function isAssigned(assignment: PickupAssignment | null) {
   return Boolean(assignment && assignment.status !== "CANCELLED");
 }
 
-function formatDateTime(value: string | null) {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Jakarta",
-  }).format(date);
-}
-
 function selectAssignment(participant: PickupParticipant, transferType: TransferType) {
   return transferType === "ARRIVAL"
     ? participant.arrivalAssignment
@@ -107,6 +90,13 @@ export function PickupAssignmentBoard({
           <p className="mt-1 text-sm text-[#5b6c7c]">
             Kelola assignment dan pantau setiap kaki perjalanan tanpa mencampur kedatangan dengan kepulangan.
           </p>
+          <a
+            className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
+            download="AKKAI-2026-Pickup-Assignment.xlsx"
+            href="/api/admin/pickup-assignment-export"
+          >
+            Download Excel
+          </a>
         </header>
 
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
@@ -193,8 +183,8 @@ export function PickupAssignmentBoard({
           </p>
         </section>
 
-        <div className="mt-5 overflow-x-auto rounded-xl border border-[#e4d8c4] bg-[#fffdf8]">
-          <table className="min-w-[1350px] w-full text-left text-sm">
+         <div className="mt-5 overflow-x-auto rounded-xl border border-[#e4d8c4] bg-[#fffdf8]">
+           <table className="min-w-[1050px] w-full text-left text-sm">
             <thead className="border-b border-[#e4d8c4] bg-[#fbf5e8] text-xs uppercase tracking-wide text-[#897657]">
               <tr>
                 <th className="px-4 py-3 font-semibold">Registration ID</th>
@@ -203,12 +193,11 @@ export function PickupAssignmentBoard({
                 <th className="px-4 py-3 font-semibold">Travel</th>
                 <th className="px-4 py-3 font-semibold">Moda</th>
                 <th className="px-4 py-3 font-semibold">Nomor</th>
-                <th className="px-4 py-3 font-semibold">Tanggal / waktu</th>
-                <th className="px-4 py-3 font-semibold">Lokasi</th>
-                <th className="px-4 py-3 font-semibold">Status pickup</th>
-                <th className="px-4 py-3 font-semibold">Pickup point</th>
-                <th className="px-4 py-3 font-semibold">Dropoff point</th>
-                <th className="px-4 py-3 font-semibold">Driver / kendaraan</th>
+                 <th className="px-4 py-3 font-semibold">Lokasi</th>
+                 <th className="px-4 py-3 font-semibold">Status pickup</th>
+                 <th className="px-4 py-3 font-semibold">{transferType === "ARRIVAL" ? "Titik Jemput" : "Titik Antar"}</th>
+                 <th className="px-4 py-3 font-semibold">Kendaraan</th>
+                 <th className="px-4 py-3 font-semibold">Catatan</th>
                 <th className="px-4 py-3 font-semibold">Aksi</th>
               </tr>
             </thead>
@@ -226,16 +215,15 @@ export function PickupAssignmentBoard({
                     <td className="px-4 py-4">{travel ? "Tersedia" : "Belum tersedia"}</td>
                     <td className="px-4 py-4">{travel ? (isArrival ? travel.outboundTransportMode : travel.returnTransportMode) : "-"}</td>
                     <td className="px-4 py-4">{travel ? (isArrival ? travel.outboundTransportNumber : travel.returnTransportNumber) ?? "-" : "-"}</td>
-                    <td className="px-4 py-4">{travel ? `${isArrival ? travel.outboundDate : travel.returnDate} ${isArrival ? travel.outboundTime : travel.returnTime}` : "-"}</td>
-                    <td className="px-4 py-4">{travel ? (isArrival ? travel.outboundDestination : travel.returnDestination) : "-"}</td>
+                     <td className="px-4 py-4">{travel ? (isArrival ? travel.outboundDestination : travel.returnDestination) : "-"}</td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${assignmentClassName(assignment)}`}>
                         {assignmentLabel(assignment)}
                       </span>
                     </td>
-                    <td className="px-4 py-4">{assignment?.pickupPoint ?? "-"}</td>
-                    <td className="px-4 py-4">{assignment?.dropoffPoint ?? "-"}</td>
-                    <td className="px-4 py-4">{[assignment?.picDriver, assignment?.vehicleLabel].filter(Boolean).join(" / ") || "-"}</td>
+                     <td className="px-4 py-4">{isArrival ? assignment?.pickupPoint ?? "-" : assignment?.dropoffPoint ?? "-"}</td>
+                     <td className="px-4 py-4">{assignment?.vehicleLabel ?? "-"}</td>
+                     <td className="px-4 py-4">{assignment?.notes ?? "-"}</td>
                     <td className="px-4 py-4">
                       <Link
                         className="font-semibold text-[#344d68] underline underline-offset-4 hover:text-[#142842]"
@@ -243,7 +231,6 @@ export function PickupAssignmentBoard({
                       >
                         Lihat / Edit
                       </Link>
-                      {assignment?.pickupAt ? <p className="mt-2 text-xs text-[#897657]">{formatDateTime(assignment.pickupAt)}</p> : null}
                     </td>
                   </tr>
                 );

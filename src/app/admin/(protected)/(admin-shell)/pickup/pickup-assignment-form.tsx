@@ -13,30 +13,6 @@ import type {
 
 import { upsertPickupAssignment } from "./actions";
 
-function formatDateTimeLocal(value: string | null) {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Jakarta",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  })
-    .format(date)
-    .replace(" ", "T");
-}
-
 export function PickupAssignmentForm({
   participant,
   transferType,
@@ -85,20 +61,7 @@ export function PickupAssignmentForm({
             <option value="CANCELLED">CANCELLED</option>
           </select>
         </div>
-        <div>
-          <label className="text-sm font-semibold text-[#344d68]" htmlFor={`${prefix}-pickup-at`}>
-            Waktu Penjemputan
-          </label>
-          <input
-            className="mt-1.5 min-h-11 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac] disabled:bg-[#f2f0eb]"
-            defaultValue={formatDateTimeLocal(assignment?.pickupAt ?? null)}
-            disabled={!canEdit || pending}
-            id={`${prefix}-pickup-at`}
-            name="pickupAt"
-            type="datetime-local"
-          />
-        </div>
-        <div>
+        {transferType === "ARRIVAL" ? <div>
           <label className="text-sm font-semibold text-[#344d68]" htmlFor={`${prefix}-pickup-point`}>
             Titik Jemput
           </label>
@@ -112,8 +75,8 @@ export function PickupAssignmentForm({
             placeholder="Contoh: Lobby hotel"
             type="text"
           />
-        </div>
-        <div>
+        </div> : null}
+        {transferType === "DEPARTURE" ? <div>
           <label className="text-sm font-semibold text-[#344d68]" htmlFor={`${prefix}-dropoff-point`}>
             Titik Antar
           </label>
@@ -124,10 +87,10 @@ export function PickupAssignmentForm({
             id={`${prefix}-dropoff-point`}
             maxLength={150}
             name="dropoffPoint"
-            placeholder={transferType === "DEPARTURE" ? "Contoh: Bandara Ahmad Yani" : "Opsional"}
+            placeholder="Contoh: Bandara Ahmad Yani"
             type="text"
           />
-        </div>
+        </div> : null}
         <div>
           <label className="text-sm font-semibold text-[#344d68]" htmlFor={`${prefix}-vehicle-label`}>
             Kendaraan
@@ -140,21 +103,6 @@ export function PickupAssignmentForm({
             maxLength={100}
             name="vehicleLabel"
             placeholder="Label kendaraan (opsional)"
-            type="text"
-          />
-        </div>
-        <div>
-          <label className="text-sm font-semibold text-[#344d68]" htmlFor={`${prefix}-pic-driver`}>
-            PIC / Driver
-          </label>
-          <input
-            className="mt-1.5 min-h-11 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac] disabled:bg-[#f2f0eb]"
-            defaultValue={assignment?.picDriver ?? ""}
-            disabled={!canEdit || pending}
-            id={`${prefix}-pic-driver`}
-            maxLength={150}
-            name="picDriver"
-            placeholder="Nama PIC atau driver (opsional)"
             type="text"
           />
         </div>

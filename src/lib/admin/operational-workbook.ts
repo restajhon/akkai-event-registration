@@ -37,10 +37,6 @@ function readableDateTime(value: string | null) {
       }).format(date);
 }
 
-function roomAssignmentLabel(room: OperationalParticipant["roomAssignment"]) {
-  return room ? [room.roomNumber, room.roomType].filter(Boolean).join(" / ") : "";
-}
-
 function pickupRows(
   participants: OperationalParticipant[],
   transferType: "ARRIVAL" | "DEPARTURE",
@@ -71,12 +67,13 @@ function pickupRows(
           ? travel.outboundDestination
           : travel.returnDestination
         : "",
-      "Pickup assignment": assignment ? "Ya" : "Tidak",
-      "Pickup point": assignment?.pickupPoint ?? "",
-      "Dropoff point": assignment?.dropoffPoint ?? "",
-      Driver: assignment?.picDriver ?? "",
-      Kendaraan: assignment?.vehicleLabel ?? "",
-      "Transfer status": assignmentStatus(assignment),
+       "Pickup assignment": assignment ? "Ya" : "Tidak",
+       [arrival ? "Titik Jemput" : "Titik Antar"]: arrival
+         ? assignment?.pickupPoint ?? ""
+         : assignment?.dropoffPoint ?? "",
+       Kendaraan: assignment?.vehicleLabel ?? "",
+       Catatan: assignment?.notes ?? "",
+       "Transfer status": assignmentStatus(assignment),
     };
   });
 }
@@ -95,11 +92,8 @@ export function buildOperationalWorkbook(participants: OperationalParticipant[])
     Nama: participant.fullName,
     "Status Registrasi": registrationStatus(participant.registrationStatus),
     Paket: participant.packageType ?? "",
-    "Room assignment": roomAssignmentLabel(participant.roomAssignment),
     "Nomor kamar": participant.roomAssignment?.roomNumber ?? "",
-    "Tipe kamar": participant.roomAssignment?.roomType ?? "",
-    "Check-in": participant.roomAssignment?.checkInDate ?? "",
-    "Check-out": participant.roomAssignment?.checkOutDate ?? "",
+    Catatan: participant.roomAssignment?.notes ?? "",
     "Status Assignment": participant.roomAssignment?.roomNumber ? "Sudah di-assign" : "Belum di-assign",
   }));
   const attendance = participants.map((participant) => ({
@@ -117,7 +111,7 @@ export function buildOperationalWorkbook(participants: OperationalParticipant[])
   XLSX.utils.book_append_sheet(
     workbook,
     worksheet(
-      ["Registration ID", "Nama", "Status Registrasi", "Paket", "Room assignment", "Nomor kamar", "Tipe kamar", "Check-in", "Check-out", "Status Assignment"],
+       ["Registration ID", "Nama", "Status Registrasi", "Paket", "Nomor kamar", "Catatan", "Status Assignment"],
       rooms,
     ),
     "Rooms",
@@ -125,7 +119,7 @@ export function buildOperationalWorkbook(participants: OperationalParticipant[])
   XLSX.utils.book_append_sheet(
     workbook,
     worksheet(
-      ["Registration ID", "Nama", "Status Registrasi", "Travel tersedia", "Arrival transport", "Nomor penerbangan/kereta", "Tanggal / waktu", "Lokasi travel", "Pickup assignment", "Pickup point", "Dropoff point", "Driver", "Kendaraan", "Transfer status"],
+       ["Registration ID", "Nama", "Status Registrasi", "Travel tersedia", "Arrival transport", "Nomor penerbangan/kereta", "Tanggal / waktu", "Lokasi travel", "Pickup assignment", "Titik Jemput", "Kendaraan", "Catatan", "Transfer status"],
       pickupRows(participants, "ARRIVAL"),
     ),
     "Pickup Kedatangan",
@@ -133,7 +127,7 @@ export function buildOperationalWorkbook(participants: OperationalParticipant[])
   XLSX.utils.book_append_sheet(
     workbook,
     worksheet(
-      ["Registration ID", "Nama", "Status Registrasi", "Travel tersedia", "Departure transport", "Nomor penerbangan/kereta", "Tanggal / waktu", "Lokasi travel", "Pickup assignment", "Pickup point", "Dropoff point", "Driver", "Kendaraan", "Transfer status"],
+       ["Registration ID", "Nama", "Status Registrasi", "Travel tersedia", "Departure transport", "Nomor penerbangan/kereta", "Tanggal / waktu", "Lokasi travel", "Pickup assignment", "Titik Antar", "Kendaraan", "Catatan", "Transfer status"],
       pickupRows(participants, "DEPARTURE"),
     ),
     "Pickup Kepulangan",

@@ -11,45 +11,9 @@ const roomInputSchema = z
   .object({
     registrationId: z.string().trim().regex(/^AKKAI26-[0-9]{6}$/),
     roomNumber: z.string().trim().max(50),
-    roomType: z.string().trim().max(100),
-    checkInDate: z.string().trim(),
-    checkOutDate: z.string().trim(),
     notes: z.string().trim().max(500),
     clear: z.boolean(),
-  })
-  .superRefine((data, context) => {
-    for (const [field, value] of [
-      ["checkInDate", data.checkInDate],
-      ["checkOutDate", data.checkOutDate],
-    ] as const) {
-      if (value && (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !isValidDate(value))) {
-        context.addIssue({ code: "custom", path: [field], message: "Tanggal tidak valid." });
-      }
-    }
-
-    if (
-      data.checkInDate &&
-      data.checkOutDate &&
-      data.checkOutDate < data.checkInDate
-    ) {
-      context.addIssue({
-        code: "custom",
-        path: ["checkOutDate"],
-        message: "Tanggal check-out tidak boleh sebelum check-in.",
-      });
-    }
   });
-
-function isValidDate(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
-}
 
 function readString(formData: FormData, name: string) {
   const value = formData.get(name);
@@ -70,9 +34,6 @@ export async function upsertRoomAssignment(
   const parsed = roomInputSchema.safeParse({
     registrationId: readString(formData, "registrationId"),
     roomNumber: readString(formData, "roomNumber"),
-    roomType: readString(formData, "roomType"),
-    checkInDate: readString(formData, "checkInDate"),
-    checkOutDate: readString(formData, "checkOutDate"),
     notes: readString(formData, "notes"),
     clear: readString(formData, "clear") === "true",
   });
@@ -83,21 +44,38 @@ export async function upsertRoomAssignment(
 
   const values = parsed.data;
   const roomNumber = values.clear ? null : values.roomNumber || null;
-  const roomType = values.clear ? null : values.roomType || null;
-  const checkInDate = values.clear ? null : values.checkInDate || null;
-  const checkOutDate = values.clear ? null : values.checkOutDate || null;
   const notes = values.clear ? null : values.notes || null;
 
   try {
     const supabase = createAdminClient();
+    const { data: participant } = await supabase
+      .from("participants")
+      .select("id, package_type")
+      .eq("registration_id", values.registrationId)
+      .maybeSingle();
+
+    if (!participant) {
+      return errorState("Peserta tidak ditemukan.");
+    }
+
+    const { data: currentAssignment } = await supabase
+      .from("participant_room_assignments")
+      .select("check_in_date, check_out_date")
+      .eq("participant_id", participant.id)
+      .maybeSingle();
+
+    const existing = currentAssignment as {
+      check_in_date: string | null;
+      check_out_date: string | null;
+    } | null;
     const { data, error } = await supabase.rpc(
       "upsert_participant_room_assignment",
       {
         p_registration_id: values.registrationId,
         p_room_number: roomNumber,
-        p_room_type: roomType,
-        p_check_in_date: checkInDate,
-        p_check_out_date: checkOutDate,
+        p_room_type: values.clear ? null : participant.package_type,
+        p_check_in_date: values.clear ? null : existing?.check_in_date ?? null,
+        p_check_out_date: values.clear ? null : existing?.check_out_date ?? null,
         p_notes: notes,
         p_updated_by: profile.id,
       },

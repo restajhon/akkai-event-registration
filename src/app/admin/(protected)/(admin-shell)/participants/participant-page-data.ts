@@ -7,8 +7,11 @@ export type ParticipantListItem = {
   registrationId: string;
   fullName: string;
   email: string;
-  institution: string | null;
-  participantCategory: string | null;
+  phoneNumber: string;
+  packageType: string | null;
+  participationScope: string | null;
+  actuarialConsultantStatus: string | null;
+  attendsPaiCongress: boolean | null;
   registrationStatus: "REGISTERED" | "CANCELLED";
   emailStatus: "PENDING" | "SENT" | "FAILED";
   createdAt: string;

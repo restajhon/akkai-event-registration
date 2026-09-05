@@ -61,7 +61,7 @@ export default async function RoomAssignmentDetailPage({
                 {participant.fullName}
               </h1>
               <p className="mt-1 text-sm font-semibold text-[#9a7526]">{participant.registrationId}</p>
-              <p className="mt-2 text-sm text-[#5b6c7c]">{participant.participantCategory ?? "Tidak diisi"}</p>
+               <p className="mt-2 text-sm text-[#5b6c7c]">Paket: {participant.packageType ?? "Tidak diisi"}</p>
             </div>
             <Link
               className="inline-flex min-h-11 items-center text-sm font-semibold text-[#344d68] underline underline-offset-4"

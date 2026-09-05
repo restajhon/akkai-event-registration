@@ -55,6 +55,10 @@ function attendanceClassName(attendance: AttendanceSummary) {
   return attendance.checkedIn ? "text-[#267044]" : "text-[#897657]";
 }
 
+function booleanLabel(value: boolean | null) {
+  return value === null ? "-" : value ? "Ya" : "Tidak";
+}
+
 export function ResendQrButton({
   registrationId,
   email,
@@ -203,6 +207,13 @@ export function ParticipantList({
           <p className="mt-1 text-sm text-[#5b6c7c]">
             Kelola data dan status kehadiran peserta AKKAI 2026.
           </p>
+          <a
+            className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
+            download="AKKAI-2026-Peserta.xlsx"
+            href="/api/admin/participant-export"
+          >
+            Download Excel
+          </a>
         </header>
 
         <section
@@ -294,7 +305,10 @@ export function ParticipantList({
                 <thead className="border-b border-[#e4d8c4] bg-[#f1eadc] text-xs uppercase tracking-wide text-[#897657]">
                   <tr>
                     <th className="w-[23%] px-3 py-3" scope="col">Peserta</th>
-                    <th className="w-[19%] px-3 py-3" scope="col">Institusi / Kategori</th>
+                    <th className="w-[14%] px-3 py-3" scope="col">Kontak</th>
+                    <th className="w-[14%] px-3 py-3" scope="col">Paket</th>
+                    <th className="w-[16%] px-3 py-3" scope="col">Konsultan Aktuaria</th>
+                    <th className="w-[10%] px-3 py-3" scope="col">Hadir Kongres PAI</th>
                     <th className="w-[14%] px-3 py-3" scope="col">Status Registrasi</th>
                     <th className="w-[15%] px-3 py-3" scope="col">Registrasi Kedatangan</th>
                      <th className="w-[12%] px-3 py-3" scope="col">Seminar</th>
@@ -377,16 +391,22 @@ function ParticipantCard({ participant }: { participant: ParticipantListItem }) 
       </div>
 
       <dl className="mt-4 grid gap-3 text-sm text-[#5b6c7c] sm:grid-cols-2">
-        {participant.institution ? (
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-[#897657]">Institusi</dt>
-            <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.institution}</dd>
-          </div>
-        ) : null}
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-[#897657]">Kategori</dt>
-           <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.participantCategory ?? "-"}</dd>
-        </div>
+         <div>
+           <dt className="text-xs uppercase tracking-wide text-[#897657]">Email</dt>
+           <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.email}</dd>
+         </div>
+         <div>
+           <dt className="text-xs uppercase tracking-wide text-[#897657]">Paket</dt>
+           <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.packageType ?? "-"}</dd>
+         </div>
+         <div>
+           <dt className="text-xs uppercase tracking-wide text-[#897657]">Konsultan Aktuaria</dt>
+           <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.actuarialConsultantStatus ?? "-"}</dd>
+         </div>
+         <div>
+           <dt className="text-xs uppercase tracking-wide text-[#897657]">Hadir Kongres PAI</dt>
+           <dd className="mt-1 break-words font-medium text-[#344d68]">{booleanLabel(participant.attendsPaiCongress)}</dd>
+         </div>
         <div>
           <dt className="text-xs uppercase tracking-wide text-[#897657]">Registrasi Kedatangan</dt>
           <dd className="mt-1"><AttendanceCell attendance={participant.arrival} /></dd>
@@ -432,11 +452,17 @@ function ParticipantTableRow({
         <p className="mt-1 break-all text-xs font-semibold text-[#9a7526]">{participant.registrationId}</p>
       </td>
       <td className="px-3 py-3.5">
-        {participant.institution ? (
-          <p className="break-words font-medium">{participant.institution}</p>
-        ) : null}
-         <p className="mt-1 break-words text-xs text-[#897657]">{participant.participantCategory ?? "-"}</p>
+        <p className="break-words font-medium">{participant.email}</p>
+        <p className="mt-1 break-words text-xs text-[#897657]">{participant.phoneNumber}</p>
       </td>
+      <td className="px-3 py-3.5">
+        <p className="break-words font-medium">{participant.packageType ?? "-"}</p>
+        <p className="mt-1 break-words text-xs text-[#897657]">{participant.participationScope ?? "-"}</p>
+      </td>
+      <td className="px-3 py-3.5">
+        <p className="break-words font-medium">{participant.actuarialConsultantStatus ?? "-"}</p>
+      </td>
+      <td className="px-3 py-3.5">{booleanLabel(participant.attendsPaiCongress)}</td>
       <td className="px-3 py-3.5">
         <ParticipantStatus status={participant.registrationStatus} />
       </td>
