@@ -43,7 +43,7 @@ export function RegistrationInformation() {
         </p>
       </div>
 
-      <div className={styles.infoGrid}>
+      <div className={`${styles.infoGrid} ${styles.packagePaymentGrid}`}>
         <section className={styles.infoCard}>
           <h3 className={styles.infoCardTitle}>Paket & Biaya</h3>
           <p className={styles.infoCardIntro}>Untuk Anggota AKKAI</p>

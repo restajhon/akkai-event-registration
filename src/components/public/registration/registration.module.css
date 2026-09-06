@@ -227,6 +227,10 @@
   gap: 1rem;
 }
 
+.information .packagePaymentGrid {
+  grid-template-columns: 1fr;
+}
+
 .infoCard,
 .proofCard,
 .rundownCard {
@@ -253,7 +257,7 @@
 .packageItem {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
+  align-items: center;
   column-gap: 1rem;
   min-width: 0;
   padding: 0.875rem 1rem;
@@ -272,7 +276,8 @@
 
 .packageItem > span {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .paymentDetails {
