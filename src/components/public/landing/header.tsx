@@ -4,6 +4,7 @@ import Image from "next/image";
 import { AKKAI_EVENT } from "@/lib/akkai-event";
 
 import { RegistrationLink } from "./registration-link";
+import { MobileNavigation } from "./mobile-navigation";
 import styles from "./landing.module.css";
 
 export function Header() {
@@ -39,6 +40,7 @@ export function Header() {
           <Link className={styles.navLink} href="/travel">Informasi Perjalanan</Link>
         </nav>
         <RegistrationLink className={styles.navCta} />
+        <MobileNavigation />
       </div>
     </header>
   );

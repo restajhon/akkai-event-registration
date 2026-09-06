@@ -3,6 +3,7 @@ import Image from "next/image";
 
 import { AKKAI_EVENT } from "@/lib/akkai-event";
 
+import { MobileNavigation } from "../landing/mobile-navigation";
 import styles from "./registration.module.css";
 
 export function RegistrationHeader() {
@@ -29,6 +30,7 @@ export function RegistrationHeader() {
         <Link className={styles.headerBackLink} href="/">
           Kembali ke Beranda
         </Link>
+        <MobileNavigation showRegistrationCta />
       </div>
     </header>
   );

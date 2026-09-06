@@ -1,0 +1,124 @@
+.root {
+  display: none;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid rgb(8 43 90 / 20%);
+  border-radius: 0.35rem;
+  background: #fffdf9;
+  color: #082b5a;
+  cursor: pointer;
+}
+
+.menuIcon,
+.menuIcon::before,
+.menuIcon::after {
+  display: block;
+  width: 1.15rem;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.menuIcon {
+  position: relative;
+}
+
+.menuIcon::before,
+.menuIcon::after {
+  position: absolute;
+  left: 0;
+  content: "";
+}
+
+.menuIcon::before {
+  transform: translateY(-0.38rem);
+}
+
+.menuIcon::after {
+  transform: translateY(0.38rem);
+}
+
+.menuIconOpen {
+  background: transparent;
+}
+
+.menuIconOpen::before {
+  transform: rotate(45deg);
+}
+
+.menuIconOpen::after {
+  transform: rotate(-45deg);
+}
+
+.panel {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 0.75rem);
+  right: 0;
+  width: min(20rem, calc(100vw - 2rem));
+  padding: 0.55rem;
+  border: 1px solid rgb(199 154 53 / 48%);
+  border-top: 3px solid #c79a35;
+  border-radius: 0.55rem;
+  background: #fffdf9;
+  box-shadow: 0 1rem 2rem rgb(5 26 56 / 16%);
+}
+
+.panel nav {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.navLink,
+.registrationLink {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.25rem;
+  color: #082b5a;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.navLink:hover,
+.navLink:focus-visible {
+  background: #fcf9f2;
+  color: #c79a35;
+}
+
+.registrationLink {
+  justify-content: center;
+  margin-top: 0.45rem;
+  background: #082b5a;
+  color: #fffdf9;
+}
+
+.registrationLink:hover,
+.registrationLink:focus-visible {
+  background: #051a38;
+}
+
+.menuButton:focus-visible,
+.navLink:focus-visible,
+.registrationLink:focus-visible {
+  outline: 3px solid #ddbb6a;
+  outline-offset: 3px;
+}
+
+@media (max-width: 50rem) {
+  .root {
+    display: block;
+  }
+}
