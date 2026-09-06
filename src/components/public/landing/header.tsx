@@ -3,37 +3,43 @@ import Link from "next/link";
 import { AKKAI_EVENT } from "@/lib/akkai-event";
 
 import { RegistrationLink } from "./registration-link";
+import styles from "./landing.module.css";
 
 export function Header() {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b-2 border-[#c79a35] bg-[#fffdf9]/95 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <Link
-          aria-label="Kembali ke halaman utama"
-          className="flex items-center gap-3 rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c79a35]"
-          href="/"
-        >
-          <span className="flex h-10 w-10 items-center justify-center rounded bg-[#082b5a] text-xs font-bold text-[#fffdf9]">
-            AK
-          </span>
-          <span className="font-serif text-lg font-semibold text-[#082b5a]">
-            {AKKAI_EVENT.shortName}
+    <header className={styles.header}>
+      <div className={styles.topBand}>
+        <div className={styles.topBandInner}>
+          <div className={styles.topBandGroup}>
+            <span aria-hidden="true" className={styles.statusDot} />
+            <span>Portal Registrasi Resmi AKKAI 2026</span>
+            <span className={styles.topBandMuted}>• {AKKAI_EVENT.venue}</span>
+          </div>
+          <a
+            className={styles.topBandHelp}
+            href="https://wa.me/6281219336779"
+            rel="noreferrer"
+            target="_blank"
+          >
+            Helpdesk WhatsApp
+          </a>
+        </div>
+      </div>
+      <div className={styles.navInner}>
+        <Link aria-label="Kembali ke halaman utama" className={styles.brand} href="/">
+          <span aria-hidden="true" className={styles.brandMark}>AK</span>
+          <span className={styles.brandText}>
+            <span className={styles.brandName}>{AKKAI_EVENT.shortName}</span>
+            <span className={styles.brandSubtitle}>Asosiasi Konsultan Aktuaria Indonesia</span>
           </span>
         </Link>
-
-        <nav
-          aria-label="Navigasi utama"
-          className="hidden items-center gap-8 sm:flex"
-        >
-          <Link
-            className="rounded text-sm font-medium text-[#263246] underline-offset-4 transition-colors hover:text-[#082b5a] hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c79a35]"
-            href="#informasi"
-          >
-            Informasi Acara
-          </Link>
+        <nav aria-label="Navigasi utama" className={styles.navLinks}>
+          <Link className={styles.navLink} href="#informasi">Informasi</Link>
+          <Link className={styles.navLink} href="#rundown">Rundown</Link>
+          <Link className={styles.navLink} href="#paket">Paket</Link>
+          <Link className={styles.navLink} href="/travel">Perjalanan</Link>
         </nav>
-
-        <RegistrationLink className="rounded bg-[#082b5a] px-4 py-2 text-sm font-medium text-[#fffdf9] transition-colors hover:bg-[#041d3d] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c79a35]" />
+        <RegistrationLink className={styles.navCta} />
       </div>
     </header>
   );

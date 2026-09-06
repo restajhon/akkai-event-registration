@@ -1,50 +1,41 @@
 import { AKKAI_EVENT } from "@/lib/akkai-event";
 
-import { GoldDivider } from "./ornaments";
+import styles from "./landing.module.css";
 
 export function GeneralEventRundown() {
   return (
-    <section
-      aria-labelledby="general-rundown-title"
-      className="bg-[#fcf9f2] px-4 py-20 sm:px-6 lg:px-8"
-      id="rundown"
-    >
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-14 text-center">
-          <h2
-            className="font-serif text-4xl font-bold text-[#082b5a]"
-            id="general-rundown-title"
-          >
-            Rundown Acara
-          </h2>
-          <div className="mx-auto mb-4 mt-5 flex justify-center">
-            <GoldDivider className="w-16" />
+    <section aria-labelledby="general-rundown-title" className={styles.section} id="rundown">
+      <div className={styles.container}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <p className={styles.sectionEyebrow}>Agenda Konferensi</p>
+            <h2 className={styles.sectionTitle} id="general-rundown-title">Rundown Acara</h2>
           </div>
-          <p className="text-[#667085]">
-            Rangkaian acara AKKAI 2026 selama tiga hari.
-          </p>
+          <p className={styles.sectionDescription}>Rangkaian acara AKKAI 2026 selama tiga hari.</p>
         </div>
-
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className={styles.rundownShell}>
+          <div className={styles.rundownList}>
           {AKKAI_EVENT.participantRundown.map((day) => (
-            <article
-              className="border-l-4 border-[#c79a35] bg-[#fffdf9] p-6 ring-1 ring-[#c79a35]/30"
-              key={day.day}
-            >
-                <h3 className="font-serif text-2xl font-bold text-[#082b5a]">{day.day}</h3>
-                <p className="mt-1 text-sm font-semibold text-[#c79a35]">{day.date}</p>
-                <ul className="mt-5 space-y-3 leading-6 text-[#667085]">
+            <details className={styles.rundownDay} key={day.day} open={day.day === "Day 1"}>
+              <summary className={styles.rundownSummary}>
+                <span className={styles.rundownSummaryText}>
+                  <strong>{day.day}</strong>
+                  <span>{day.date}</span>
+                </span>
+                <span aria-hidden="true">+</span>
+              </summary>
+              <ul className={styles.rundownItems}>
                   {day.items.map((item) => (
-                    <li className="grid gap-1 border-b border-[#c79a35]/15 pb-3 last:border-0 last:pb-0 sm:grid-cols-[7.5rem_1fr]" key={`${day.day}-${item.time}-${item.title}`}>
-                      <span className="font-semibold text-[#082b5a]">{item.time}</span>
+                    <li className={styles.rundownItem} key={`${day.day}-${item.time}-${item.title}`}>
+                      <span>{item.time}</span>
                       <span>{item.title}</span>
                     </li>
                   ))}
               </ul>
-            </article>
+            </details>
           ))}
+          </div>
         </div>
-
       </div>
     </section>
   );

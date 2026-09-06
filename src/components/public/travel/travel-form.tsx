@@ -154,7 +154,7 @@ export function TravelForm() {
         </div>
       ) : null}
 
-      <section className={styles.formSection}>
+      <section className={styles.formSection} id="step-1">
         <div className={styles.sectionHeading}>
           <span className={styles.sectionNumber}>01</span>
           <div>
@@ -224,7 +224,7 @@ export function TravelForm() {
         </div>
       </section>
 
-      <section className={styles.formSection}>
+      <section className={styles.formSection} id="step-2">
         <div className={styles.sectionHeading}>
           <span className={styles.sectionNumber}>02</span>
           <div>
@@ -397,7 +397,7 @@ export function TravelForm() {
         </div>
       </section>
 
-      <section className={styles.formSection}>
+      <section className={styles.formSection} id="step-3">
         <div className={styles.sectionHeading}>
           <span className={styles.sectionNumber}>03</span>
           <div>
@@ -536,7 +536,7 @@ export function TravelForm() {
         </div>
       </section>
 
-      <section className={styles.formSection}>
+      <section className={styles.formSection} id="step-4">
         <div className={styles.sectionHeading}>
           <span className={styles.sectionNumber}>04</span>
           <div>

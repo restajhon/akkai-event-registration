@@ -1,50 +1,44 @@
 import { AKKAI_EVENT } from "@/lib/akkai-event";
 
-import { CurvedPanel, GoldDivider } from "./ornaments";
 import { RegistrationLink } from "./registration-link";
+import styles from "./landing.module.css";
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-[#fcf9f2] px-4 pb-20 pt-32 sm:px-6 lg:px-8">
-      <CurvedPanel />
-
-      <div className="relative mx-auto max-w-4xl text-center">
-        <p className="mb-5 text-sm font-semibold uppercase tracking-[0.22em] text-[#c79a35]">
-          Rapat Anggota
-        </p>
-        <h1 className="font-serif text-4xl font-bold tracking-tight text-[#082b5a] sm:text-5xl lg:text-6xl">
-          {AKKAI_EVENT.name}
+    <section className={styles.hero}>
+      <div aria-hidden="true" className={styles.ambientOne} />
+      <div aria-hidden="true" className={styles.ambientTwo} />
+      <div className={`${styles.container} ${styles.heroContent}`}>
+        <span className={styles.heroBadge}>
+          <span aria-hidden="true" className={styles.statusDot} />
+          Seminar &amp; Rapat Anggota Tahunan
+        </span>
+        <h1 className={styles.heroTitle}>
+          Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan
+          <span className={styles.heroTitleAccent}> Rapat Anggota AKKAI 2026</span>
         </h1>
-
-        <div className="mx-auto mb-8 mt-7 flex max-w-20 justify-center">
-          <GoldDivider className="w-16" />
-        </div>
-
-        <p className="mx-auto mb-10 max-w-2xl text-base leading-7 text-[#667085] sm:text-lg">
+        <p className={styles.heroCopy}>
           Lakukan registrasi secara online dan terima kode QR unik melalui email
-          untuk proses verifikasi kehadiran.
+          untuk proses verifikasi kehadiran di setiap rangkaian acara.
         </p>
-
-        <div className="mb-12 flex flex-col items-center justify-center gap-7 sm:flex-row sm:gap-10">
-          <div className="text-center">
-            <p className="mb-2 text-sm font-medium text-[#667085]">Tanggal</p>
-            <p className="font-serif text-xl font-semibold text-[#082b5a]">
-              {AKKAI_EVENT.date}
-            </p>
+        <div className={styles.heroMeta}>
+          <div className={styles.metaCard}>
+            <span className={styles.metaLabel}>Tanggal acara</span>
+            <span className={styles.metaValue}>{AKKAI_EVENT.date}</span>
           </div>
-          <div
-            aria-hidden="true"
-            className="hidden h-12 w-px bg-[#c79a35]/40 sm:block"
-          />
-          <div className="text-center">
-            <p className="mb-2 text-sm font-medium text-[#667085]">Lokasi</p>
-            <p className="font-serif text-xl font-semibold text-[#082b5a]">
-              {AKKAI_EVENT.venue}
-            </p>
+          <div className={styles.metaCard}>
+            <span className={styles.metaLabel}>Lokasi pertemuan</span>
+            <span className={styles.metaValue}>{AKKAI_EVENT.venue}</span>
+          </div>
+          <div className={styles.metaCard}>
+            <span className={styles.metaLabel}>Rangkaian kegiatan</span>
+            <span className={styles.metaValue}>Tiga hari acara resmi</span>
           </div>
         </div>
-
-        <RegistrationLink className="inline-flex rounded bg-[#082b5a] px-6 py-3 text-sm font-semibold text-[#fffdf9] shadow-sm transition-all hover:bg-[#041d3d] hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c79a35]" />
+        <div className={styles.heroActions}>
+          <RegistrationLink className={styles.primaryCta} />
+          <a className={styles.secondaryCta} href="#rundown">Lihat Rundown Acara</a>
+        </div>
       </div>
     </section>
   );

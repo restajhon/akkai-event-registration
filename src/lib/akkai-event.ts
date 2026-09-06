@@ -50,7 +50,7 @@ export const AKKAI_EVENT: AkkaiEventConfig = {
         { time: "16.00 – 16.30", title: "Coffee Break" },
         { time: "16.30 – 18.00", title: "Seminar Sesi 2" },
         { time: "18.00 – 19.15", title: "ISHOMA" },
-        { time: "19.15 – 22.00", title: "RATAS AKKAI" },
+        { time: "19.15 – 22.00", title: "Rapat Anggota AKKAI" },
         { time: "22.00 – 22.15", title: "Penutupan & Foto Bersama" },
       ],
     },

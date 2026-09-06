@@ -71,8 +71,14 @@ function RegistrationContent() {
          <EventInformation />
        </section>
 
-       <RegistrationInformation />
-       <RegistrationForm />
+       <div className={styles.workspace}>
+         <div className={styles.formColumn}>
+           <RegistrationForm />
+         </div>
+         <aside className={styles.sidebar}>
+           <RegistrationInformation />
+         </aside>
+       </div>
     </div>
   );
 }

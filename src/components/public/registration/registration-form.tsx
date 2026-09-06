@@ -170,7 +170,15 @@ export function RegistrationForm() {
         </div>
       ) : null}
 
-      <div className={styles.fieldGroup}>
+      <section className={styles.formSection}>
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionNumber}>01</span>
+          <div>
+            <p className={styles.sectionKicker}>Identitas peserta</p>
+            <h2 className={styles.sectionTitle}>Data Diri &amp; Kontak</h2>
+          </div>
+        </div>
+        <div className={styles.fieldGroup}>
         <div className={styles.field}>
           <label className={styles.label} htmlFor="full_name">
             Nama lengkap <span className={styles.required}>(wajib)</span>
@@ -290,6 +298,18 @@ export function RegistrationForm() {
           ) : null}
         </div>
 
+        </div>
+      </section>
+
+      <section className={styles.formSection}>
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionNumber}>02</span>
+          <div>
+            <p className={styles.sectionKicker}>Akomodasi kegiatan</p>
+            <h2 className={styles.sectionTitle}>Paket &amp; Poloshirt</h2>
+          </div>
+        </div>
+        <div className={styles.fieldGroup}>
         <div className={styles.field}>
           <label className={styles.label} htmlFor="polo_size">
             Ukuran Poloshirt <span className={styles.required}>(wajib)</span>
@@ -342,26 +362,56 @@ export function RegistrationForm() {
           <label className={styles.label} htmlFor="package_type">
             Paket yang diambil <span className={styles.required}>(wajib)</span>
           </label>
-          <select
+          <div
             aria-describedby={errors.package_type ? "package_type-error" : undefined}
             aria-invalid={Boolean(errors.package_type)}
-            className={`${styles.select} ${errors.package_type ? styles.inputError : ""}`}
+            className={styles.packageOptions}
             id="package_type"
-            name="package_type"
-            onChange={(event) => updateField("package_type", event.target.value)}
-            required
-            value={formData.package_type}
+            role="radiogroup"
           >
-            <option value="">Pilih paket</option>
             {PACKAGE_TYPES.map((packageType) => (
-              <option key={packageType} value={packageType}>{packageType}</option>
+              <label className={styles.packageOption} key={packageType}>
+                <input
+                  checked={formData.package_type === packageType}
+                  className={styles.packageRadio}
+                  name="package_type"
+                  onChange={(event) => updateField("package_type", event.target.value)}
+                  required
+                  type="radio"
+                  value={packageType}
+                />
+                <span className={styles.packageOptionContent}>
+                  <span className={styles.packageOptionName}>{packageType}</span>
+                  <span className={styles.packageOptionDescription}>
+                    {packageType === "Twin Share"
+                      ? "Akomodasi bersama di Hotel Gumaya"
+                      : "Akomodasi privat di Hotel Gumaya"}
+                  </span>
+                  <strong className={styles.packageOptionPrice}>
+                    {packageType === "Twin Share" ? "Rp6.000.000" : "Rp7.000.000"}
+                  </strong>
+                </span>
+                <span aria-hidden="true" className={styles.packageOptionMark}>✓</span>
+              </label>
             ))}
-          </select>
+          </div>
           {errors.package_type ? (
             <ErrorMessage id="package_type-error" message={errors.package_type} />
           ) : null}
         </div>
 
+        </div>
+      </section>
+
+      <section className={styles.formSection}>
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionNumber}>03</span>
+          <div>
+            <p className={styles.sectionKicker}>Status kepesertaan</p>
+            <h2 className={styles.sectionTitle}>Informasi Profesi &amp; Kehadiran</h2>
+          </div>
+        </div>
+        <div className={styles.fieldGroup}>
         <div className={styles.field}>
           <label className={styles.label} htmlFor="participation_scope">
             Mengikuti <span className={styles.required}>(wajib)</span>
@@ -453,6 +503,17 @@ export function RegistrationForm() {
           ) : null}
         </div>
 
+        </div>
+      </section>
+
+      <section className={styles.formSection}>
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionNumber}>04</span>
+          <div>
+            <p className={styles.sectionKicker}>Konfirmasi akhir</p>
+            <h2 className={styles.sectionTitle}>Persetujuan &amp; Kebijakan Data</h2>
+          </div>
+        </div>
         <div className={styles.consentField}>
           <div className={styles.consentRow}>
             <input
@@ -484,7 +545,7 @@ export function RegistrationForm() {
             />
           ) : null}
         </div>
-      </div>
+      </section>
 
       <aside className={styles.notice}>
         <h2 className={`${styles.displayFont} ${styles.noticeTitle}`}>
