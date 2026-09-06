@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 import { AKKAI_EVENT } from "@/lib/akkai-event";
 
@@ -13,9 +14,13 @@ export function RegistrationHeader() {
           className={styles.brand}
           href="/"
         >
-          <span aria-hidden="true" className={styles.brandMark}>
-            AK
-          </span>
+          <Image
+            alt="Asosiasi Konsultan Aktuaria Indonesia"
+            className={styles.brandLogo}
+            height={48}
+            src="/logo-akkai.webp"
+            width={200}
+          />
           <span className={`${styles.displayFont} ${styles.brandName}`}>
             {AKKAI_EVENT.shortName}
           </span>

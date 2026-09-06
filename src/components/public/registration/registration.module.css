@@ -71,6 +71,13 @@
   font-weight: 700;
 }
 
+.brandLogo {
+  display: block;
+  width: 12.5rem;
+  height: auto;
+  object-fit: contain;
+}
+
 .headerBackLink {
   display: none;
   min-height: 3rem;
@@ -531,6 +538,19 @@
   min-width: 0;
 }
 
+.visuallyHidden,
+.visuallyHiddenControl {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+}
+
 .label {
   display: block;
   margin-bottom: 0.5rem;
@@ -563,75 +583,107 @@
 .packageOptions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
+  gap: 0.9rem;
 }
 
-.packageOption {
-  position: relative;
-  display: flex;
-  min-height: 9.5rem;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid rgb(199 154 53 / 35%);
-  border-radius: 0.55rem;
+.packageCard {
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: 1.15rem;
+  border: 1px solid rgb(199 154 53 / 32%);
+  border-radius: 0.65rem;
   background: var(--ivory);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
   cursor: pointer;
   transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
 
-.packageOption:has(input:checked) {
+.packageCard:hover {
+  border-color: var(--gold);
+}
+
+.packageCardSelected {
   border-color: var(--gold);
   background: #f5efe0;
-  box-shadow: 0 0 0 2px rgb(199 154 53 / 12%);
+  box-shadow: 0 0 0 2px rgb(199 154 53 / 14%);
 }
 
-.packageRadio {
-  width: 1rem;
-  height: 1rem;
-  margin-top: 0.15rem;
-  accent-color: var(--navy);
+.packageCardHeader,
+.packageCardPriceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.packageOptionContent {
-  display: grid;
-  gap: 0.3rem;
-}
-
-.packageOptionName,
-.packageOptionPrice {
+.packageCardName {
+  min-width: 0;
   color: var(--navy);
-}
-
-.packageOptionName {
   font-family: var(--font-display), Georgia, serif;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   font-weight: 700;
 }
 
-.packageOptionDescription {
+.packageCardCheck {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  background: var(--navy);
+  color: var(--ivory);
+  font-size: 0.75rem;
+  font-weight: 900;
+  opacity: 0;
+}
+
+.packageCardSelected .packageCardCheck {
+  opacity: 1;
+}
+
+.packageCardPrice {
+  color: var(--navy);
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.packageCardUnit {
+  color: var(--muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.packageCardDescription {
+  min-height: 2.6rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.packageCardIncludes {
+  color: var(--navy);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.packageCardList {
+  display: grid;
+  gap: 0.3rem;
   color: var(--muted);
   font-size: 0.75rem;
   line-height: 1.45;
 }
 
-.packageOptionPrice {
-  margin-top: 0.35rem;
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 1.25rem;
-}
-
-.packageOptionMark {
-  position: absolute;
-  top: 0.85rem;
-  right: 0.85rem;
-  display: none;
+.packageCardList span::first-letter {
   color: var(--gold);
-  font-weight: 900;
-}
-
-.packageOption:has(input:checked) .packageOptionMark {
-  display: block;
 }
 
 .select {
@@ -804,7 +856,7 @@
 
 .input:focus-visible,
 .select:focus-visible,
-.packageOption:has(input:focus-visible),
+.packageCard:focus-visible,
 .checkbox:focus-visible,
 .submitButton:focus-visible,
 .brand:focus-visible,
@@ -885,6 +937,10 @@
 @media (max-width: 40rem) {
   .main {
     padding-top: 2.25rem;
+  }
+
+  .brandLogo {
+    width: 9rem;
   }
 
   .eventCard {

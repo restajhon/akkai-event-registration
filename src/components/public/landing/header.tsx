@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 import { AKKAI_EVENT } from "@/lib/akkai-event";
 
@@ -20,7 +21,13 @@ export function Header() {
       </div>
       <div className={styles.navInner}>
         <Link aria-label="Kembali ke halaman utama" className={styles.brand} href="/">
-          <span aria-hidden="true" className={styles.brandMark}>AK</span>
+          <Image
+            alt="Asosiasi Konsultan Aktuaria Indonesia"
+            className={styles.brandLogo}
+            height={52}
+            src="/logo-akkai.webp"
+            width={216}
+          />
           <span className={styles.brandText}>
             <span className={styles.brandName}>{AKKAI_EVENT.shortName}</span>
           </span>

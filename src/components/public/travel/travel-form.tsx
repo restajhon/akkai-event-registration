@@ -382,7 +382,7 @@ export function TravelForm() {
               onChange={(event) =>
                 updateField("outbound_destination", event.target.value)
               }
-              placeholder="Hotel Gumaya Semarang"
+              placeholder="Contoh: Stasiun Tawang Semarang"
               required
               type="text"
               value={formData.outbound_destination}
@@ -521,7 +521,7 @@ export function TravelForm() {
               onChange={(event) =>
                 updateField("return_destination", event.target.value)
               }
-              placeholder="Kota atau lokasi tujuan"
+              placeholder="Contoh: Stasiun Tawang Semarang"
               required
               type="text"
               value={formData.return_destination}

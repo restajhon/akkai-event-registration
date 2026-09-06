@@ -114,6 +114,13 @@
   font-weight: 700;
 }
 
+.brandLogo {
+  display: block;
+  width: 10.5rem;
+  height: auto;
+  object-fit: contain;
+}
+
 .brandText {
   display: grid;
   line-height: 1.05;
@@ -813,6 +820,17 @@
   gap: 0.75rem;
 }
 
+.footerLogo {
+  display: block;
+  flex: 0 0 auto;
+  width: 11rem;
+  height: auto;
+  padding: 0.25rem 0.4rem;
+  border-radius: 0.25rem;
+  background: #fffdf9;
+  object-fit: contain;
+}
+
 .footerTitle {
   margin: 0;
   color: #fffdf9;
@@ -928,6 +946,10 @@
 
   .brandSubtitle {
     display: none;
+  }
+
+  .brandLogo {
+    width: 8.75rem;
   }
 
   .navCta {

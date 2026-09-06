@@ -40,6 +40,33 @@ const initialFormData: RegistrationFormValues = {
   privacy_consent: false,
 };
 
+const packageDetails = {
+  "Twin Share": {
+    description: "Akomodasi penginapan bersama peserta lain.",
+    price: "Rp6.000.000",
+    benefits: [
+      "Akomodasi",
+      "Konsumsi termasuk Welcome Dinner",
+      "Pick-up & drop-off bandara/stasiun",
+      "Polo shirt",
+      "City Tour",
+      "Oleh-oleh",
+    ],
+  },
+  Single: {
+    description: "Akomodasi penginapan privat untuk satu peserta.",
+    price: "Rp7.000.000",
+    benefits: [
+      "Akomodasi",
+      "Konsumsi termasuk Welcome Dinner",
+      "Pick-up & drop-off bandara/stasiun",
+      "Polo shirt",
+      "City Tour",
+      "Oleh-oleh",
+    ],
+  },
+} as const;
+
 function ErrorMessage({ id, message }: { id: string; message: string }) {
   return (
     <p className={styles.errorMessage} id={id} role="alert">
@@ -306,7 +333,73 @@ export function RegistrationForm() {
           <span className={styles.sectionNumber}>02</span>
           <div>
             <p className={styles.sectionKicker}>Akomodasi kegiatan</p>
-            <h2 className={styles.sectionTitle}>Paket &amp; Poloshirt</h2>
+            <h2 className={styles.sectionTitle}>Paket yang Diambil</h2>
+          </div>
+        </div>
+        <div className={styles.field}>
+          <label className={styles.visuallyHidden} htmlFor="package_type">
+            Paket yang diambil <span className={styles.required}>(wajib)</span>
+          </label>
+          <div aria-label="Pilihan paket" className={styles.packageOptions} role="group">
+            {PACKAGE_TYPES.map((packageType) => {
+              const details = packageDetails[packageType];
+              const selected = formData.package_type === packageType;
+
+              return (
+                <button
+                  aria-pressed={selected}
+                  className={`${styles.packageCard} ${selected ? styles.packageCardSelected : ""}`}
+                  key={packageType}
+                  onClick={() => updateField("package_type", packageType)}
+                  type="button"
+                >
+                  <span className={styles.packageCardHeader}>
+                    <span className={styles.packageCardName}>{packageType}</span>
+                    <span aria-hidden="true" className={styles.packageCardCheck}>✓</span>
+                  </span>
+                  <span className={styles.packageCardPriceRow}>
+                    <strong className={styles.packageCardPrice}>{details.price}</strong>
+                    <span className={styles.packageCardUnit}>per peserta</span>
+                  </span>
+                  <span className={styles.packageCardDescription}>{details.description}</span>
+                  <span className={styles.packageCardIncludes}>Termasuk:</span>
+                  <span className={styles.packageCardList}>
+                    {details.benefits.map((benefit) => (
+                      <span key={benefit}>✓ {benefit}</span>
+                    ))}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <select
+            aria-describedby={errors.package_type ? "package_type-error" : undefined}
+            aria-invalid={Boolean(errors.package_type)}
+            className={styles.visuallyHiddenControl}
+            id="package_type"
+            name="package_type"
+            onChange={(event) => updateField("package_type", event.target.value)}
+            required
+            tabIndex={-1}
+            value={formData.package_type}
+          >
+            <option value="">Pilih paket</option>
+            {PACKAGE_TYPES.map((packageType) => (
+              <option key={packageType} value={packageType}>{packageType}</option>
+            ))}
+          </select>
+          {errors.package_type ? (
+            <ErrorMessage id="package_type-error" message={errors.package_type} />
+          ) : null}
+        </div>
+      </section>
+
+      <section className={styles.formSection}>
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionNumber}>03</span>
+          <div>
+            <p className={styles.sectionKicker}>Pilihan Peserta</p>
+            <h2 className={styles.sectionTitle}>Pilihan Poloshirt</h2>
           </div>
         </div>
         <div className={styles.fieldGroup}>
@@ -358,36 +451,12 @@ export function RegistrationForm() {
           ) : null}
         </div>
 
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="package_type">
-            Paket yang diambil <span className={styles.required}>(wajib)</span>
-          </label>
-          <select
-            aria-describedby={errors.package_type ? "package_type-error" : undefined}
-            aria-invalid={Boolean(errors.package_type)}
-            className={`${styles.select} ${errors.package_type ? styles.inputError : ""}`}
-            id="package_type"
-            name="package_type"
-            onChange={(event) => updateField("package_type", event.target.value)}
-            required
-            value={formData.package_type}
-          >
-            <option value="">Pilih paket</option>
-            {PACKAGE_TYPES.map((packageType) => (
-              <option key={packageType} value={packageType}>{packageType}</option>
-            ))}
-          </select>
-          {errors.package_type ? (
-            <ErrorMessage id="package_type-error" message={errors.package_type} />
-          ) : null}
-        </div>
-
         </div>
       </section>
 
       <section className={styles.formSection}>
         <div className={styles.sectionHeader}>
-          <span className={styles.sectionNumber}>03</span>
+          <span className={styles.sectionNumber}>04</span>
           <div>
             <p className={styles.sectionKicker}>Status kepesertaan</p>
             <h2 className={styles.sectionTitle}>Informasi Profesi &amp; Kehadiran</h2>
@@ -490,7 +559,7 @@ export function RegistrationForm() {
 
       <section className={styles.formSection}>
         <div className={styles.sectionHeader}>
-          <span className={styles.sectionNumber}>04</span>
+          <span className={styles.sectionNumber}>05</span>
           <div>
             <p className={styles.sectionKicker}>Konfirmasi akhir</p>
             <h2 className={styles.sectionTitle}>Persetujuan &amp; Kebijakan Data</h2>
