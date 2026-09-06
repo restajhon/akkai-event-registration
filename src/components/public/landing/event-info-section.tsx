@@ -3,9 +3,18 @@ import { AKKAI_EVENT } from "@/lib/akkai-event";
 import styles from "./landing.module.css";
 
 const activityHighlights = [
-  "Kedatangan & AKKAI Night",
-  "Seminar & Rapat Anggota",
-  "Registrasi Kepulangan & City Tour",
+  {
+    title: "Kedatangan & AKKAI Night",
+    summary: "Kedatangan peserta, registrasi, check-in hotel, serta rangkaian AKKAI Night.",
+  },
+  {
+    title: "Seminar & Rapat Anggota",
+    summary: "Registrasi peserta, Seminar Profesi Konsultan Aktuaria, Sertifikasi CIAC, dan Rapat Anggota.",
+  },
+  {
+    title: "Registrasi Kepulangan & City Tour",
+    summary: "Registrasi kepulangan, City Tour Semarang, makan siang, wisata belanja, serta drop-off ke stasiun atau bandara.",
+  },
 ] as const;
 
 export function EventInfoSection() {
@@ -28,7 +37,8 @@ export function EventInfoSection() {
             >
               <span className={styles.dayTag}>{day.day}</span>
               <span className={styles.dayDate}>{day.date}</span>
-              <h3 className={styles.dayTitle}>{activityHighlights[index]}</h3>
+              <h3 className={styles.dayTitle}>{activityHighlights[index].title}</h3>
+              <p className={styles.daySummary}>{activityHighlights[index].summary}</p>
             </article>
           ))}
         </div>

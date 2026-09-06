@@ -247,7 +247,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
-  gap: 1rem;
+  column-gap: 1rem;
+  min-width: 0;
   padding: 0.875rem 1rem;
   border-left: 3px solid var(--gold);
   background: var(--ivory);
@@ -255,10 +256,16 @@
 }
 
 .packageItem strong {
+  justify-self: end;
   text-align: right;
   white-space: nowrap;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 1.125rem;
+}
+
+.packageItem > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .paymentDetails {
@@ -863,6 +870,16 @@
   .information {
     position: static;
   }
+
+  .packageItem {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .packageItem strong {
+    justify-self: start;
+    text-align: left;
+  }
 }
 
 @media (max-width: 40rem) {
@@ -889,14 +906,5 @@
 
   .packageOptions {
     grid-template-columns: 1fr;
-  }
-
-  .packageItem {
-    grid-template-columns: 1fr;
-    gap: 0.35rem;
-  }
-
-  .packageItem strong {
-    text-align: left;
   }
 }
