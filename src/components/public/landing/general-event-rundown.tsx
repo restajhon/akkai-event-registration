@@ -8,7 +8,6 @@ export function GeneralEventRundown() {
       <div className={styles.container}>
         <div className={styles.sectionHeader}>
           <div>
-            <p className={styles.sectionEyebrow}>Agenda Konferensi</p>
             <h2 className={styles.sectionTitle} id="general-rundown-title">Rundown Acara</h2>
           </div>
           <p className={styles.sectionDescription}>Rangkaian acara AKKAI 2026 selama tiga hari.</p>

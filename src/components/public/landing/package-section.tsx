@@ -1,20 +1,15 @@
 import styles from "./landing.module.css";
+import { RegistrationLink } from "./registration-link";
 
 const packages = [
   {
     name: "Twin Share",
-    label: "Kategori standar",
     price: "Rp6.000.000",
-    description: "Akomodasi bersama satu rekan sesama konsultan aktuaria di Hotel Gumaya.",
-    items: ["Akomodasi penginapan", "Konsumsi selama kegiatan", "City Tour Semarang"],
     featured: false,
   },
   {
     name: "Single",
-    label: "Kategori single",
     price: "Rp7.000.000",
-    description: "Akomodasi privat satu orang penuh per kamar di Hotel Gumaya Semarang.",
-    items: ["Kamar privat", "Konsumsi selama kegiatan", "City Tour Semarang"],
     featured: true,
   },
 ] as const;
@@ -25,12 +20,11 @@ export function PackageSection() {
       <div className={styles.container}>
         <div className={styles.sectionHeader}>
           <div>
-            <p className={styles.sectionEyebrow}>Opsi Kepesertaan</p>
-            <h2 className={styles.sectionTitle}>Paket &amp; Investasi</h2>
+            <p className={styles.sectionEyebrow}>Informasi Peserta</p>
+            <h2 className={styles.sectionTitle}>Paket &amp; Biaya</h2>
           </div>
           <p className={styles.sectionDescription}>
-            Pilihan akomodasi dan fasilitas komprehensif bagi anggota konsultan
-            aktuaria terdaftar.
+            Untuk Anggota AKKAI
           </p>
         </div>
         <div className={styles.packageGrid}>
@@ -40,15 +34,10 @@ export function PackageSection() {
               key={item.name}
             >
               <div>
-                <span className={styles.packageEyebrow}>{item.label}</span>
                 <h3 className={styles.packageTitle}>{item.name}</h3>
-                <p className={styles.packageDescription}>{item.description}</p>
                 <strong className={styles.packagePrice}>{item.price}</strong>
-                <ul className={styles.packageList}>
-                  {item.items.map((feature) => <li key={feature}>{feature}</li>)}
-                </ul>
               </div>
-              <span className={styles.secondaryCta}>Tersedia di formulir registrasi</span>
+              <RegistrationLink className={styles.secondaryCta} />
             </article>
           ))}
         </div>

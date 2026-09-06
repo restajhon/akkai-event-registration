@@ -10,19 +10,17 @@ export function Footer() {
           <div className={styles.footerBrand}>
             <span aria-hidden="true" className={styles.brandMark}>AK</span>
             <div>
-              <h3 className={styles.footerTitle}>AKKAI 2026</h3>
-              <p className={styles.footerCopy}>{AKKAI_EVENT.name}</p>
+              <h3 className={styles.footerTitle}>{AKKAI_EVENT.name}</h3>
+              <p className={styles.footerCopy}>
+                Diselenggarakan oleh {AKKAI_EVENT.organizer}.
+              </p>
             </div>
           </div>
-          <p className={styles.footerCopy}>
-            Diselenggarakan oleh {AKKAI_EVENT.organizer} dan didukung oleh {AKKAI_EVENT.eventHandler}.
-          </p>
         </div>
-        <nav aria-label="Navigasi footer" className={styles.footerLinks}>
-          <a className={styles.footerLink} href="#informasi">Informasi Acara</a>
-          <a className={styles.footerLink} href="#rundown">Rundown</a>
-          <a className={styles.footerLink} href="/travel">Informasi Perjalanan</a>
-        </nav>
+        <div>
+          <h3 className={styles.footerTitle}>Didukung oleh</h3>
+          <p className={styles.footerCopy}>{AKKAI_EVENT.eventHandler}</p>
+        </div>
       </div>
       <div className={`${styles.container} ${styles.footerBottom}`}>
         Data yang dikirimkan hanya digunakan untuk kebutuhan registrasi dan administrasi acara.

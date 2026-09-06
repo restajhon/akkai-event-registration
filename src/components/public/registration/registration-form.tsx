@@ -362,39 +362,21 @@ export function RegistrationForm() {
           <label className={styles.label} htmlFor="package_type">
             Paket yang diambil <span className={styles.required}>(wajib)</span>
           </label>
-          <div
+          <select
             aria-describedby={errors.package_type ? "package_type-error" : undefined}
             aria-invalid={Boolean(errors.package_type)}
-            className={styles.packageOptions}
+            className={`${styles.select} ${errors.package_type ? styles.inputError : ""}`}
             id="package_type"
-            role="radiogroup"
+            name="package_type"
+            onChange={(event) => updateField("package_type", event.target.value)}
+            required
+            value={formData.package_type}
           >
+            <option value="">Pilih paket</option>
             {PACKAGE_TYPES.map((packageType) => (
-              <label className={styles.packageOption} key={packageType}>
-                <input
-                  checked={formData.package_type === packageType}
-                  className={styles.packageRadio}
-                  name="package_type"
-                  onChange={(event) => updateField("package_type", event.target.value)}
-                  required
-                  type="radio"
-                  value={packageType}
-                />
-                <span className={styles.packageOptionContent}>
-                  <span className={styles.packageOptionName}>{packageType}</span>
-                  <span className={styles.packageOptionDescription}>
-                    {packageType === "Twin Share"
-                      ? "Akomodasi bersama di Hotel Gumaya"
-                      : "Akomodasi privat di Hotel Gumaya"}
-                  </span>
-                  <strong className={styles.packageOptionPrice}>
-                    {packageType === "Twin Share" ? "Rp6.000.000" : "Rp7.000.000"}
-                  </strong>
-                </span>
-                <span aria-hidden="true" className={styles.packageOptionMark}>✓</span>
-              </label>
+              <option key={packageType} value={packageType}>{packageType}</option>
             ))}
-          </div>
+          </select>
           {errors.package_type ? (
             <ErrorMessage id="package_type-error" message={errors.package_type} />
           ) : null}

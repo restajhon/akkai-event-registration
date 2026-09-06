@@ -8,7 +8,6 @@ export function ImportantInfoSection() {
       <div className={styles.container}>
         <div className={styles.sectionHeader}>
           <div>
-            <p className={styles.sectionEyebrow}>Ketentuan Peserta</p>
             <h2 className={styles.sectionTitle}>Informasi Penting</h2>
           </div>
           <p className={styles.sectionDescription}>Harap perhatikan poin-poin berikut sebelum melakukan registrasi.</p>

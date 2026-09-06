@@ -11,7 +11,7 @@ export function RegistrationFlow() {
             <p className={styles.sectionEyebrow}>Langkah Partisipasi</p>
             <h2 className={styles.sectionTitle}>Alur Registrasi</h2>
           </div>
-          <p className={styles.sectionDescription}>Empat langkah sederhana untuk menyelesaikan registrasi dan konfirmasi kehadiran.</p>
+          <p className={styles.sectionDescription}>Empat langkah sederhana untuk menyelesaikan registrasi.</p>
         </div>
         <div className={styles.flowGrid}>
           {REGISTRATION_STEPS.map((step, index) => (

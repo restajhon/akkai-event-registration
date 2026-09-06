@@ -11,28 +11,27 @@ export function HeroSection() {
       <div className={`${styles.container} ${styles.heroContent}`}>
         <span className={styles.heroBadge}>
           <span aria-hidden="true" className={styles.statusDot} />
-          Seminar &amp; Rapat Anggota Tahunan
+          Rapat Anggota
         </span>
         <h1 className={styles.heroTitle}>
-          Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan
-          <span className={styles.heroTitleAccent}> Rapat Anggota AKKAI 2026</span>
+          {AKKAI_EVENT.name}
         </h1>
         <p className={styles.heroCopy}>
           Lakukan registrasi secara online dan terima kode QR unik melalui email
-          untuk proses verifikasi kehadiran di setiap rangkaian acara.
+          untuk proses verifikasi kehadiran.
         </p>
         <div className={styles.heroMeta}>
           <div className={styles.metaCard}>
-            <span className={styles.metaLabel}>Tanggal acara</span>
+            <span className={styles.metaLabel}>Tanggal</span>
             <span className={styles.metaValue}>{AKKAI_EVENT.date}</span>
           </div>
           <div className={styles.metaCard}>
-            <span className={styles.metaLabel}>Lokasi pertemuan</span>
+            <span className={styles.metaLabel}>Lokasi</span>
             <span className={styles.metaValue}>{AKKAI_EVENT.venue}</span>
           </div>
           <div className={styles.metaCard}>
-            <span className={styles.metaLabel}>Rangkaian kegiatan</span>
-            <span className={styles.metaValue}>Tiga hari acara resmi</span>
+            <span className={styles.metaLabel}>Registrasi Kedatangan</span>
+            <span className={styles.metaValue}>{AKKAI_EVENT.arrivalDate}</span>
           </div>
         </div>
         <div className={styles.heroActions}>

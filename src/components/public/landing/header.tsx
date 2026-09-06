@@ -12,8 +12,9 @@ export function Header() {
         <div className={styles.topBandInner}>
           <div className={styles.topBandGroup}>
             <span aria-hidden="true" className={styles.statusDot} />
-            <span>Portal Registrasi Resmi AKKAI 2026</span>
+            <span>{AKKAI_EVENT.shortName}</span>
             <span className={styles.topBandMuted}>• {AKKAI_EVENT.venue}</span>
+            <span className={styles.topBandMuted}>• Batas akhir pendaftaran dan pembayaran: Jumat, 2 Oktober 2026</span>
           </div>
           <a
             className={styles.topBandHelp}
@@ -21,7 +22,7 @@ export function Header() {
             rel="noreferrer"
             target="_blank"
           >
-            Helpdesk WhatsApp
+            WhatsApp: +62 812 1933 6779
           </a>
         </div>
       </div>
@@ -30,14 +31,13 @@ export function Header() {
           <span aria-hidden="true" className={styles.brandMark}>AK</span>
           <span className={styles.brandText}>
             <span className={styles.brandName}>{AKKAI_EVENT.shortName}</span>
-            <span className={styles.brandSubtitle}>Asosiasi Konsultan Aktuaria Indonesia</span>
           </span>
         </Link>
         <nav aria-label="Navigasi utama" className={styles.navLinks}>
-          <Link className={styles.navLink} href="#informasi">Informasi</Link>
-          <Link className={styles.navLink} href="#rundown">Rundown</Link>
-          <Link className={styles.navLink} href="#paket">Paket</Link>
-          <Link className={styles.navLink} href="/travel">Perjalanan</Link>
+          <Link className={styles.navLink} href="#informasi">Informasi Acara</Link>
+          <Link className={styles.navLink} href="#rundown">Rundown Acara</Link>
+          <Link className={styles.navLink} href="#paket">Paket &amp; Biaya</Link>
+          <Link className={styles.navLink} href="/travel">Informasi Perjalanan</Link>
         </nav>
         <RegistrationLink className={styles.navCta} />
       </div>

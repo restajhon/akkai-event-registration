@@ -448,6 +448,35 @@
   color: var(--paper);
 }
 
+.dayItems {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  list-style: none;
+}
+
+.dayItems li {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 0.5rem;
+}
+
+.dayItems strong {
+  color: var(--navy-soft);
+}
+
+.dayCardFeatured .dayItems {
+  color: rgb(255 253 249 / 76%);
+}
+
+.dayCardFeatured .dayItems strong {
+  color: var(--gold-light);
+}
+
 .dayText {
   margin: 0;
   color: var(--muted);
