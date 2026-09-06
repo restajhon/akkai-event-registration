@@ -124,8 +124,8 @@
 .closedTitle {
   margin: 0;
   color: var(--navy);
-  font-size: clamp(2.4rem, 6vw, 4.2rem);
-  line-height: 1.08;
+  font-size: clamp(1.625rem, 3.2vw, 2.25rem);
+  line-height: 1.12;
 }
 
 .goldDivider {
@@ -244,9 +244,9 @@
 }
 
 .packageItem {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
-  justify-content: space-between;
   gap: 1rem;
   padding: 0.875rem 1rem;
   border-left: 3px solid var(--gold);
@@ -255,6 +255,7 @@
 }
 
 .packageItem strong {
+  text-align: right;
   white-space: nowrap;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 1.125rem;
@@ -689,14 +690,14 @@
 .notice {
   margin-top: 2rem;
   padding: 1.25rem;
-  border: 1px solid rgb(199 154 53 / 30%);
+  border: 1px solid rgb(221 187 106 / 45%);
   border-top: 4px solid var(--gold);
-  background: var(--ivory-deep);
+  background: var(--navy);
 }
 
 .noticeTitle {
   margin: 0 0 0.875rem;
-  color: var(--navy);
+  color: var(--ivory);
   font-size: 1.25rem;
 }
 
@@ -705,7 +706,7 @@
   gap: 0.75rem;
   margin: 0;
   padding: 0;
-  color: var(--muted);
+  color: rgb(255 253 249 / 78%);
   font-size: 0.875rem;
   line-height: 1.55;
   list-style: none;
@@ -888,5 +889,14 @@
 
   .packageOptions {
     grid-template-columns: 1fr;
+  }
+
+  .packageItem {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .packageItem strong {
+    text-align: left;
   }
 }

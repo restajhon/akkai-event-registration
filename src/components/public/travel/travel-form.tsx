@@ -366,7 +366,7 @@ export function TravelForm() {
           </div>
           <div className={styles.field}>
             <FieldLabel htmlFor="outbound_destination">
-              Tujuan Keberangkatan
+              Stasiun/Bandara Kedatangan
             </FieldLabel>
             <input
               aria-describedby={
@@ -506,7 +506,7 @@ export function TravelForm() {
             ) : null}
           </div>
           <div className={`${styles.field} ${styles.fullWidthField}`}>
-            <FieldLabel htmlFor="return_destination">Tujuan Kepulangan</FieldLabel>
+            <FieldLabel htmlFor="return_destination">Stasiun/Bandara Kepulangan</FieldLabel>
             <input
               aria-describedby={
                 errors.return_destination

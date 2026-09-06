@@ -41,8 +41,10 @@
 .topBandInner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 1rem;
+  flex-wrap: wrap;
+  padding-block: 0.45rem;
   min-height: 2.25rem;
 }
 
@@ -61,6 +63,7 @@
 .topBandGroup,
 .topBandHelp {
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .statusDot {
@@ -255,13 +258,13 @@
 }
 
 .heroTitle {
-  max-width: 57rem;
+  max-width: 52rem;
   margin: 1.4rem auto 0;
   color: var(--navy);
-  font-size: clamp(2.3rem, 6vw, 5rem);
+  font-size: clamp(2rem, 3.2vw, 2.625rem);
   font-weight: 600;
   letter-spacing: -0.045em;
-  line-height: 0.98;
+  line-height: 1.08;
 }
 
 .heroTitleAccent {
@@ -446,62 +449,6 @@
 
 .dayCardFeatured .dayTitle {
   color: var(--paper);
-}
-
-.dayItems {
-  display: grid;
-  gap: 0.55rem;
-  margin: 0;
-  padding: 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.4;
-  list-style: none;
-}
-
-.dayItems li {
-  display: grid;
-  grid-template-columns: 5.5rem 1fr;
-  gap: 0.5rem;
-}
-
-.dayItems strong {
-  color: var(--navy-soft);
-}
-
-.dayCardFeatured .dayItems {
-  color: rgb(255 253 249 / 76%);
-}
-
-.dayCardFeatured .dayItems strong {
-  color: var(--gold-light);
-}
-
-.dayText {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.86rem;
-  line-height: 1.65;
-}
-
-.dayCardFeatured .dayText {
-  color: rgb(255 253 249 / 76%);
-}
-
-.dayFooter {
-  position: absolute;
-  right: 1.5rem;
-  bottom: 1.5rem;
-  left: 1.5rem;
-  padding-top: 0.8rem;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 0.75rem;
-}
-
-.dayCardFeatured .dayFooter {
-  border-color: rgb(255 253 249 / 18%);
-  color: var(--gold-light);
 }
 
 .rundownShell {
@@ -825,7 +772,7 @@
 .ctaTitle {
   margin: 0;
   font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(2rem, 4vw, 3.3rem);
+  font-size: clamp(1.625rem, 2.5vw, 2rem);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.05;
@@ -979,7 +926,11 @@
   }
 
   .heroTitle {
-    font-size: clamp(2.25rem, 12vw, 3.4rem);
+    font-size: clamp(1.75rem, 8.5vw, 2rem);
+  }
+
+  .ctaTitle {
+    font-size: 1.75rem;
   }
 
   .heroMeta {

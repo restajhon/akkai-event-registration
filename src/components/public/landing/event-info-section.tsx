@@ -2,6 +2,12 @@ import { AKKAI_EVENT } from "@/lib/akkai-event";
 
 import styles from "./landing.module.css";
 
+const activityHighlights = [
+  "Kedatangan & AKKAI Night",
+  "Seminar & Rapat Anggota",
+  "Registrasi Kepulangan & City Tour",
+] as const;
+
 export function EventInfoSection() {
   return (
     <section className={`${styles.section} ${styles.sectionPaper}`} id="informasi">
@@ -22,15 +28,7 @@ export function EventInfoSection() {
             >
               <span className={styles.dayTag}>{day.day}</span>
               <span className={styles.dayDate}>{day.date}</span>
-              <h3 className={styles.dayTitle}>{day.day}</h3>
-              <ul className={styles.dayItems}>
-                {day.items.slice(0, 3).map((item) => (
-                  <li key={`${day.day}-${item.time}-${item.title}`}>
-                    <strong>{item.time}</strong>
-                    <span>{item.title}</span>
-                  </li>
-                ))}
-              </ul>
+              <h3 className={styles.dayTitle}>{activityHighlights[index]}</h3>
             </article>
           ))}
         </div>

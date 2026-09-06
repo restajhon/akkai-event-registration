@@ -16,14 +16,6 @@ export function Header() {
             <span className={styles.topBandMuted}>• {AKKAI_EVENT.venue}</span>
             <span className={styles.topBandMuted}>• Batas akhir pendaftaran dan pembayaran: Jumat, 2 Oktober 2026</span>
           </div>
-          <a
-            className={styles.topBandHelp}
-            href="https://wa.me/6281219336779"
-            rel="noreferrer"
-            target="_blank"
-          >
-            WhatsApp: +62 812 1933 6779
-          </a>
         </div>
       </div>
       <div className={styles.navInner}>

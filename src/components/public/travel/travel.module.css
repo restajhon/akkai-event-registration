@@ -491,8 +491,11 @@
 
 .submitArea {
   margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgb(199 154 53 / 30%);
+  padding: 1.5rem;
+  border: 1px solid rgb(221 187 106 / 45%);
+  border-top: 4px solid var(--gold);
+  border-radius: 0.7rem;
+  background: var(--navy);
 }
 
 .submitButton,
@@ -529,10 +532,19 @@
 
 .submitHint {
   margin: 0.75rem 0 0;
-  color: var(--muted);
+  color: rgb(255 253 249 / 72%);
   font-size: 0.75rem;
   line-height: 1.5;
   text-align: center;
+}
+
+.submitArea .submitButton {
+  background: var(--gold);
+  color: var(--navy-dark);
+}
+
+.submitArea .submitButton:hover {
+  background: var(--gold-light);
 }
 
 .successCard {
