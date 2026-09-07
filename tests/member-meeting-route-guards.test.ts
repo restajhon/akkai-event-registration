@@ -76,4 +76,48 @@ describe("member meeting authorization route", () => {
     expect(response.status).toBe(404);
     expect(mocks.createAdminClient).toHaveBeenCalledOnce();
   });
+
+  it.each(["ADMIN", "SUPER_ADMIN"] as const)(
+    "allows %s to download an authorization file",
+    async (role) => {
+      mocks.getCurrentUserProfile.mockResolvedValue({
+        id: "profile-1",
+        full_name: role,
+        email: `${role.toLowerCase()}@example.com`,
+        role,
+        is_active: true,
+      });
+      mocks.createAdminClient.mockReturnValue({
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: { authorization_file_path: "submissions/file.pdf" },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+        storage: {
+          from: () => ({
+            createSignedUrl: async () => ({
+              data: { signedUrl: "https://example.com/private-file" },
+              error: null,
+            }),
+          }),
+        },
+      });
+
+      const response = await GET(new Request("http://localhost"), {
+        params: Promise.resolve({
+          id: "00000000-0000-4000-8000-000000000001",
+        }),
+      });
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get("location")).toBe(
+        "https://example.com/private-file",
+      );
+    },
+  );
 });

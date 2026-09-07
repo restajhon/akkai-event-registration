@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import { loadMemberMeetingSubmission } from "@/lib/member-meeting/admin-data";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export default async function MemberMeetingDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  const profile = await requirePermission("member_meetings.view");
   const { id } = await params;
 
   if (!uuidPattern.test(id)) {
@@ -68,7 +68,9 @@ export default async function MemberMeetingDetailPage({
                   <p className="text-sm font-semibold text-[#344d68]">{submission.authorization_file_name}</p>
                   <p className="mt-1 text-xs text-[#667085]">{submission.authorization_file_mime} · {Math.ceil((submission.authorization_file_size ?? 0) / 1024)} KB</p>
                 </div>
-                <a className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-[#fffdf8] hover:bg-[#243e5e]" href={`/api/admin/member-meetings/${submission.id}/authorization`} rel="noreferrer" target="_blank">Buka / Download</a>
+                 {profile.role === "SUPER_ADMIN" || profile.role === "ADMIN" ? (
+                   <a className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-[#fffdf8] hover:bg-[#243e5e]" href={`/api/admin/member-meetings/${submission.id}/authorization`} rel="noreferrer" target="_blank">Buka / Download</a>
+                 ) : null}
               </div>
             ) : (
               <p className="mt-3 text-sm text-[#667085]">Tidak ada surat kuasa karena pemimpin KKA hadir sendiri.</p>

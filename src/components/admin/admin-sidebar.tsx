@@ -49,7 +49,7 @@ const menuItems: MenuItem[] = [
   {
     href: "/admin/member-meetings",
     label: "Rapat Anggota",
-    roles: ["SUPER_ADMIN", "ADMIN"],
+    permission: "member_meetings.view",
     section: "OPERASIONAL",
   },
   {

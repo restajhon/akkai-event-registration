@@ -110,6 +110,21 @@ describe("server authorization", () => {
     expect(mocks.redirect).toHaveBeenCalledWith("/admin/unauthorized");
   });
 
+  it("allows OPERATIONAL to view member meeting submissions", async () => {
+    configureProfile({
+      id: "profile-1",
+      full_name: "Operational",
+      email: "operational@example.com",
+      role: "OPERATIONAL",
+      is_active: true,
+    });
+
+    await expect(requirePermission("member_meetings.view")).resolves.toMatchObject({
+      role: "OPERATIONAL",
+    });
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
   it("protects the access-management page from ADMIN", async () => {
     configureProfile({
       id: "profile-1",

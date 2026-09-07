@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requireRole } from "@/lib/auth/server";
+import { requirePermission } from "@/lib/auth/server";
 import {
   loadMemberMeetingSubmissions,
   type MemberMeetingSubmission,
@@ -35,7 +35,7 @@ function PageError() {
 }
 
 export default async function MemberMeetingsPage() {
-  await requireRole(["SUPER_ADMIN", "ADMIN"]);
+  const profile = await requirePermission("member_meetings.view");
   const submissions = await loadMemberMeetingSubmissions();
 
   if (!submissions) {
@@ -52,13 +52,15 @@ export default async function MemberMeetingsPage() {
             <p className="mt-2 text-sm text-[#667085]">Data berdiri sendiri dan tidak terkait dengan data peserta.</p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <a
-              className="inline-flex min-h-11 items-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-[#fffdf8] hover:bg-[#243e5e]"
-              download
-              href="/api/admin/member-meetings-export"
-            >
-              Export Excel
-            </a>
+            {profile.role === "SUPER_ADMIN" || profile.role === "ADMIN" ? (
+              <a
+                className="inline-flex min-h-11 items-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-[#fffdf8] hover:bg-[#243e5e]"
+                download
+                href="/api/admin/member-meetings-export"
+              >
+                Export Excel
+              </a>
+            ) : null}
             <Link className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#344d68] hover:bg-[#fffdf8]" href="/admin/dashboard">
               Kembali ke Dashboard
             </Link>

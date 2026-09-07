@@ -38,6 +38,7 @@ const allPermissions = [
   "scanner.checkin",
   "display.view",
   "display.manage",
+  "member_meetings.view",
   "access.manage",
 ] as const;
 
@@ -66,6 +67,7 @@ const expectedPermissions: Record<UserRole, readonly string[]> = {
     "pickup.export",
     "attendance.view",
     "attendance.export",
+    "member_meetings.view",
   ],
   SCANNER: ["scanner.pair", "scanner.checkin", "display.view"],
   OPERATOR: ["scanner.pair", "scanner.checkin", "display.view"],
@@ -142,6 +144,7 @@ describe("RBAC parity", () => {
     expect(hasPermission("OPERATIONAL", "participants.email")).toBe(true);
     expect(hasPermission("OPERATIONAL", "participants.export")).toBe(true);
     expect(hasPermission("OPERATIONAL", "attendance.view")).toBe(true);
+    expect(hasPermission("OPERATIONAL", "member_meetings.view")).toBe(true);
     expect(hasPermission("OPERATIONAL", "display.view")).toBe(false);
     expect(hasPermission("OPERATIONAL", "display.manage")).toBe(false);
     expect(hasPermission("OPERATIONAL", "scanner.pair")).toBe(false);
