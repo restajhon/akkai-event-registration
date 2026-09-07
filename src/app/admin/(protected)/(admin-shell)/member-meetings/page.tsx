@@ -51,9 +51,18 @@ export default async function MemberMeetingsPage() {
             <h1 className="mt-2 text-3xl font-semibold text-[#142842]">Submission Rapat Anggota</h1>
             <p className="mt-2 text-sm text-[#667085]">Data berdiri sendiri dan tidak terkait dengan data peserta.</p>
           </div>
-          <Link className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#344d68] hover:bg-[#fffdf8]" href="/admin/dashboard">
-            Kembali ke Dashboard
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <a
+              className="inline-flex min-h-11 items-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-[#fffdf8] hover:bg-[#243e5e]"
+              download
+              href="/api/admin/member-meetings-export"
+            >
+              Export Excel
+            </a>
+            <Link className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#344d68] hover:bg-[#fffdf8]" href="/admin/dashboard">
+              Kembali ke Dashboard
+            </Link>
+          </div>
         </div>
 
         <div className="mt-6 overflow-hidden rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] shadow-sm">
