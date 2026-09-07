@@ -853,30 +853,48 @@ Email atau password tidak sesuai.
 
 Jangan menginformasikan apakah email terdaftar atau tidak.
 
-### Role
+### Role dan permission aktual
 
-* `ADMIN`
-* `OPERATOR`
+Runtime mendukung enam role. `ADMIN` dan `OPERATOR` dipertahankan sebagai
+role legacy; role lain adalah `SUPER_ADMIN`, `REGISTRATION`, `OPERATIONAL`, dan
+`SCANNER`.
 
-### Akses ADMIN
+| Role | Permission |
+| --- | --- |
+| `SUPER_ADMIN` | Semua permission aplikasi |
+| `ADMIN` | Semua permission aplikasi kecuali `access.manage` |
+| `REGISTRATION` | `dashboard.view`, `participants.view`, `participants.manage`, `participants.email`, `participants.export`, `attendance.view` |
+| `OPERATIONAL` | `dashboard.view`, `participants.view`, `participants.manage`, `participants.email`, `participants.export`, `rooms.view`, `rooms.manage`, `rooms.export`, `pickup.view`, `pickup.manage`, `pickup.export`, `attendance.view`, `attendance.export` |
+| `SCANNER` | `scanner.pair`, `scanner.checkin`, `display.view` |
+| `OPERATOR` | `scanner.pair`, `scanner.checkin`, `display.view` |
 
-* Semua halaman admin.
-* Membuka/menutup sesi.
-* Edit dan cancel peserta.
-* Resend email.
-* Export laporan.
-* Membuat dan menutup station.
+`participants.manage` pada `REGISTRATION` merupakan permission runtime yang
+tetap dipertahankan. UI create/edit/cancel participant belum tersedia.
 
-### Akses OPERATOR
+### Akses SUPER_ADMIN dan ADMIN
 
-* Dashboard terbatas.
-* Daftar dan pencarian peserta.
-* Scanner.
-* Display.
-* Check-in manual.
-* Tidak dapat cancel peserta.
-* Tidak dapat export seluruh data.
-* Tidak dapat membuka atau menutup sesi.
+`SUPER_ADMIN` memiliki seluruh permission aplikasi, termasuk pengelolaan akses,
+session, participant, station, assignment, attendance, dan export. `ADMIN`
+memiliki permission yang sama kecuali `access.manage`; pengelolaan akses hanya
+tersedia untuk `SUPER_ADMIN`.
+
+### Akses REGISTRATION
+
+Memiliki dashboard, melihat dan mengelola permission participant sesuai matrix,
+email participant, participant export, serta melihat attendance. Tidak memiliki
+`attendance.export`.
+
+### Akses OPERATIONAL
+
+Memiliki dashboard, participant view/manage/email/export, room/pickup view dan
+manage, room/pickup export, serta attendance view dan export. Tidak memiliki
+akses display atau scanner.
+
+### Akses SCANNER dan OPERATOR
+
+Keduanya memiliki scanner pairing, scanner check-in, dan display view. Keduanya
+tidak memiliki dashboard, participant export, attendance export, atau session
+management.
 
 ### Acceptance criteria
 
@@ -912,7 +930,7 @@ Menampilkan kondisi registrasi dan kehadiran secara ringkas.
 
 ### Session control
 
-Hanya ADMIN yang dapat melihat tombol kontrol.
+Hanya role yang memiliki `sessions.manage` yang dapat melihat tombol kontrol.
 
 Untuk setiap sesi tampilkan:
 
@@ -954,7 +972,7 @@ Tampilkan:
 * Data statistik berasal dari database.
 * Statistik dibedakan per sesi.
 * Data cancelled tidak dihitung sebagai peserta aktif.
-* Hanya admin yang dapat membuka atau menutup sesi.
+* Hanya role yang memiliki `sessions.manage` yang dapat membuka atau menutup sesi.
 * Perubahan status sesi langsung memengaruhi scanner.
 * Dashboard memperbarui data tanpa perlu refresh penuh apabila memungkinkan.
 * Recent attendance diurutkan dari terbaru.
@@ -967,7 +985,7 @@ Tampilkan:
 
 ### Tujuan
 
-Memungkinkan admin dan operator mencari dan melihat peserta.
+Memungkinkan role yang memiliki `participants.view` mencari dan melihat peserta.
 
 ### Kolom tabel
 
@@ -1037,10 +1055,9 @@ Pilihan:
 ### Action
 
 * Lihat detail.
-* Check-in manual.
-* Resend email, khusus admin.
-* Edit data, khusus admin.
-* Cancel, khusus admin.
+* Koreksi email dan resend email untuk role dengan `participants.email`.
+* Edit data dan cancel masih direncanakan.
+* Check-in manual dari area participant masih direncanakan.
 
 ### Acceptance criteria
 
@@ -1076,27 +1093,22 @@ Pilihan:
 * Attendance log.
 * Email log.
 
-### Action admin
+### Action participant yang tersedia
 
-* Edit peserta.
-* Kirim ulang tiket.
-* Cancel registration.
-* Check-in manual.
-* Membatalkan check-in hanya jika fitur tersebut disetujui sebelum development freeze.
+* Participant dapat dicari dan dilihat oleh role yang memiliki `participants.view`.
+* Koreksi email dan kirim ulang tiket menggunakan `participants.email`.
 
 Untuk MVP awal, penghapusan attendance tidak disediakan melalui UI.
 
-### Action operator
+### Participant mutation yang masih direncanakan
 
-* Melihat peserta.
-* Check-in manual.
-* Tidak dapat edit.
-* Tidak dapat cancel.
-* Tidak dapat resend email.
+* Edit peserta belum tersedia.
+* Cancel registration belum tersedia.
+* Check-in manual dari area participant belum tersedia.
 
 ### Edit field
 
-Admin dapat mengedit:
+Admin dapat mengedit pada fitur yang direncanakan:
 
 * Nama lengkap.
 * Nomor anggota.
@@ -1105,7 +1117,7 @@ Admin dapat mengedit:
 * Institusi.
 * Kategori peserta.
 
-Admin tidak dapat mengedit:
+Pada fitur edit yang direncanakan, admin tidak dapat mengedit:
 
 * Database ID.
 * Registration ID.
@@ -1113,22 +1125,22 @@ Admin tidak dapat mengedit:
 * Created at.
 * Attendance langsung dari form edit.
 
-### Aturan edit email
+### Aturan koreksi email (fitur tersedia)
 
-Jika email diubah:
+Role yang memiliki `participants.email` dapat mengoreksi alamat email peserta:
 
 * Sistem memeriksa duplikasi.
 * Email status berubah menjadi `PENDING`.
-* Admin dapat mengirim ulang tiket.
+* Role yang memiliki `participants.email` dapat mengirim ulang tiket.
 * Perubahan email tidak mengubah QR.
 
-### Aturan edit nomor anggota
+### Aturan edit nomor anggota (fitur direncanakan)
 
 * Harus tetap unik.
 * Perbandingan tidak case-sensitive.
 * Tidak mengubah Registration ID.
 
-### Cancel registration
+### Cancel registration (fitur direncanakan)
 
 Admin harus melihat dialog:
 
@@ -1178,7 +1190,8 @@ Email log disimpan
 
 ### Aturan
 
-* Hanya admin.
+* Role dengan `participants.email` dapat melakukan koreksi email dan resend tiket
+  yang sudah tersedia; edit participant dan cancel registration belum tersedia.
 * Tidak membuat QR baru.
 * Tidak mengubah Registration ID.
 * Maksimal pengiriman ulang per peserta dapat dibatasi untuk mencegah spam.
@@ -1931,7 +1944,7 @@ UNIQUE(participant_id, session_id)
 | `id`         | UUID      | Sama dengan auth user |
 | `full_name`  | Text      | Nama pengguna         |
 | `email`      | Text      | Email pengguna        |
-| `role`       | Enum      | ADMIN/OPERATOR        |
+| `role`       | Enum      | SUPER_ADMIN/ADMIN/REGISTRATION/OPERATIONAL/SCANNER/OPERATOR |
 | `is_active`  | Boolean   | Status akun           |
 | `created_at` | Timestamp | Server time           |
 | `updated_at` | Timestamp | Server time           |
@@ -2275,14 +2288,14 @@ MVP dinyatakan layak digunakan apabila seluruh kondisi berikut terpenuhi:
 ## Authentication
 
 18. Admin area membutuhkan login.
-19. Role admin dan operator dibedakan.
-20. Operator tidak dapat menjalankan action admin.
+19. Enam role admin-area dan permission masing-masing dibedakan.
+20. User tanpa permission tidak dapat menjalankan action admin.
 21. User dapat logout.
 
 ## Sesi
 
 22. Tiga sesi tersedia di database: ARRIVAL, SEMINAR, dan DAY3.
-23. Admin dapat membuka dan menutup sesi.
+23. Role yang memiliki `sessions.manage` dapat membuka dan menutup sesi.
 24. Closed session tidak menerima check-in.
 25. QR yang sama dapat digunakan pada ketiga sesi.
 26. QR tidak dapat digunakan dua kali pada sesi yang sama.
@@ -2321,8 +2334,8 @@ MVP dinyatakan layak digunakan apabila seluruh kondisi berikut terpenuhi:
 50. Dashboard menampilkan attendance per sesi.
 51. Participant dapat dicari.
 52. Participant dapat difilter.
-53. Admin dapat mengedit peserta.
-54. Admin dapat membatalkan peserta.
+53. Participant create/edit belum tersedia pada scope saat ini.
+54. Cancel participant belum tersedia pada scope saat ini.
 55. Admin dapat export laporan keseluruhan.
 56. Admin dapat export laporan per sesi.
 57. QR token tidak muncul dalam export.

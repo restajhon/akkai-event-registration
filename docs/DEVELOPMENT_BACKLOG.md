@@ -442,7 +442,7 @@ CLOSED
 * Login email dan password.
 * Logout.
 * Protected route.
-* Role ADMIN dan OPERATOR.
+* Role SUPER_ADMIN, ADMIN, REGISTRATION, OPERATIONAL, SCANNER, dan OPERATOR.
 * Profile otomatis atau manual.
 
 ### Acceptance criteria
@@ -857,7 +857,7 @@ Menu:
 
 ---
 
-## ADM-005 — Edit participant
+## ADM-005 — Edit participant (planned, not shipped)
 
 **Prioritas:** P1
 **Estimasi:** 3–4 jam
@@ -875,7 +875,7 @@ Menu:
 
 ---
 
-## ADM-006 — Cancel participant
+## ADM-006 — Cancel participant (planned, not shipped)
 
 **Prioritas:** P0
 **Estimasi:** 2–3 jam
@@ -884,7 +884,7 @@ Menu:
 
 ### Acceptance criteria
 
-* Hanya admin.
+* Memerlukan `participants.manage`.
 * Memerlukan confirmation dialog.
 * Data tidak dihapus.
 * QR participant tidak dapat check-in.
@@ -901,7 +901,7 @@ Menu:
 
 ### Acceptance criteria
 
-* Hanya admin.
+* Memerlukan `participants.email`.
 * QR tidak berubah.
 * Registration ID tidak berubah.
 * Email log dibuat.
@@ -915,9 +915,9 @@ Menu:
 * Admin dan operator dapat login.
 * Participant dapat dicari.
 * Detail participant dapat dibuka.
-* Admin dapat edit dan cancel.
+* ADM-005 edit participant dan ADM-006 cancel participant masih belum tersedia.
 * Email registration bekerja.
-* Admin dapat resend tiket.
+* Role dengan `participants.email` dapat resend tiket.
 
 ---
 
@@ -1286,7 +1286,7 @@ Statistik:
 
 ### Acceptance criteria
 
-* Hanya admin.
+* Memerlukan `attendance.export`.
 * UTF-8.
 * Waktu WIB.
 * Attendance dua sesi tersedia.

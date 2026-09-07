@@ -1,3 +1,4 @@
+import { hasPermission } from "@/lib/auth/permissions";
 import { requirePermission } from "@/lib/auth/server";
 import { loadOperationalData } from "@/lib/admin/operational-data";
 
@@ -16,12 +17,17 @@ function AttendancePageError() {
 }
 
 export default async function AttendancePage() {
-  await requirePermission("attendance.view");
+  const profile = await requirePermission("attendance.view");
   const participants = await loadOperationalData();
 
   if (!participants) {
     return <AttendancePageError />;
   }
 
-  return <AttendanceBoard participants={participants} />;
+  return (
+    <AttendanceBoard
+      canExportAttendance={hasPermission(profile.role, "attendance.export")}
+      participants={participants}
+    />
+  );
 }

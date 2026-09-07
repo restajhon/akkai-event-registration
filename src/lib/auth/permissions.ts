@@ -43,7 +43,6 @@ const rolePermissions: Record<UserRole, readonly Permission[]> = {
     "scanner.checkin",
     "display.view",
     "display.manage",
-    "access.manage",
   ],
   OPERATOR: [
     "scanner.pair",
@@ -82,6 +81,10 @@ const rolePermissions: Record<UserRole, readonly Permission[]> = {
   ],
   OPERATIONAL: [
     "dashboard.view",
+    "participants.view",
+    "participants.manage",
+    "participants.email",
+    "participants.export",
     "rooms.view",
     "rooms.manage",
     "rooms.export",
@@ -90,7 +93,6 @@ const rolePermissions: Record<UserRole, readonly Permission[]> = {
     "pickup.export",
     "attendance.view",
     "attendance.export",
-    "display.view",
   ],
   SCANNER: [
     "scanner.pair",

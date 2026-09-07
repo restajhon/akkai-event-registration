@@ -14,7 +14,7 @@ Migration menggunakan `pgcrypto`, server timestamps (`timestamptz default now()`
 
 ## Enum
 
-- `user_role`: `ADMIN`, `OPERATOR`
+- `user_role`: `SUPER_ADMIN`, `ADMIN`, `REGISTRATION`, `OPERATIONAL`, `SCANNER`, `OPERATOR`
 - `registration_status`: `REGISTERED`, `CANCELLED`
 - `email_status`: `PENDING`, `SENT`, `FAILED`
 - `session_status`: `OPEN`, `CLOSED`
@@ -22,6 +22,18 @@ Migration menggunakan `pgcrypto`, server timestamps (`timestamptz default now()`
 - `station_status`: `WAITING_PAIRING`, `PAIRED`, `ACTIVE`, `DISCONNECTED`, `CLOSED`
 - `scan_result_status`: `SUCCESS`, `SUCCESS_WITH_WARNING`, `ALREADY_CHECKED_IN`, `INVALID_QR`, `CANCELLED_PARTICIPANT`, `SESSION_CLOSED`, `STATION_INACTIVE`, `ERROR`
 - `email_type`: `REGISTRATION`, `RESEND`
+
+## Authorization Matrix
+
+Permission runtime didefinisikan di `src/lib/auth/permissions.ts` dan harus
+parity dengan `public.has_permission`. Migration
+`20260907100000_update_rbac_permission_matrix.sql` memperbarui resolver database
+tanpa mengubah migration RBAC sebelumnya atau data profile.
+
+`SUPER_ADMIN` memiliki semua permission. `ADMIN` memiliki semua permission
+kecuali `access.manage`. `OPERATIONAL` memiliki participant permissions serta
+room, pickup, dan attendance permissions, tetapi tidak memiliki display atau
+scanner permissions. Participant create/edit/cancel tetap belum tersedia di UI.
 
 `sessions.code` tetap menggunakan `TEXT` yang harus uppercase agar session baru dapat ditambahkan tanpa mengubah enum database. `participants.participant_category` juga menggunakan `TEXT` karena daftar final belum dikunci.
 
@@ -211,7 +223,7 @@ Policy awal:
 - Tidak ada policy `anon` untuk `participants`, `attendance`, `scanner_stations`, `scan_events`, atau `email_logs`.
 - Tidak ada policy direct client untuk write operasional.
 
-Registration, ticket, admin, dan check-in menggunakan Next.js server route/server action dengan `SUPABASE_SECRET_KEY` yang hanya tersedia di server. Server wajib melakukan validasi dan authorization.
+Registration, ticket, admin, dan check-in menggunakan Next.js server route/server action dengan `SUPABASE_SECRET_KEY` yang hanya tersedia di server. Server wajib melakukan validasi dan authorization. Permission runtime dan daftar role canonical didefinisikan pada `src/lib/auth/permissions.ts` serta dicerminkan oleh `public.has_permission`.
 
 RPC koreksi email, reservasi registrasi awal, reservasi resend, dan finalisasi
 email menggunakan lock order `participants FOR UPDATE` lalu `email_logs FOR
@@ -242,5 +254,5 @@ sebagai konteks read-only dan menyimpan ARRIVAL serta DEPARTURE secara
 independen. Travel tetap dimiliki oleh `participant_travel`.
 
 Kedua tabel tidak memiliki direct client write policy. Mutation UI menggunakan RPC
-service-role yang memvalidasi actor aktif ber-role `ADMIN` dan participant berstatus
-`REGISTERED`.
+service-role yang memvalidasi actor aktif dengan permission assignment terkait dan
+participant berstatus `REGISTERED`.

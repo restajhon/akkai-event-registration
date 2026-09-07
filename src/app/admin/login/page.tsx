@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { getDefaultAdminRoute } from "@/lib/auth/permissions";
 import { getCurrentUserProfile } from "@/lib/auth/server";
 
 import { LoginForm } from "./login-form";
@@ -8,7 +9,7 @@ export default async function AdminLoginPage() {
   const profile = await getCurrentUserProfile();
 
   if (profile) {
-    redirect("/admin/dashboard");
+    redirect(getDefaultAdminRoute(profile.role));
   }
 
   return (

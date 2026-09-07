@@ -46,8 +46,10 @@ function formatCheckIn(value: string | null) {
 
 export function AttendanceBoard({
   participants,
+  canExportAttendance,
 }: {
   participants: OperationalParticipant[];
+  canExportAttendance: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [registrationFilter, setRegistrationFilter] = useState<RegistrationFilter>("all");
@@ -80,13 +82,15 @@ export function AttendanceBoard({
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#142842] sm:text-3xl">Kehadiran</h1>
             <p className="mt-1 text-sm text-[#5b6c7c]">Ringkasan check-in peserta pada tiga sesi operasional acara.</p>
           </div>
-          <a
-            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-white hover:bg-[#203d5d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]"
-            download="AKKAI-2026-Operational.xlsx"
-            href="/api/admin/operational-export"
-          >
-            Unduh workbook Excel
-          </a>
+          {canExportAttendance ? (
+            <a
+              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-white hover:bg-[#203d5d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+              download="AKKAI-2026-Operational.xlsx"
+              href="/api/admin/operational-export"
+            >
+              Unduh workbook Excel
+            </a>
+          ) : null}
         </header>
 
         <section className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">

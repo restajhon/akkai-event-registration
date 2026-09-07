@@ -1,7 +1,11 @@
 import Link from "next/link";
 
 import { hasPermission } from "@/lib/auth/permissions";
-import { requirePermission, type UserProfile } from "@/lib/auth/server";
+import {
+  requirePermission,
+  type UserProfile,
+  type UserRole,
+} from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { DashboardRealtimeClient } from "./dashboard-realtime-client";
@@ -147,10 +151,25 @@ function compareStationRows(left: StationRow, right: StationRow) {
   return left.station_name.localeCompare(right.station_name, "id");
 }
 
-async function loadDashboardData(): Promise<DashboardData | null> {
+export function canLoadScannerDashboardData(role: UserRole) {
+  return (
+    hasPermission(role, "scanner.pair") ||
+    hasPermission(role, "scanner.checkin") ||
+    hasPermission(role, "display.view") ||
+    hasPermission(role, "display.manage")
+  );
+}
+
+export function canSubscribeToDashboardRealtime(role: UserRole) {
+  return hasPermission(role, "display.view");
+}
+
+export async function loadDashboardData(
+  canViewScanner: boolean,
+): Promise<DashboardData | null> {
   try {
     const adminSupabase = createAdminClient();
-    const [participantsResult, sessionsResult, stationsResult] = await Promise.all([
+    const [participantsResult, sessionsResult] = await Promise.all([
       adminSupabase
         .from("participants")
         .select("id", { count: "exact", head: true })
@@ -160,24 +179,29 @@ async function loadDashboardData(): Promise<DashboardData | null> {
         .select("id, code, name, event_date, status")
         .order("event_date", { ascending: true })
         .order("code", { ascending: true }),
-      adminSupabase
-        .from("scanner_stations")
-        .select(
-          "id, station_name, session_id, status, paired_operator_id, last_activity_at, closed_at",
-        ),
     ]);
 
-    if (
-      participantsResult.error ||
-      sessionsResult.error ||
-      stationsResult.error
-    ) {
+    if (participantsResult.error || sessionsResult.error) {
       return null;
     }
 
     const registeredCount = participantsResult.count ?? 0;
     const sessions = (sessionsResult.data ?? []) as SessionRow[];
-    const stationRows = (stationsResult.data ?? []) as StationRow[];
+    let stationRows: StationRow[] = [];
+
+    if (canViewScanner) {
+      const stationsResult = await adminSupabase
+        .from("scanner_stations")
+        .select(
+          "id, station_name, session_id, status, paired_operator_id, last_activity_at, closed_at",
+        );
+
+      if (stationsResult.error) {
+        return null;
+      }
+
+      stationRows = (stationsResult.data ?? []) as StationRow[];
+    }
     const activeSessionRows = sessions.filter((session) => session.status === "OPEN");
     const activeSessionIds = activeSessionRows.map((session) => session.id);
     const attendanceCountBySession = new Map<string, number>();
@@ -486,7 +510,9 @@ function getQuickActions(profile: UserProfile) {
 
 export default async function AdminDashboardPage() {
   const profile = await requirePermission("dashboard.view");
-  const dashboardData = await loadDashboardData();
+  const canViewScanner = canLoadScannerDashboardData(profile.role);
+  const canViewDashboardRealtime = canSubscribeToDashboardRealtime(profile.role);
+  const dashboardData = await loadDashboardData(canViewScanner);
 
   if (!dashboardData) {
     return <DashboardError />;
@@ -517,7 +543,9 @@ export default async function AdminDashboardPage() {
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
       <section className="mx-auto max-w-[1380px]">
-        <DashboardRealtimeClient sessionIds={dashboardData.activeSessionIds} />
+        {canViewDashboardRealtime ? (
+          <DashboardRealtimeClient sessionIds={dashboardData.activeSessionIds} />
+        ) : null}
         <DashboardHeader />
 
         <section className="mt-4" aria-labelledby="active-session-heading">
@@ -562,7 +590,10 @@ export default async function AdminDashboardPage() {
           )}
         </section>
 
-        <section className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Ringkasan operasional">
+        <section
+          aria-label="Ringkasan operasional"
+          className={`mt-4 grid gap-3 sm:grid-cols-2 ${canViewScanner ? "xl:grid-cols-3" : ""}`}
+        >
           <KpiCard
             label="Peserta Terdaftar"
             subtitle="Registrasi aktif"
@@ -579,51 +610,62 @@ export default async function AdminDashboardPage() {
                   : dashboardData.activeAttendanceCount
             }
           />
-          <KpiCard
-            label="Scanner Aktif"
-            subtitle="Station siap digunakan"
-            value={dashboardData.activeScannerCount}
-          />
+          {canViewScanner ? (
+            <KpiCard
+              label="Scanner Aktif"
+              subtitle="Station siap digunakan"
+              value={dashboardData.activeScannerCount}
+            />
+          ) : null}
         </section>
 
-        <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
-          <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] px-4 sm:px-5" aria-labelledby="station-heading">
-            <div className="flex items-end justify-between gap-4 border-b border-[#eee6d8] py-3.5">
-              <div>
-                <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">STATION MONITORING</p>
-                <h2 className="mt-1 text-xl font-semibold text-[#142842]" id="station-heading">Scanner Station</h2>
-              </div>
-              {stationManagementHref ? (
-                <Link
-                  className="hidden min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:inline-flex"
-                  href={stationManagementHref}
-                >
-                  {hasPermission(profile.role, "display.manage") ? "Siapkan Station" : "Pasangkan Scanner"}
-                </Link>
-              ) : null}
-            </div>
-
-            {dashboardData.stations.length === 0 ? (
-              <div className="py-6">
-                <p className="font-semibold text-[#142842]">Belum ada scanner station</p>
-                <p className="mt-1 text-sm text-[#5b6c7c]">Siapkan station untuk mulai memantau perangkat scanner.</p>
+        <section
+          className={`mt-5 ${canViewScanner ? "grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]" : ""}`}
+        >
+          {canViewScanner ? (
+            <section
+              aria-labelledby="station-heading"
+              className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] px-4 sm:px-5"
+            >
+              <div className="flex items-end justify-between gap-4 border-b border-[#eee6d8] py-3.5">
+                <div>
+                  <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">STATION MONITORING</p>
+                  <h2 className="mt-1 text-xl font-semibold text-[#142842]" id="station-heading">
+                    Scanner Station
+                  </h2>
+                </div>
                 {stationManagementHref ? (
                   <Link
-                    className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 py-2.5 text-sm font-semibold text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                    className="hidden min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:inline-flex"
                     href={stationManagementHref}
                   >
                     {hasPermission(profile.role, "display.manage") ? "Siapkan Station" : "Pasangkan Scanner"}
                   </Link>
                 ) : null}
               </div>
-            ) : (
-              <div>
-                {dashboardData.stations.map((station) => (
-                  <StationCard key={station.id} station={station} />
-                ))}
-              </div>
-            )}
-          </section>
+
+              {dashboardData.stations.length === 0 ? (
+                <div className="py-6">
+                  <p className="font-semibold text-[#142842]">Belum ada scanner station</p>
+                  <p className="mt-1 text-sm text-[#5b6c7c]">Siapkan station untuk mulai memantau perangkat scanner.</p>
+                  {stationManagementHref ? (
+                    <Link
+                      className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 py-2.5 text-sm font-semibold text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                      href={stationManagementHref}
+                    >
+                      {hasPermission(profile.role, "display.manage") ? "Siapkan Station" : "Pasangkan Scanner"}
+                    </Link>
+                  ) : null}
+                </div>
+              ) : (
+                <div>
+                  {dashboardData.stations.map((station) => (
+                    <StationCard key={station.id} station={station} />
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
 
           <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5" aria-labelledby="actions-heading">
             <div className="flex items-end justify-between gap-4">

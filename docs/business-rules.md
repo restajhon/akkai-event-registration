@@ -57,7 +57,8 @@ Day 3
 - Travel memerlukan pasangan Registration ID dan email terdaftar yang cocok.
 - Participant `CANCELLED` tidak dapat membuat atau memperbarui travel data.
 - Semua peserta menggunakan Hotel Gumaya Semarang; tidak ada pilihan hotel peserta.
-- Room assignment dan pickup assignment dikelola ADMIN, bukan peserta.
+- Room assignment dan pickup assignment dikelola role yang memiliki permission
+  `rooms.manage` atau `pickup.manage`, bukan peserta.
 - Tidak ada fleet, vehicle inventory, driver, atau room inventory pada fase ini.
 - Data baru tidak memiliki policy direct untuk anon atau authenticated client.
 - Status kelengkapan diturunkan dari row dan nilai data, bukan boolean duplikat.
@@ -78,7 +79,8 @@ Day 3
 
 ## H-3D4C Room And Two-Leg Pickup Assignment
 
-- Room assignment dan pickup assignment hanya dapat dikelola oleh profile `ADMIN` aktif.
+- Room assignment dan pickup assignment hanya dapat dikelola oleh profile aktif
+  yang memiliki `rooms.manage` atau `pickup.manage`.
 - Halaman admin tersedia pada `/admin/rooms` dan `/admin/pickup`; participant `CANCELLED` tetap dapat dilihat tetapi tidak dapat diubah.
 - Setiap participant memiliki paling banyak satu current room assignment, satu current ARRIVAL assignment, dan satu current DEPARTURE assignment.
 - Room assignment menyimpan nomor kamar, tipe kamar, tanggal check-in, tanggal check-out, dan catatan. Check-out tidak boleh lebih awal dari check-in.
@@ -89,11 +91,16 @@ Day 3
 - Room number tidak dibuat unique karena satu kamar dapat ditempati beberapa participant.
 - List assignment hanya untuk monitoring; mutation dilakukan pada halaman detail participant.
 - Travel context pada pickup detail bersifat read-only dan tetap dimiliki oleh `participant_travel`.
-- Semua mutation memakai RPC service-role yang memvalidasi transfer type, actor ADMIN aktif, participant REGISTERED, dan uniqueness `(participant_id, transfer_type)`; tidak ada direct client write policy untuk tabel assignment.
+- Semua mutation memakai RPC service-role yang memvalidasi transfer type, actor
+  aktif dengan permission assignment terkait, participant REGISTERED, dan
+  uniqueness `(participant_id, transfer_type)`; tidak ada direct client write
+  policy untuk tabel assignment.
 
 ## H-3D5 Operational Spreadsheet Export Requirement
 
-- Export final bernama `AKKAI Operational Spreadsheet (.xlsx)` dan hanya dapat dilakukan ADMIN.
+- Export final bernama `AKKAI Operational Spreadsheet (.xlsx)` dan hanya dapat dilakukan
+  oleh role yang memiliki `attendance.export`; pada matrix aktual role tersebut adalah
+  `SUPER_ADMIN`, `ADMIN`, dan `OPERATIONAL`.
 - Workbook memiliki sheet `Rooms`, `Pickup Kedatangan`, `Pickup Kepulangan`, dan `Kehadiran`.
 - `Rooms` memuat participant operasional dan data room assignment.
 - `Pickup Kedatangan` memuat participant, konteks transport ARRIVAL, dan assignment ARRIVAL.

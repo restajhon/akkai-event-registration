@@ -9,13 +9,14 @@
 npm ci
 npm run dev
 npm run lint
+npm test
 npx tsc --noEmit
 npm run build
 npm run start
 ```
 
 - Use npm and `package-lock.json`; the README's yarn/pnpm/bun alternatives are template text.
-- No test runner is configured. For code changes, run lint, then `npx tsc --noEmit`, then the production build.
+- Vitest is configured for unit and authorization contract tests. For code changes, run `npm run lint`, `npm test`, `npx tsc --noEmit`, then the production build.
 
 ## Environment And Supabase
 

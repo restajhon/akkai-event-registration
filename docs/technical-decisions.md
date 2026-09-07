@@ -153,7 +153,8 @@ event tetap `Hotel Gumaya Semarang`; tidak ada hotel selector peserta.
 Semua tabel baru memakai RLS tanpa policy direct untuk `anon` atau
 `authenticated`. Mutation menggunakan RPC `SECURITY DEFINER` dengan
 `search_path` eksplisit dan execution hanya untuk `service_role`. Mutation
-kamar dan penjemputan memvalidasi actor aktif dengan role `ADMIN` di dalam RPC.
+kamar dan penjemputan memvalidasi actor aktif dengan permission assignment terkait
+di dalam RPC.
 
 RPC registration lama dan V2 tetap dipertahankan untuk rollout kompatibel; form
 publik hotfix menggunakan `create_participant_with_registration_reservation_v3`.
@@ -211,9 +212,9 @@ dipakai sebagai destination.
 Halaman `/admin/rooms` dan `/admin/pickup` adalah list monitoring tanpa form edit
 per participant. Detail edit menggunakan `/admin/rooms/[registrationId]` dan
 `/admin/pickup/[registrationId]`, melakukan authorization server-side dengan
-`requireRole(["ADMIN"])`, dan membaca data melalui server-only Supabase admin
-client. Client component hanya menerima data minimum untuk pencarian, filter,
-dan editor detail.
+permission assignment terkait, dan membaca data melalui server-only Supabase
+admin client. Client component hanya menerima data minimum untuk pencarian,
+filter, dan editor detail.
 
 Mutation divalidasi ulang pada Server Action, lalu diteruskan ke RPC
 `upsert_participant_room_assignment` atau `upsert_participant_pickup_assignment`.
@@ -228,7 +229,8 @@ dipilih dengan status `CANCELLED` dan detail operasional bernilai `NULL`. ARRIVA
 dan DEPARTURE tidak pernah meng-update row satu sama lain. Pickup detail membaca
 travel sebagai konteks read-only, tanpa memindahkan ownership travel.
 
-Navigation assignment hanya ditampilkan untuk role `ADMIN`. Tidak ada perubahan pada
+Navigation assignment hanya ditampilkan untuk role yang memiliki permission assignment
+terkait. Tidak ada perubahan pada
 route publik, QR, attendance, scanner, realtime, email, atau participant registration.
 
 ## H-3D3 Durable Rate Limiting
@@ -270,7 +272,9 @@ authorization utama.
 Identity diverifikasi dengan `supabase.auth.getClaims()`. Setelah itu profile dibaca
 melalui normal SSR client dari `src/lib/supabase/server.ts`, sehingga policy RLS
 `profiles_select_self` tetap menjadi defense-in-depth. Profile harus aktif dan memiliki
-role `ADMIN` atau `OPERATOR`.
+salah satu role `SUPER_ADMIN`, `ADMIN`, `REGISTRATION`, `OPERATIONAL`, `SCANNER`, atau
+`OPERATOR`. Permission aktual mengikuti `src/lib/auth/permissions.ts` dan helper
+database `public.has_permission`.
 
 Authorization halaman dan Server Action dilakukan oleh helper server-only di
 `src/lib/auth/server.ts`. Session invalid atau profile yang tidak valid dibersihkan

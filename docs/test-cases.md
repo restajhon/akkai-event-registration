@@ -4,7 +4,8 @@
 
 - Buat user email/password melalui Supabase Dashboard.
 - Buat row `public.profiles` dengan `id` yang sama dengan Auth user.
-- Uji profile `ADMIN`, `OPERATOR`, inactive, dan profile yang tidak tersedia.
+- Uji profile `SUPER_ADMIN`, `ADMIN`, `REGISTRATION`, `OPERATIONAL`, `SCANNER`,
+  `OPERATOR`, inactive, dan profile yang tidak tersedia.
 
 ## Authentication
 
@@ -19,6 +20,32 @@
 - Logout menggunakan `signOut({ scope: "local" })` dan hanya mengakhiri session browser saat ini.
 - Refresh browser mempertahankan login selama session valid.
 - Session expired diarahkan ke login setelah cleanup.
+
+## H-RBAC1.5 RBAC Parity
+
+- Permission matrix diuji untuk `SUPER_ADMIN`, `ADMIN`, `REGISTRATION`,
+  `OPERATIONAL`, `SCANNER`, dan `OPERATOR` tanpa mengubah matrix runtime.
+- User authenticated pada `/admin/login` diarahkan menggunakan default route role;
+  `SCANNER` dan `OPERATOR` diarahkan ke `/admin/scanner/pair`.
+- User dengan role tidak berwenang yang membuka route protected diarahkan ke
+  `/admin/unauthorized`.
+- Request API tanpa session mengembalikan HTTP 401.
+- Request API dengan session aktif tetapi tanpa permission mengembalikan HTTP 403.
+- Profile inactive tidak dianggap authenticated.
+- Profile dengan role yang tidak valid tidak dianggap authenticated.
+- Link export attendance hanya dirender untuk role dengan `attendance.export`.
+- Endpoint export attendance tetap menolak request unauthorized meskipun URL dipanggil langsung.
+- `ADMIN` tidak dapat membuka atau menjalankan action access management.
+- `SUPER_ADMIN` tetap dapat membuka dan menjalankan action access management.
+- `OPERATIONAL` dapat membuka participant list/detail dan action participant yang
+  sudah tersedia sesuai permission, termasuk koreksi email dan resend ticket.
+- Participant create/edit/cancel belum tersedia dan tidak boleh dianggap sebagai
+  fitur shipped hanya karena permission `participants.manage` ada pada matrix.
+- `OPERATIONAL` tidak dapat membuka display, display setup, scanner pairing, atau
+  scanner check-in.
+- Dashboard `OPERATIONAL` tidak menjalankan query `scanner_stations` dan tidak
+  me-mount `DashboardRealtimeClient`.
+- `/api/admin/operational-export` memanggil `authorizePermission("attendance.export")`.
 
 ## Server Security
 
