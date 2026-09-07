@@ -11,6 +11,7 @@ const navigationItems = [
   ["Rundown Acara", "#rundown"],
   ["Paket & Biaya", "#paket"],
   ["Informasi Perjalanan", "/travel"],
+  ["Rapat Anggota", "/rapat-anggota"],
 ] as const;
 
 type MobileNavigationProps = {

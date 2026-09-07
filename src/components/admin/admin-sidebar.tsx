@@ -16,7 +16,8 @@ export type AdminSidebarProfile = {
 type MenuItem = {
   href: string;
   label: string;
-  permission: Permission;
+  permission?: Permission;
+  roles?: readonly UserRole[];
   section: "UTAMA" | "OPERASIONAL" | "MONITORING" | "SETUP";
 };
 
@@ -43,6 +44,12 @@ const menuItems: MenuItem[] = [
     href: "/admin/participants",
     label: "Peserta",
     permission: "participants.view",
+    section: "OPERASIONAL",
+  },
+  {
+    href: "/admin/member-meetings",
+    label: "Rapat Anggota",
+    roles: ["SUPER_ADMIN", "ADMIN"],
     section: "OPERASIONAL",
   },
   {
@@ -121,7 +128,9 @@ function isActivePath(pathname: string, href: string) {
 }
 
 function visibleItems(role: UserRole) {
-  return menuItems.filter((item) => hasPermission(role, item.permission));
+  return menuItems.filter((item) =>
+    item.roles ? item.roles.includes(role) : item.permission ? hasPermission(role, item.permission) : false,
+  );
 }
 
 export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {

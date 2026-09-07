@@ -37,6 +37,11 @@ function getSupabaseOrigins() {
 }
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "3mb",
+    },
+  },
   async headers() {
     const vercelEnvironment = process.env.VERCEL_ENV;
     const isPreview = vercelEnvironment === "preview";

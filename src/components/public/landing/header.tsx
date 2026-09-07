@@ -37,7 +37,8 @@ export function Header() {
           <Link className={styles.navLink} href="#informasi">Informasi Acara</Link>
           <Link className={styles.navLink} href="#rundown">Rundown Acara</Link>
           <Link className={styles.navLink} href="#paket">Paket &amp; Biaya</Link>
-          <Link className={styles.navLink} href="/travel">Informasi Perjalanan</Link>
+           <Link className={styles.navLink} href="/travel">Informasi Perjalanan</Link>
+           <Link className={styles.navLink} href="/rapat-anggota">Rapat Anggota</Link>
         </nav>
         <RegistrationLink className={styles.navCta} />
         <MobileNavigation />
