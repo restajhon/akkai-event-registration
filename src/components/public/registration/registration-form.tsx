@@ -20,6 +20,7 @@ import {
   PACKAGE_TYPES,
   PARTICIPATION_SCOPES,
   PAI_CONGRESS_OPTIONS,
+  POLO_MODELS,
   POLO_SIZES,
   registrationSchema,
   type RegistrationField,
@@ -37,6 +38,7 @@ const initialFormData: RegistrationFormValues = {
   kka_name: "",
   position: "",
   polo_size: "",
+  polo_model: "",
   package_type: "",
   participation_scope: "",
   actuarial_consultant_status: "",
@@ -353,68 +355,6 @@ export function RegistrationForm() {
         </div>
 
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="email">
-             Alamat Email <span className={styles.required}>(wajib)</span>
-          </label>
-          <input
-            aria-describedby={errors.email ? "email-error" : "email-helper"}
-            aria-invalid={Boolean(errors.email)}
-            autoComplete="email"
-            className={`${styles.input} ${errors.email ? styles.inputError : ""}`}
-            id="email"
-            name="email"
-            onChange={(event) => updateField("email", event.target.value)}
-            placeholder="nama@email.com"
-            required
-            type="email"
-            value={formData.email}
-          />
-          {errors.email ? (
-            <ErrorMessage id="email-error" message={errors.email} />
-          ) : (
-            <p className={styles.helper} id="email-helper">
-              Gunakan alamat email aktif untuk komunikasi panitia.
-            </p>
-          )}
-        </div>
-
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="phone_number">
-            No. HP <span className={styles.required}>(wajib)</span>
-          </label>
-          <input
-            aria-describedby={
-              errors.phone_number
-                ? "phone_number-error"
-                : "phone_number-helper"
-            }
-            aria-invalid={Boolean(errors.phone_number)}
-            autoComplete="tel"
-            className={`${styles.input} ${errors.phone_number ? styles.inputError : ""}`}
-            id="phone_number"
-            inputMode="tel"
-            name="phone_number"
-            onChange={(event) =>
-              updateField("phone_number", event.target.value)
-            }
-            placeholder="Contoh: 081234567890"
-            required
-            type="tel"
-            value={formData.phone_number}
-          />
-          {errors.phone_number ? (
-            <ErrorMessage
-              id="phone_number-error"
-              message={errors.phone_number}
-            />
-          ) : (
-            <p className={styles.helper} id="phone_number-helper">
-              Gunakan nomor WhatsApp yang aktif.
-            </p>
-          )}
-        </div>
-
-        <div className={styles.field}>
           <label className={styles.label} htmlFor="kka_name">
             KKA <span className={styles.required}>(wajib)</span>
           </label>
@@ -460,6 +400,68 @@ export function RegistrationForm() {
             value={formData.position}
           />
           {errors.position ? <ErrorMessage id="position-error" message={errors.position} /> : null}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="phone_number">
+            No. HP <span className={styles.required}>(wajib)</span>
+          </label>
+          <input
+            aria-describedby={
+              errors.phone_number
+                ? "phone_number-error"
+                : "phone_number-helper"
+            }
+            aria-invalid={Boolean(errors.phone_number)}
+            autoComplete="tel"
+            className={`${styles.input} ${errors.phone_number ? styles.inputError : ""}`}
+            id="phone_number"
+            inputMode="tel"
+            name="phone_number"
+            onChange={(event) =>
+              updateField("phone_number", event.target.value)
+            }
+            placeholder="Contoh: 081234567890"
+            required
+            type="tel"
+            value={formData.phone_number}
+          />
+          {errors.phone_number ? (
+            <ErrorMessage
+              id="phone_number-error"
+              message={errors.phone_number}
+            />
+          ) : (
+            <p className={styles.helper} id="phone_number-helper">
+              Gunakan nomor WhatsApp yang aktif.
+            </p>
+          )}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="email">
+            Alamat Email <span className={styles.required}>(wajib)</span>
+          </label>
+          <input
+            aria-describedby={errors.email ? "email-error" : "email-helper"}
+            aria-invalid={Boolean(errors.email)}
+            autoComplete="email"
+            className={`${styles.input} ${errors.email ? styles.inputError : ""}`}
+            id="email"
+            name="email"
+            onChange={(event) => updateField("email", event.target.value)}
+            placeholder="nama@email.com"
+            required
+            type="email"
+            value={formData.email}
+          />
+          {errors.email ? (
+            <ErrorMessage id="email-error" message={errors.email} />
+          ) : (
+            <p className={styles.helper} id="email-helper">
+              Gunakan alamat email aktif untuk komunikasi panitia.
+            </p>
+          )}
         </div>
 
         </div>
@@ -564,6 +566,30 @@ export function RegistrationForm() {
           ) : null}
         </div>
 
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="polo_model">
+            Model Poloshirt <span className={styles.required}>(wajib)</span>
+          </label>
+          <select
+            aria-describedby={errors.polo_model ? "polo_model-error" : undefined}
+            aria-invalid={Boolean(errors.polo_model)}
+            className={`${styles.select} ${errors.polo_model ? styles.inputError : ""}`}
+            id="polo_model"
+            name="polo_model"
+            onChange={(event) => updateField("polo_model", event.target.value)}
+            required
+            value={formData.polo_model}
+          >
+            <option value="">Pilih model</option>
+            {POLO_MODELS.map((model) => (
+              <option key={model} value={model}>{model}</option>
+            ))}
+          </select>
+          {errors.polo_model ? (
+            <ErrorMessage id="polo_model-error" message={errors.polo_model} />
+          ) : null}
+        </div>
+
          </div>
       </section>
 
@@ -639,7 +665,7 @@ export function RegistrationForm() {
         {formData.actuarial_consultant_status === "Peserta Baru" ? (
           <div className={styles.field}>
             <label className={styles.label} htmlFor="certificate_file">
-              Surat Keterangan Kerja yang ditandatangani oleh Pemimpin KKA di atas meterai. <span className={styles.required}>(wajib)</span>
+               Surat Keterangan Kerja yang ditandatangani oleh Pemimpin KKA di atas meterai <span className={styles.required}>(wajib)</span>
             </label>
             <input
               accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"

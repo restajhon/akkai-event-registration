@@ -214,6 +214,7 @@ CREATE OR REPLACE FUNCTION public.create_participant_with_registration_reservati
   p_kka_name text,
   p_position text,
   p_polo_size text,
+  p_polo_model text,
   p_package_type text,
   p_participation_scope text,
   p_actuarial_consultant_status text,
@@ -251,6 +252,7 @@ DECLARE
   v_kka_name text := btrim(coalesce(p_kka_name, ''));
   v_position text := btrim(coalesce(p_position, ''));
   v_polo_size text := btrim(coalesce(p_polo_size, ''));
+  v_polo_model text := btrim(coalesce(p_polo_model, ''));
   v_package_type text := btrim(coalesce(p_package_type, ''));
   v_participation_scope text := btrim(coalesce(p_participation_scope, ''));
   v_actuarial_status text := btrim(coalesce(p_actuarial_consultant_status, ''));
@@ -264,6 +266,7 @@ BEGIN
      OR v_kka_name !~ '^.{1,150}$'
      OR v_position !~ '^.{1,100}$'
      OR v_polo_size NOT IN ('S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL')
+     OR v_polo_model NOT IN ('Lengan Panjang', 'Lengan Pendek')
      OR v_package_type NOT IN ('Twin Share', 'Single')
      OR v_participation_scope NOT IN ('Seluruh acara', 'Rapat Anggota AKKAI 2026', 'Seminar Profesi Konsultan Aktuaria')
      OR v_actuarial_status NOT IN ('Peserta Baru', 'Penerima Grandfathering CIAC')
@@ -310,7 +313,7 @@ BEGIN
       email_generation, email_status
     ) VALUES (
       v_full_name, v_email, v_phone_number, NULL, NULL, v_kka_name, v_position,
-      v_polo_size, NULL, v_package_type, v_participation_scope,
+      v_polo_size, v_polo_model, v_package_type, v_participation_scope,
       v_actuarial_status, p_attends_pai_congress, p_privacy_consent_at, 0, 'PENDING'
     ) RETURNING * INTO v_participant;
 
@@ -367,10 +370,10 @@ END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION public.create_participant_with_registration_reservation_v4(
-  text, text, text, text, text, text, text, text, text, boolean, timestamptz, uuid
+  text, text, text, text, text, text, text, text, text, text, boolean, timestamptz, uuid
 ) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.create_participant_with_registration_reservation_v4(
-  text, text, text, text, text, text, text, text, text, boolean, timestamptz, uuid
+  text, text, text, text, text, text, text, text, text, text, boolean, timestamptz, uuid
 ) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.finalize_registration_billing_email(

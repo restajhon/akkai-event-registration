@@ -23,6 +23,7 @@ function validForm() {
   form.set("kka_name", "KKA Maju");
   form.set("position", "Konsultan");
   form.set("polo_size", "L");
+  form.set("polo_model", "Lengan Panjang");
   form.set("package_type", "Twin Share");
   form.set("participation_scope", "Seluruh acara");
   form.set("actuarial_consultant_status", "Penerima Grandfathering CIAC");

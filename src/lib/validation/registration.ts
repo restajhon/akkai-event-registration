@@ -6,6 +6,7 @@ import {
 } from "@/lib/registration/certificate";
 
 export const POLO_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"] as const;
+export const POLO_MODELS = ["Lengan Panjang", "Lengan Pendek"] as const;
 
 export const PACKAGE_TYPES = ["Twin Share", "Single"] as const;
 export const PARTICIPATION_SCOPES = [
@@ -20,6 +21,7 @@ export const ACTUARIAL_CONSULTANT_STATUSES = [
 export const PAI_CONGRESS_OPTIONS = ["true", "false"] as const;
 
 export type PoloSize = (typeof POLO_SIZES)[number];
+export type PoloModel = (typeof POLO_MODELS)[number];
 export type PackageType = (typeof PACKAGE_TYPES)[number];
 export type ParticipationScope = (typeof PARTICIPATION_SCOPES)[number];
 export type ActuarialConsultantStatus =
@@ -32,6 +34,7 @@ export type RegistrationField =
   | "kka_name"
   | "position"
   | "polo_size"
+  | "polo_model"
   | "package_type"
   | "participation_scope"
   | "actuarial_consultant_status"
@@ -46,6 +49,7 @@ export type RegistrationFormValues = {
   kka_name: string;
   position: string;
   polo_size: string;
+  polo_model: string;
   package_type: string;
   participation_scope: string;
   actuarial_consultant_status: string;
@@ -62,6 +66,7 @@ const requiredMessages = {
   kka_name: "KKA wajib diisi.",
   position: "Jabatan wajib diisi.",
   polo_size: "Ukuran Poloshirt wajib dipilih.",
+  polo_model: "Model Poloshirt wajib dipilih.",
   package_type: "Paket yang diambil wajib dipilih.",
   participation_scope: "Mengikuti wajib dipilih.",
   actuarial_consultant_status: "Sertifikasi CIAC wajib dipilih.",
@@ -90,6 +95,7 @@ export const registrationSchema = z
       .min(1, requiredMessages.position)
       .max(100, requiredMessages.position),
     polo_size: z.enum(POLO_SIZES, { error: requiredMessages.polo_size }),
+    polo_model: z.enum(POLO_MODELS, { error: requiredMessages.polo_model }),
     package_type: z.enum(PACKAGE_TYPES, { error: requiredMessages.package_type }),
     participation_scope: z.enum(PARTICIPATION_SCOPES, {
       error: requiredMessages.participation_scope,

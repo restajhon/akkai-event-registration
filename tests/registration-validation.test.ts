@@ -11,6 +11,7 @@ import {
   PACKAGE_TYPES,
   PARTICIPATION_SCOPES,
   POLO_SIZES,
+  POLO_MODELS,
   registrationSchema,
 } from "@/lib/validation/registration";
 
@@ -21,6 +22,7 @@ const baseValues = {
   kka_name: "KKA Maju",
   position: "Konsultan",
   polo_size: "L",
+  polo_model: "Lengan Panjang",
   package_type: "Twin Share",
   participation_scope: "Seluruh acara",
   actuarial_consultant_status: "Penerima Grandfathering CIAC",
@@ -43,6 +45,7 @@ describe("registration form contract", () => {
       "Penerima Grandfathering CIAC",
     ]);
     expect(POLO_SIZES).toEqual(["S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"]);
+    expect(POLO_MODELS).toEqual(["Lengan Panjang", "Lengan Pendek"]);
     expect(REGISTRATION_PACKAGE_PRICES).toEqual({ "Twin Share": 6_000_000, Single: 7_000_000 });
   });
 

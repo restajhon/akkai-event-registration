@@ -86,6 +86,7 @@ function getFormValues(formData: FormData): RegistrationFormValues {
     kka_name: getFormValue(formData, "kka_name"),
     position: getFormValue(formData, "position"),
     polo_size: getFormValue(formData, "polo_size"),
+    polo_model: getFormValue(formData, "polo_model"),
     package_type: getFormValue(formData, "package_type"),
     participation_scope: getFormValue(formData, "participation_scope"),
     actuarial_consultant_status: getFormValue(
@@ -373,6 +374,7 @@ export async function submitRegistration(
         p_kka_name: parsed.data.kka_name,
         p_position: parsed.data.position,
         p_polo_size: parsed.data.polo_size,
+        p_polo_model: parsed.data.polo_model,
         p_package_type: parsed.data.package_type,
         p_participation_scope: parsed.data.participation_scope,
         p_actuarial_consultant_status: parsed.data.actuarial_consultant_status,
