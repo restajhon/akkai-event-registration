@@ -1,4 +1,5 @@
 import { AKKAI_EVENT } from "@/lib/akkai-event";
+import { formatIndonesianRupiah, PAYMENT_INSTRUCTIONS, REGISTRATION_PACKAGE_PRICES } from "@/lib/billing/pricing";
 
 import styles from "./registration.module.css";
 
@@ -50,11 +51,11 @@ export function RegistrationInformation() {
           <div className={styles.packageList}>
             <div className={styles.packageItem}>
               <span>Twin Share</span>
-              <strong>Rp6.000.000</strong>
+               <strong>{formatIndonesianRupiah(REGISTRATION_PACKAGE_PRICES["Twin Share"])}</strong>
             </div>
             <div className={styles.packageItem}>
               <span>Single</span>
-              <strong>Rp7.000.000</strong>
+               <strong>{formatIndonesianRupiah(REGISTRATION_PACKAGE_PRICES.Single)}</strong>
             </div>
           </div>
         </section>
@@ -64,15 +65,15 @@ export function RegistrationInformation() {
           <dl className={styles.paymentDetails}>
             <div>
               <dt>Pembayaran melalui</dt>
-              <dd>Bank Mandiri</dd>
+               <dd>{PAYMENT_INSTRUCTIONS.bank}</dd>
             </div>
             <div>
               <dt>No. Rekening</dt>
-              <dd className={styles.breakWord}>1570007591903</dd>
+               <dd className={styles.breakWord}>{PAYMENT_INSTRUCTIONS.accountNumber}</dd>
             </div>
             <div>
               <dt>Atas Nama</dt>
-              <dd>Asosiasi Konsultan Aktuaria Indonesia</dd>
+               <dd>{PAYMENT_INSTRUCTIONS.accountName}</dd>
             </div>
           </dl>
         </section>

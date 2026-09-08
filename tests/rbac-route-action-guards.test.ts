@@ -25,7 +25,9 @@ vi.mock("@/lib/stations/pairing", () => ({
 import { updateProfileAccess } from "@/app/admin/(protected)/(admin-shell)/access/actions";
 import { createStation } from "@/app/admin/(protected)/(admin-shell)/display/setup/actions";
 import { pairStation } from "@/app/admin/(protected)/(admin-shell)/scanner/pair/actions";
+import { updateRegistrationBillingPaymentStatus } from "@/app/admin/(protected)/(admin-shell)/participants/actions";
 import { POST as scannerCheckIn } from "@/app/admin/(protected)/(focused)/scanner/check-in/route";
+import { GET as privateCertificate } from "@/app/api/admin/participants/[registrationId]/certificate/route";
 
 beforeEach(() => {
   mocks.authorizePermission.mockReset();
@@ -109,6 +111,70 @@ describe("RBAC route and action guards", () => {
 
     expect(mocks.authorizePermission).toHaveBeenCalledWith("scanner.checkin");
     expect(response.status).toBe(403);
+    expect(mocks.createAdminClient).not.toHaveBeenCalled();
+  });
+
+  it("uses existing participant management permission for payment status", async () => {
+    mocks.getAuthorizedProfile.mockResolvedValue(null);
+
+    const formData = new FormData();
+    formData.set("billingId", "00000000-0000-4000-8000-000000000001");
+    formData.set("registrationId", "AKKAI26-000001");
+    formData.set("paymentStatus", "PAID");
+
+    await expect(
+      updateRegistrationBillingPaymentStatus(
+        { status: "idle", message: null },
+        formData,
+      ),
+    ).resolves.toMatchObject({ status: "error" });
+    expect(mocks.getAuthorizedProfile).toHaveBeenCalledWith("participants.manage");
+    expect(mocks.createAdminClient).not.toHaveBeenCalled();
+  });
+
+  it("allows an existing participant manager to update payment status", async () => {
+    mocks.getAuthorizedProfile.mockResolvedValue({
+      id: "admin-1",
+      full_name: "Admin",
+      email: "admin@example.com",
+      role: "ADMIN",
+      is_active: true,
+    });
+    const rpc = vi.fn().mockResolvedValue({ data: [{ result_code: "UPDATED" }], error: null });
+    mocks.createAdminClient.mockReturnValue({ rpc });
+
+    const formData = new FormData();
+    formData.set("billingId", "00000000-0000-4000-8000-000000000001");
+    formData.set("registrationId", "AKKAI26-000001");
+    formData.set("paymentStatus", "PAID");
+
+    await expect(
+      updateRegistrationBillingPaymentStatus(
+        { status: "idle", message: null },
+        formData,
+      ),
+    ).resolves.toMatchObject({ status: "success" });
+    expect(rpc).toHaveBeenCalledWith("set_registration_billing_payment_status", {
+      p_billing_id: "00000000-0000-4000-8000-000000000001",
+      p_payment_status: "PAID",
+      p_paid_by: "admin-1",
+    });
+  });
+
+  it("rejects unauthorized private certificate access", async () => {
+    mocks.authorizePermission.mockResolvedValue({
+      profile: null,
+      authorized: false,
+      status: 401,
+    });
+
+    const response = await privateCertificate(
+      new Request("http://localhost/api/admin/participants/AKKAI26-000001/certificate"),
+      { params: Promise.resolve({ registrationId: "AKKAI26-000001" }) },
+    );
+
+    expect(response.status).toBe(401);
+    expect(mocks.authorizePermission).toHaveBeenCalledWith("participants.view");
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
   });
 });

@@ -1,11 +1,15 @@
 "use client";
 
-import { useActionState, useState, type FormEvent } from "react";
+import { useActionState, useRef, useState, type FormEvent } from "react";
 
 import {
+  cancelRegistrationCertificateUpload,
+  prepareRegistrationCertificateUpload,
   submitRegistration,
 } from "@/app/register/actions";
 import { AKKAI_EVENT, IMPORTANT_INFO } from "@/lib/akkai-event";
+import { formatIndonesianRupiah, PAYMENT_INSTRUCTIONS, REGISTRATION_PACKAGE_PRICES } from "@/lib/billing/pricing";
+import { REGISTRATION_CERTIFICATE_BUCKET, validateRegistrationCertificateFile } from "@/lib/registration/certificate";
 import {
   initialRegistrationState,
   type RegistrationActionState,
@@ -16,13 +20,13 @@ import {
   PACKAGE_TYPES,
   PARTICIPATION_SCOPES,
   PAI_CONGRESS_OPTIONS,
-  POLO_MODELS,
   POLO_SIZES,
   registrationSchema,
   type RegistrationField,
   type RegistrationFieldErrors,
   type RegistrationFormValues,
 } from "@/lib/validation/registration";
+import { createClient } from "@/lib/supabase/client";
 
 import styles from "./registration.module.css";
 
@@ -31,19 +35,21 @@ const initialFormData: RegistrationFormValues = {
   email: "",
   phone_number: "",
   kka_name: "",
+  position: "",
   polo_size: "",
-  polo_model: "",
   package_type: "",
   participation_scope: "",
   actuarial_consultant_status: "",
   attends_pai_congress: "",
   privacy_consent: false,
+  certificate_file: null,
+  certificate_upload_id: "",
 };
 
 const packageDetails = {
   "Twin Share": {
     description: "Akomodasi penginapan bersama peserta lain.",
-    price: "Rp6.000.000",
+    price: formatIndonesianRupiah(REGISTRATION_PACKAGE_PRICES["Twin Share"]),
     benefits: [
       "Akomodasi",
       "Konsumsi termasuk Welcome Dinner",
@@ -55,7 +61,7 @@ const packageDetails = {
   },
   Single: {
     description: "Akomodasi penginapan privat untuk satu peserta.",
-    price: "Rp7.000.000",
+    price: formatIndonesianRupiah(REGISTRATION_PACKAGE_PRICES.Single),
     benefits: [
       "Akomodasi",
       "Konsumsi termasuk Welcome Dinner",
@@ -79,18 +85,80 @@ function ErrorMessage({ id, message }: { id: string; message: string }) {
 }
 
 export function RegistrationForm() {
+  const [submitLocked, setSubmitLocked] = useState(false);
   const [state, formAction, isPending] = useActionState<
     RegistrationActionState,
     FormData
-  >(
-    submitRegistration,
-    initialRegistrationState,
-  );
+  >(async (previousState, formData) => {
+    if (formData.get("actuarial_consultant_status") === "Peserta Baru") {
+      const file = formData.get("certificate_file");
+      if (!(file instanceof File) || file.size === 0) {
+        setSubmitLocked(false);
+        return {
+          status: "validation-error",
+          fieldErrors: { certificate_file: "Upload Surat Keterangan Kerja wajib diisi." },
+          emailDelivery: "not-attempted",
+          billingEmailDelivery: "not-attempted",
+        };
+      }
+
+      const preparation = new FormData();
+      preparation.set("email", String(formData.get("email") ?? ""));
+      preparation.set("file_name", file.name);
+      preparation.set("file_type", file.type);
+      preparation.set("file_size", String(file.size));
+      const prepared = await prepareRegistrationCertificateUpload(preparation);
+      if (prepared.status === "error") {
+        setSubmitLocked(false);
+        return {
+          status: "general-error",
+          fieldErrors: {},
+          generalError: prepared.message,
+          emailDelivery: "not-attempted",
+          billingEmailDelivery: "not-attempted",
+        };
+      }
+
+      try {
+        const { error } = await createClient()
+          .storage
+          .from(REGISTRATION_CERTIFICATE_BUCKET)
+          .uploadToSignedUrl(prepared.path, prepared.token, file, {
+            contentType: file.type,
+          });
+        if (error) throw error;
+
+        const submissionData = new FormData();
+        formData.forEach((value, key) => {
+          if (key !== "certificate_file") submissionData.append(key, value);
+        });
+        submissionData.set("certificate_upload_id", prepared.intentId);
+        const result = await submitRegistration(previousState, submissionData);
+        if (result.status !== "submitted") setSubmitLocked(false);
+        return result;
+      } catch {
+        await cancelRegistrationCertificateUpload(prepared.intentId);
+        setSubmitLocked(false);
+        return {
+          status: "general-error",
+          fieldErrors: {},
+          generalError: "Surat Keterangan Kerja belum dapat diunggah. Silakan coba kembali.",
+          emailDelivery: "not-attempted",
+          billingEmailDelivery: "not-attempted",
+        };
+      }
+    }
+
+    const result = await submitRegistration(previousState, formData);
+    if (result.status !== "submitted") setSubmitLocked(false);
+    return result;
+  }, initialRegistrationState);
   const [formData, setFormData] = useState<RegistrationFormValues>(
     initialFormData,
   );
   const [clientErrors, setClientErrors] =
     useState<RegistrationFieldErrors>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const errors: RegistrationFieldErrors = {
     ...state.fieldErrors,
@@ -98,7 +166,7 @@ export function RegistrationForm() {
   };
   const submissionMessage = state.generalError;
 
-  function updateField(field: RegistrationField, value: string | boolean) {
+  function updateField(field: RegistrationField, value: string | boolean | File | null) {
     setFormData((current) => {
       const nextData = { ...current, [field]: value } as RegistrationFormValues;
 
@@ -113,8 +181,33 @@ export function RegistrationForm() {
     });
   }
 
+  function chooseCertificate(file: File | null) {
+    updateField("certificate_file", file);
+    if (file) {
+      const fileError = validateRegistrationCertificateFile(file);
+      if (fileError) setClientErrors((current) => ({ ...current, certificate_file: fileError }));
+    }
+  }
+
+  function chooseActuarialStatus(value: string) {
+    updateField("actuarial_consultant_status", value);
+    if (value !== "Peserta Baru") {
+      setFormData((current) => ({
+        ...current,
+        certificate_file: null,
+        certificate_upload_id: "",
+      }));
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setClientErrors((current) => {
+        const nextErrors = { ...current };
+        delete nextErrors.certificate_file;
+        return nextErrors;
+      });
+    }
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    if (isPending) {
+    if (isPending || submitLocked) {
       event.preventDefault();
       return;
     }
@@ -135,7 +228,10 @@ export function RegistrationForm() {
       window.requestAnimationFrame(() => {
         document.getElementById(firstInvalidField)?.focus();
       });
+      return;
     }
+
+    setSubmitLocked(true);
   }
 
   if (state.status === "submitted") {
@@ -177,6 +273,28 @@ export function RegistrationForm() {
             ulang melalui formulir; hubungi panitia bila email belum terlihat.
           </p>
         ) : null}
+        {state.billing ? (
+          <section aria-labelledby="billing-heading" className={styles.billingCard}>
+            <p className={styles.billingEyebrow}>Ringkasan pembayaran</p>
+            <h2 className={styles.billingTitle} id="billing-heading">Tagihan Biaya Pendaftaran</h2>
+            <dl className={styles.billingDetails}>
+              <div><dt>Nomor registrasi</dt><dd>{state.billing.registrationId}</dd></div>
+              <div><dt>Nomor tagihan unik</dt><dd>{state.billing.billingNumber}</dd></div>
+              <div><dt>Nama peserta</dt><dd>{state.billing.fullName}</dd></div>
+              <div><dt>KKA</dt><dd>{state.billing.kkaName}</dd></div>
+              <div><dt>Paket yang diambil</dt><dd>{state.billing.packageType}</dd></div>
+              <div><dt>Pilihan mengikuti acara</dt><dd>{state.billing.participationScope}</dd></div>
+              <div><dt>Rincian biaya</dt><dd>{state.billing.packageType}: {formatIndonesianRupiah(state.billing.amount)}</dd></div>
+              <div><dt>Total tagihan</dt><dd>{formatIndonesianRupiah(state.billing.amount)}</dd></div>
+              <div><dt>Status pembayaran</dt><dd>Belum Dibayar</dd></div>
+              <div><dt>Tanggal pembuatan tagihan</dt><dd>{new Intl.DateTimeFormat("id-ID", { dateStyle: "long", timeZone: "Asia/Jakarta" }).format(new Date(state.billing.createdAt))}</dd></div>
+            </dl>
+            <p className={styles.billingInstruction}>Instruksi pembayaran: {PAYMENT_INSTRUCTIONS.bank}, rekening {PAYMENT_INSTRUCTIONS.accountNumber} atas nama {PAYMENT_INSTRUCTIONS.accountName}. Batas akhir {PAYMENT_INSTRUCTIONS.deadline}. Kirim bukti ke {PAYMENT_INSTRUCTIONS.proofEmail} atau {PAYMENT_INSTRUCTIONS.proofWhatsapp}.</p>
+            <p className={styles.billingEmailStatus}>
+              {state.billingEmailDelivery === "accepted" ? "Tagihan juga telah dikirim ke alamat email Anda." : "Tagihan tersimpan, tetapi email tagihan belum dapat dikirim. Hubungi panitia."}
+            </p>
+          </section>
+        ) : null}
       </section>
     );
   }
@@ -208,7 +326,7 @@ export function RegistrationForm() {
         <div className={styles.fieldGroup}>
         <div className={styles.field}>
           <label className={styles.label} htmlFor="full_name">
-            Nama lengkap <span className={styles.required}>(wajib)</span>
+            Nama <span className={styles.required}>(wajib)</span>
           </label>
           <input
             aria-describedby={
@@ -236,7 +354,7 @@ export function RegistrationForm() {
 
         <div className={styles.field}>
           <label className={styles.label} htmlFor="email">
-            Alamat email <span className={styles.required}>(wajib)</span>
+             Alamat Email <span className={styles.required}>(wajib)</span>
           </label>
           <input
             aria-describedby={errors.email ? "email-error" : "email-helper"}
@@ -262,7 +380,7 @@ export function RegistrationForm() {
 
         <div className={styles.field}>
           <label className={styles.label} htmlFor="phone_number">
-            Nomor WhatsApp <span className={styles.required}>(wajib)</span>
+            No. HP <span className={styles.required}>(wajib)</span>
           </label>
           <input
             aria-describedby={
@@ -298,7 +416,7 @@ export function RegistrationForm() {
 
         <div className={styles.field}>
           <label className={styles.label} htmlFor="kka_name">
-            Nama KKA <span className={styles.required}>(wajib)</span>
+            KKA <span className={styles.required}>(wajib)</span>
           </label>
           <input
             aria-describedby={
@@ -323,6 +441,25 @@ export function RegistrationForm() {
               message={errors.kka_name}
             />
           ) : null}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="position">
+            Jabatan <span className={styles.required}>(wajib)</span>
+          </label>
+          <input
+            aria-invalid={Boolean(errors.position)}
+            className={`${styles.input} ${errors.position ? styles.inputError : ""}`}
+            id="position"
+            maxLength={100}
+            name="position"
+            onChange={(event) => updateField("position", event.target.value)}
+            placeholder="Masukkan jabatan"
+            required
+            type="text"
+            value={formData.position}
+          />
+          {errors.position ? <ErrorMessage id="position-error" message={errors.position} /> : null}
         </div>
 
         </div>
@@ -427,31 +564,7 @@ export function RegistrationForm() {
           ) : null}
         </div>
 
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="polo_model">
-            Model Poloshirt <span className={styles.required}>(wajib)</span>
-          </label>
-          <select
-            aria-describedby={errors.polo_model ? "polo_model-error" : undefined}
-            aria-invalid={Boolean(errors.polo_model)}
-            className={`${styles.select} ${errors.polo_model ? styles.inputError : ""}`}
-            id="polo_model"
-            name="polo_model"
-            onChange={(event) => updateField("polo_model", event.target.value)}
-            required
-            value={formData.polo_model}
-          >
-            <option value="">Pilih model</option>
-            {POLO_MODELS.map((model) => (
-              <option key={model} value={model}>{model}</option>
-            ))}
-          </select>
-          {errors.polo_model ? (
-            <ErrorMessage id="polo_model-error" message={errors.polo_model} />
-          ) : null}
-        </div>
-
-        </div>
+         </div>
       </section>
 
       <section className={styles.formSection}>
@@ -494,7 +607,7 @@ export function RegistrationForm() {
 
         <div className={styles.field}>
           <label className={styles.label} htmlFor="actuarial_consultant_status">
-            Konsultan Aktuaria <span className={styles.required}>(wajib)</span>
+             Sertifikasi Konsultan Aktuaria Indonesia (CIAC) <span className={styles.required}>(wajib)</span>
           </label>
           <select
             aria-describedby={
@@ -506,28 +619,51 @@ export function RegistrationForm() {
             className={`${styles.select} ${errors.actuarial_consultant_status ? styles.inputError : ""}`}
             id="actuarial_consultant_status"
             name="actuarial_consultant_status"
-            onChange={(event) =>
-              updateField("actuarial_consultant_status", event.target.value)
-            }
+             onChange={(event) => chooseActuarialStatus(event.target.value)}
             required
             value={formData.actuarial_consultant_status}
           >
-            <option value="">Pilih status</option>
+             <option value="">Pilih status CIAC</option>
             {ACTUARIAL_CONSULTANT_STATUSES.map((status) => (
               <option key={status} value={status}>{status}</option>
             ))}
           </select>
-          {errors.actuarial_consultant_status ? (
+         {errors.actuarial_consultant_status ? (
             <ErrorMessage
               id="actuarial_consultant_status-error"
               message={errors.actuarial_consultant_status}
             />
-          ) : null}
+         ) : null}
         </div>
+
+        {formData.actuarial_consultant_status === "Peserta Baru" ? (
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="certificate_file">
+              Surat Keterangan Kerja yang ditandatangani oleh Pemimpin KKA di atas meterai. <span className={styles.required}>(wajib)</span>
+            </label>
+            <input
+              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+              aria-describedby={errors.certificate_file ? "certificate_file-error" : "certificate_file-help"}
+              aria-invalid={Boolean(errors.certificate_file)}
+              className={`${styles.input} ${styles.fileInput} ${errors.certificate_file ? styles.inputError : ""}`}
+              id="certificate_file"
+              name="certificate_file"
+              onChange={(event) => chooseCertificate(event.target.files?.[0] ?? null)}
+              ref={fileInputRef}
+              required
+              type="file"
+            />
+            <input name="certificate_upload_id" type="hidden" value={formData.certificate_upload_id} />
+            <p className={styles.helper} id="certificate_file-help">Format PDF, JPG, JPEG, atau PNG. Ukuran maksimal 2 MiB (2.097.152 bytes).</p>
+            {errors.certificate_file ? <ErrorMessage id="certificate_file-error" message={errors.certificate_file} /> : null}
+          </div>
+        ) : (
+          <input name="certificate_upload_id" type="hidden" value="" />
+        )}
 
         <div className={styles.field}>
           <label className={styles.label} htmlFor="attends_pai_congress">
-            Hadir Kongres PAI <span className={styles.required}>(wajib)</span>
+             Hadir pada Kongres Persatuan Aktuaris Indonesia (PAI) <span className={styles.required}>(wajib)</span>
           </label>
           <select
             aria-describedby={
@@ -617,7 +753,7 @@ export function RegistrationForm() {
       <div className={styles.submitArea}>
         <button
           className={styles.submitButton}
-          disabled={isPending}
+           disabled={isPending}
           type="submit"
         >
           {isPending ? "Mengirim Pendaftaran..." : "Kirim Pendaftaran"}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { z } from "zod";
 
 import { requirePermission } from "@/lib/auth/server";
+import { formatIndonesianRupiah, PAYMENT_INSTRUCTIONS } from "@/lib/billing/pricing";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
@@ -9,6 +10,7 @@ import {
   type AttendanceSummary,
 } from "../participant-list";
 import { EmailCorrectionForm } from "../email-correction-form";
+import { BillingPaymentForm } from "../billing-payment-form";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,7 @@ type DatabaseParticipantRow = {
   phone_number: string;
   member_number: string | null;
   kka_name: string | null;
+  position: string | null;
   polo_size: string | null;
   polo_model: string | null;
   package_type: string | null;
@@ -50,6 +53,32 @@ type DetailData = {
   arrival: AttendanceSummary;
   seminar: AttendanceSummary;
   day3: AttendanceSummary;
+  billing: BillingRow | null;
+  certificate: CertificateRow | null;
+};
+
+type BillingRow = {
+  id: string;
+  billing_number: string;
+  registration_id: string;
+  full_name: string;
+  kka_name: string;
+  package_type: string;
+  participation_scope: string;
+  amount: number;
+  payment_status: "PAID" | "UNPAID";
+  paid_at: string | null;
+  paid_by: string | null;
+  paid_by_name: string | null;
+  billing_email_status: "PENDING" | "SENT" | "FAILED";
+  billing_email_error: string | null;
+  created_at: string;
+};
+
+type CertificateRow = {
+  file_name: string;
+  file_mime: string;
+  file_size: number;
 };
 
 function formatDateTime(
@@ -113,7 +142,7 @@ async function loadDetailData(
     const { data: participant, error: participantError } = await adminSupabase
       .from("participants")
       .select(
-        "id, registration_id, full_name, email, phone_number, member_number, kka_name, polo_size, polo_model, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status, email_status, email_generation, last_email_sent_at, created_at",
+         "id, registration_id, full_name, email, phone_number, member_number, kka_name, position, polo_size, polo_model, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status, email_status, email_generation, last_email_sent_at, created_at",
       )
       .eq("registration_id", registrationId)
       .maybeSingle();
@@ -123,6 +152,32 @@ async function loadDetailData(
     }
 
     const participantRow = participant as DatabaseParticipantRow;
+    const { data: billing, error: billingError } = await adminSupabase
+      .from("registration_billings")
+      .select("id, billing_number, registration_id, full_name, kka_name, package_type, participation_scope, amount, payment_status, paid_at, paid_by, billing_email_status, billing_email_error, created_at")
+      .eq("participant_id", participantRow.id)
+      .maybeSingle();
+    if (billingError) return null;
+
+    let billingWithAdmin = billing as BillingRow | null;
+    if (billingWithAdmin?.paid_by) {
+      const { data: paidByProfile } = await adminSupabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", billingWithAdmin.paid_by)
+        .maybeSingle();
+      billingWithAdmin = {
+        ...billingWithAdmin,
+        paid_by_name: paidByProfile?.full_name ?? billingWithAdmin.paid_by,
+      };
+    }
+
+    const { data: certificate, error: certificateError } = await adminSupabase
+      .from("registration_documents")
+      .select("file_name, file_mime, file_size")
+      .eq("participant_id", participantRow.id)
+      .maybeSingle();
+    if (certificateError) return null;
     const { data: sessions, error: sessionsError } = await adminSupabase
       .from("sessions")
       .select("id, code")
@@ -190,6 +245,8 @@ async function loadDetailData(
       arrival,
       seminar,
       day3,
+      billing: billingWithAdmin,
+      certificate: certificate as CertificateRow | null,
     };
   } catch {
     return null;
@@ -332,7 +389,8 @@ export default async function ParticipantDetailPage({
               label="Nomor Anggota"
               value={participant.member_number ?? "Tidak diisi"}
             />
-            <DetailField label="Nama KKA" value={participant.kka_name ?? "Tidak diisi"} />
+             <DetailField label="Nama KKA" value={participant.kka_name ?? "Tidak diisi"} />
+             <DetailField label="Jabatan" value={participant.position ?? "Tidak diisi"} />
             <DetailField label="Ukuran Poloshirt" value={participant.polo_size ?? "Tidak diisi"} />
             <DetailField label="Model Poloshirt" value={participant.polo_model ?? "Tidak diisi"} />
             <DetailField label="Paket yang diambil" value={participant.package_type ?? "-"} />
@@ -368,14 +426,50 @@ export default async function ParticipantDetailPage({
               value={formatDateTime(participant.created_at)}
             />
           </dl>
-          <div className="mt-5 border-t border-[#eee6d8] pt-4">
+           <div className="mt-5 border-t border-[#eee6d8] pt-4">
             <EmailCorrectionForm
               currentEmail={participant.email}
               emailGeneration={participant.email_generation}
               registrationId={participant.registration_id}
             />
-          </div>
-        </section>
+           </div>
+           {detailData.certificate ? (
+             <div className="mt-5 border-t border-[#eee6d8] pt-4">
+               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#897657]">Surat Keterangan Kerja CIAC</p>
+               <p className="mt-1 break-words text-sm font-semibold text-[#344d68]">{detailData.certificate.file_name} ({Math.ceil(detailData.certificate.file_size / 1024)} KiB)</p>
+               <a
+                 className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                 href={`/api/admin/participants/${participant.registration_id}/certificate`}
+               >
+                 Buka file private
+               </a>
+             </div>
+           ) : null}
+         </section>
+
+         {detailData.billing ? (
+           <section aria-labelledby="billing-heading" className="mt-4 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
+             <h2 className="text-xl font-semibold text-[#142842]" id="billing-heading">Tagihan Biaya Pendaftaran</h2>
+             <dl className="mt-5 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+               <DetailField label="Nomor tagihan unik" value={detailData.billing.billing_number} />
+               <DetailField label="Nomor registrasi" value={detailData.billing.registration_id} />
+               <DetailField label="Nama peserta" value={detailData.billing.full_name} />
+               <DetailField label="KKA" value={detailData.billing.kka_name} />
+               <DetailField label="Paket yang diambil" value={detailData.billing.package_type} />
+               <DetailField label="Pilihan mengikuti acara" value={detailData.billing.participation_scope} />
+               <DetailField label="Rincian biaya" value={`${detailData.billing.package_type}: ${formatIndonesianRupiah(detailData.billing.amount)}`} />
+               <DetailField label="Total tagihan" value={formatIndonesianRupiah(detailData.billing.amount)} />
+               <DetailField label="Status pembayaran" value={detailData.billing.payment_status === "PAID" ? "Lunas" : "Belum Dibayar"} valueClassName={detailData.billing.payment_status === "PAID" ? "text-[#267044]" : "text-[#80631e]"} />
+               <DetailField label="Tanggal pembayaran" value={formatDateTime(detailData.billing.paid_at, "Belum dibayar")} />
+               <DetailField label="Admin yang mengubah status" value={detailData.billing.paid_by_name ?? "Belum ada"} />
+               <DetailField label="Status email tagihan" value={detailData.billing.billing_email_status === "SENT" ? "Diterima layanan pengiriman" : detailData.billing.billing_email_status === "FAILED" ? "Gagal dikirim" : "Belum diproses"} />
+               <DetailField label="Tanggal pembuatan tagihan" value={formatDateTime(detailData.billing.created_at)} />
+             </dl>
+             {detailData.billing.billing_email_error ? <p className="mt-4 text-sm text-[#9b3d31]">Log email: {detailData.billing.billing_email_error}</p> : null}
+             <p className="mt-4 text-sm leading-6 text-[#5b6c7c]">Instruksi pembayaran: {PAYMENT_INSTRUCTIONS.bank}, rekening {PAYMENT_INSTRUCTIONS.accountNumber} atas nama {PAYMENT_INSTRUCTIONS.accountName}. Batas akhir {PAYMENT_INSTRUCTIONS.deadline}. Bukti: {PAYMENT_INSTRUCTIONS.proofEmail} atau {PAYMENT_INSTRUCTIONS.proofWhatsapp}.</p>
+             <BillingPaymentForm billingId={detailData.billing.id} registrationId={participant.registration_id} paymentStatus={detailData.billing.payment_status} />
+           </section>
+         ) : null}
 
         <section
           aria-labelledby="registration-email-heading"

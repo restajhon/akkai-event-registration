@@ -1,5 +1,16 @@
 import type { RegistrationFieldErrors } from "@/lib/validation/registration";
 
+export type RegistrationBillingSummary = {
+  billingNumber: string;
+  registrationId: string;
+  fullName: string;
+  kkaName: string;
+  packageType: string;
+  participationScope: string;
+  amount: number;
+  createdAt: string;
+};
+
 export type RegistrationActionStatus =
   | "idle"
   | "validation-error"
@@ -17,6 +28,8 @@ export type RegistrationActionState = {
   registrationId?: string;
   emailDelivery?: EmailDeliveryStatus;
   emailStatusSyncPending?: boolean;
+  billing?: RegistrationBillingSummary;
+  billingEmailDelivery?: EmailDeliveryStatus;
 };
 
 export const initialRegistrationState: RegistrationActionState = {

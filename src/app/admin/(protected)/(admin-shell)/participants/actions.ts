@@ -507,3 +507,49 @@ export async function resendRegistrationQr(
     return errorState("Terjadi kendala saat mengirim ulang QR. Silakan coba kembali.");
   }
 }
+
+export async function updateRegistrationBillingPaymentStatus(
+  previousState: ParticipantActionState,
+  formData: FormData,
+): Promise<ParticipantActionState> {
+  void previousState;
+
+  const profile = await getAuthorizedProfile("participants.manage");
+  if (!profile) {
+    return errorState("Anda tidak memiliki akses untuk mengubah status pembayaran.");
+  }
+
+  const billingId = readFormString(formData, "billingId");
+  const paymentStatus = readFormString(formData, "paymentStatus");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(billingId)) {
+    return errorState("Data tagihan tidak valid.");
+  }
+  if (paymentStatus !== "PAID" && paymentStatus !== "UNPAID") {
+    return errorState("Status pembayaran tidak valid.");
+  }
+
+  try {
+    const { data, error } = await createAdminClient().rpc(
+      "set_registration_billing_payment_status",
+      {
+        p_billing_id: billingId,
+        p_payment_status: paymentStatus,
+        p_paid_by: profile.id,
+      },
+    );
+    const result = (Array.isArray(data) ? data[0] : data) as { result_code?: string } | null;
+
+    if (error || result?.result_code !== "UPDATED") {
+      return errorState("Status pembayaran belum dapat diperbarui. Silakan coba kembali.");
+    }
+
+    const registrationId = readRegistrationId(formData);
+    if (registrationId) revalidateParticipantPaths(registrationId);
+    return {
+      status: "success",
+      message: paymentStatus === "PAID" ? "Status pembayaran diubah menjadi Lunas." : "Status pembayaran diubah menjadi Belum Dibayar.",
+    };
+  } catch {
+    return errorState("Status pembayaran belum dapat diperbarui. Silakan coba kembali.");
+  }
+}

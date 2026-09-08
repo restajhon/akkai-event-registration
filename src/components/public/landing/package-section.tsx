@@ -1,10 +1,11 @@
 import styles from "./landing.module.css";
 import { RegistrationLink } from "./registration-link";
+import { formatIndonesianRupiah, REGISTRATION_PACKAGE_PRICES } from "@/lib/billing/pricing";
 
 const packages = [
   {
     name: "Twin Share",
-    price: "Rp6.000.000",
+    price: formatIndonesianRupiah(REGISTRATION_PACKAGE_PRICES["Twin Share"]),
     description: "Akomodasi penginapan bersama peserta lain.",
     items: [
       "Akomodasi",
@@ -18,7 +19,7 @@ const packages = [
   },
   {
     name: "Single",
-    price: "Rp7.000.000",
+    price: formatIndonesianRupiah(REGISTRATION_PACKAGE_PRICES.Single),
     description: "Akomodasi penginapan privat untuk satu peserta.",
     items: [
       "Akomodasi",
