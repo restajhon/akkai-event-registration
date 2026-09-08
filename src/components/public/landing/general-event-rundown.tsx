@@ -14,7 +14,7 @@ export function GeneralEventRundown() {
         </div>
         <div className={styles.rundownShell}>
           <div className={styles.rundownList}>
-          {AKKAI_EVENT.participantRundown.map((day) => (
+          {AKKAI_EVENT.homepageRundown.map((day) => (
             <details className={styles.rundownDay} key={day.day} open={day.day === "Day 1"}>
               <summary className={styles.rundownSummary}>
                 <span className={styles.rundownSummaryText}>

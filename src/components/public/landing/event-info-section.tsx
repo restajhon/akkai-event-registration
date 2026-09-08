@@ -30,7 +30,7 @@ export function EventInfoSection() {
           </p>
         </div>
         <div className={styles.dayGrid}>
-          {AKKAI_EVENT.participantRundown.map((day, index) => (
+          {AKKAI_EVENT.homepageRundown.map((day, index) => (
             <article
               className={`${styles.dayCard} ${index === 1 ? styles.dayCardFeatured : ""}`}
               key={day.day}
