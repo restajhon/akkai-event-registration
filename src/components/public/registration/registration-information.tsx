@@ -110,8 +110,8 @@ export function RegistrationInformation() {
           <p className={styles.infoCardIntro}>Rangkaian kegiatan {AKKAI_EVENT.shortName}.</p>
         </div>
         <div className={styles.rundownList}>
-          {AKKAI_EVENT.participantRundown.map((day) => (
-            <details className={styles.rundownDay} key={day.day} open={day.day === "Day 1"}>
+          {AKKAI_EVENT.homepageRundown.map((day) => (
+            <details className={styles.rundownDay} key={day.day} open={day.day === "Hari ke-1"}>
               <summary className={styles.rundownSummary}>
                 <span>
                   <strong>{day.day}</strong>
