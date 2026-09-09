@@ -36,7 +36,12 @@ function sanitizeMessage(message: string) {
 
 export function getRegistrationDiagnosticError(error: unknown) {
   const record = getErrorRecord(error);
-  const message = error instanceof Error ? error.message : String(error);
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof record?.message === "string"
+        ? record.message
+        : String(error);
   const code = record?.code;
 
   return {

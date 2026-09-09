@@ -42,6 +42,19 @@ describe("registration diagnostics", () => {
     errorSpy.mockRestore();
   });
 
+  it("keeps code and message from plain provider error objects", () => {
+    expect(
+      getRegistrationDiagnosticError({
+        code: "42702",
+        message: 'column reference "email" is ambiguous',
+      }),
+    ).toEqual({
+      errorType: "object",
+      errorCode: "42702",
+      message: 'column reference "email" is ambiguous',
+    });
+  });
+
   it("sanitizes details received from a client-side stage", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
