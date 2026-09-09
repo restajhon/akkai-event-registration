@@ -5,6 +5,7 @@ import { useActionState, useRef, useState, type FormEvent } from "react";
 import {
   cancelRegistrationCertificateUpload,
   prepareRegistrationCertificateUpload,
+  reportRegistrationStageFailure,
   submitRegistration,
 } from "@/app/register/actions";
 import { AKKAI_EVENT, IMPORTANT_INFO } from "@/lib/akkai-event";
@@ -138,7 +139,20 @@ export function RegistrationForm() {
         const result = await submitRegistration(previousState, submissionData);
         if (result.status !== "submitted") setSubmitLocked(false);
         return result;
-      } catch {
+      } catch (error) {
+        try {
+          const errorRecord =
+            typeof error === "object" && error !== null
+              ? (error as Record<string, unknown>)
+              : null;
+          await reportRegistrationStageFailure("storage-upload", {
+            errorType: error instanceof Error ? error.name : typeof error,
+            errorCode: errorRecord?.code,
+            message: error instanceof Error ? error.message : String(error),
+          });
+        } catch {
+          // Diagnostics must never change the generic upload failure response.
+        }
         await cancelRegistrationCertificateUpload(prepared.intentId);
         setSubmitLocked(false);
         return {

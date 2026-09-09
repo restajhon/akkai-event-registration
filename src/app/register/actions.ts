@@ -13,7 +13,9 @@ import {
   validateRegistrationCertificateMetadata,
 } from "@/lib/registration/certificate";
 import {
+  logRegistrationStageDetails,
   logRegistrationStageFailure,
+  type RegistrationDiagnosticDetails,
   type RegistrationDiagnosticStage,
 } from "@/lib/registration/diagnostics";
 import {
@@ -39,6 +41,14 @@ const DUPLICATE_EMAIL_ERROR =
 const DUPLICATE_MEMBER_NUMBER_ERROR =
   "Nomor anggota ini sudah terdaftar. Silakan cek kembali data Anda atau hubungi panitia.";
 const REGISTRATION_CLOSED_ERROR = "Periode registrasi telah ditutup.";
+const REGISTRATION_DIAGNOSTIC_STAGES: RegistrationDiagnosticStage[] = [
+  "upload-intent",
+  "storage-upload",
+  "rpc-v4",
+  "billing",
+  "registration-email",
+  "billing-email",
+];
 
 type RegistrationReservation = {
   result_code: string;
@@ -76,6 +86,14 @@ type ReservedEmailLog = {
 type UploadPreparationState =
   | { status: "ready"; intentId: string; path: string; token: string }
   | { status: "error"; message: string };
+
+export async function reportRegistrationStageFailure(
+  stage: RegistrationDiagnosticStage,
+  details: RegistrationDiagnosticDetails,
+) {
+  if (!REGISTRATION_DIAGNOSTIC_STAGES.includes(stage)) return;
+  logRegistrationStageDetails(stage, details);
+}
 
 function getFormValue(formData: FormData, field: string) {
   const value = formData.get(field);

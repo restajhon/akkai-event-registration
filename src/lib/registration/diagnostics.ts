@@ -10,6 +10,12 @@ export type RegistrationDiagnosticStage =
 
 type ErrorRecord = Record<string, unknown>;
 
+export type RegistrationDiagnosticDetails = {
+  errorType?: unknown;
+  errorCode?: unknown;
+  message?: unknown;
+};
+
 function getErrorRecord(error: unknown): ErrorRecord | null {
   return typeof error === "object" && error !== null
     ? (error as ErrorRecord)
@@ -44,8 +50,21 @@ export function logRegistrationStageFailure(
   stage: RegistrationDiagnosticStage,
   error: unknown,
 ) {
+  const diagnostic = getRegistrationDiagnosticError(error);
+  logRegistrationStageDetails(stage, diagnostic);
+}
+
+export function logRegistrationStageDetails(
+  stage: RegistrationDiagnosticStage,
+  details: RegistrationDiagnosticDetails,
+) {
   console.error("Registration stage failed", {
     stage,
-    ...getRegistrationDiagnosticError(error),
+    errorType: sanitizeMessage(String(details.errorType ?? "unknown")),
+    errorCode:
+      details.errorCode == null
+        ? null
+        : sanitizeMessage(String(details.errorCode)),
+    message: sanitizeMessage(String(details.message ?? "unknown error")),
   });
 }

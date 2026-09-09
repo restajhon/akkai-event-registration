@@ -4,6 +4,7 @@ vi.mock("server-only", () => ({}));
 
 import {
   getRegistrationDiagnosticError,
+  logRegistrationStageDetails,
   logRegistrationStageFailure,
 } from "@/lib/registration/diagnostics";
 
@@ -36,6 +37,25 @@ describe("registration diagnostics", () => {
       errorType: "Error",
       errorCode: null,
       message: "database request failed",
+    });
+
+    errorSpy.mockRestore();
+  });
+
+  it("sanitizes details received from a client-side stage", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    logRegistrationStageDetails("storage-upload", {
+      errorType: "StorageError",
+      errorCode: "STORAGE_UPLOAD_FAILED",
+      message: "upload failed for certificates/123e4567-e89b-12d3-a456-426614174000.pdf",
+    });
+
+    expect(errorSpy).toHaveBeenCalledWith("Registration stage failed", {
+      stage: "storage-upload",
+      errorType: "StorageError",
+      errorCode: "STORAGE_UPLOAD_FAILED",
+      message: "upload failed for [redacted-storage-path]",
     });
 
     errorSpy.mockRestore();
