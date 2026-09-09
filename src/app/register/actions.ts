@@ -13,6 +13,10 @@ import {
   validateRegistrationCertificateMetadata,
 } from "@/lib/registration/certificate";
 import {
+  logRegistrationStageFailure,
+  type RegistrationDiagnosticStage,
+} from "@/lib/registration/diagnostics";
+import {
   type EmailDeliveryStatus,
   initialRegistrationState,
   type RegistrationActionState,
@@ -171,10 +175,17 @@ export async function prepareRegistrationCertificateUpload(
     file_size: Number(getFormValue(formData, "file_size")),
   };
   const fileError = validateRegistrationCertificateMetadata(fileMetadata);
-  if (fileError) return { status: "error", message: fileError };
+  if (fileError) {
+    logRegistrationStageFailure("upload-intent", new Error(fileError));
+    return { status: "error", message: fileError };
+  }
   const emailResult = participantEmailSchema.safeParse(getFormValue(formData, "email"));
-  if (!emailResult.success) return { status: "error", message: UPLOAD_ERROR };
+  if (!emailResult.success) {
+    logRegistrationStageFailure("upload-intent", new Error("invalid participant email"));
+    return { status: "error", message: UPLOAD_ERROR };
+  }
 
+  let stage: RegistrationDiagnosticStage = "upload-intent";
   try {
     const supabase = createAdminClient();
     const email = emailResult.data;
@@ -191,13 +202,24 @@ export async function prepareRegistrationCertificateUpload(
       .select("id")
       .single();
 
-    if (intentError || !intent) return { status: "error", message: GENERAL_ERROR };
+    if (intentError || !intent) {
+      logRegistrationStageFailure(
+        "upload-intent",
+        intentError ?? new Error("upload intent was not created"),
+      );
+      return { status: "error", message: GENERAL_ERROR };
+    }
 
+    stage = "storage-upload";
     const { data: signedUpload, error: signedUploadError } = await supabase.storage
       .from(REGISTRATION_CERTIFICATE_BUCKET)
       .createSignedUploadUrl(path, { upsert: false });
 
     if (signedUploadError || !signedUpload) {
+      logRegistrationStageFailure(
+        "storage-upload",
+        signedUploadError ?? new Error("signed upload URL was not created"),
+      );
       await cleanupUploadIntent(supabase, intent.id);
       return { status: "error", message: GENERAL_ERROR };
     }
@@ -208,7 +230,8 @@ export async function prepareRegistrationCertificateUpload(
       path: signedUpload.path,
       token: signedUpload.token,
     };
-  } catch {
+  } catch (error) {
+    logRegistrationStageFailure(stage, error);
     return { status: "error", message: GENERAL_ERROR };
   }
 }
@@ -270,7 +293,8 @@ async function finalizeRegistrationEmail(
       p_error_category: errorCategory,
       p_sent_at: finalStatus === "SENT" ? new Date().toISOString() : null,
     });
-  } catch {
+  } catch (error) {
+    logRegistrationStageFailure("registration-email", error);
     // Registration and billing remain successful if only the delivery log sync fails.
   }
 }
@@ -290,7 +314,8 @@ async function finalizeBillingEmail(
       p_error_message: errorMessage,
       p_sent_at: finalStatus === "SENT" ? new Date().toISOString() : null,
     });
-  } catch {
+  } catch (error) {
+    logRegistrationStageFailure("billing-email", error);
     // Provider result is still shown; the pending log makes the sync gap visible to admins.
   }
 }
@@ -346,6 +371,7 @@ export async function submitRegistration(
 
   let supabase: ReturnType<typeof createAdminClient>;
   let uploadIntent: UploadIntent | null = null;
+  let stage: RegistrationDiagnosticStage = "upload-intent";
 
   try {
     supabase = createAdminClient();
@@ -353,6 +379,7 @@ export async function submitRegistration(
     if (parsed.data.actuarial_consultant_status === "Peserta Baru") {
       if (!isUuid(parsed.data.certificate_upload_id)) return stateWithGeneralError(UPLOAD_ERROR);
       uploadIntent = await loadUploadIntent(supabase, parsed.data.certificate_upload_id);
+      stage = "storage-upload";
       if (
         !uploadIntent ||
         uploadIntent.status !== "PENDING" ||
@@ -360,11 +387,16 @@ export async function submitRegistration(
         new Date(uploadIntent.expires_at).getTime() <= Date.now() ||
         !(await validateUploadedCertificate(supabase, uploadIntent))
       ) {
+        logRegistrationStageFailure(
+          "storage-upload",
+          new Error("uploaded certificate validation failed"),
+        );
         if (uploadIntent?.status === "PENDING") await cleanupUploadIntent(supabase, uploadIntent.id);
         return stateWithGeneralError(UPLOAD_ERROR);
       }
     }
 
+    stage = "rpc-v4";
     const { data: reservationData, error: reservationError } = await supabase.rpc(
       "create_participant_with_registration_reservation_v4",
       {
@@ -385,12 +417,19 @@ export async function submitRegistration(
     );
 
     if (reservationError || !reservationData) {
+      logRegistrationStageFailure(
+        "rpc-v4",
+        reservationError ?? new Error("reservation RPC returned no data"),
+      );
       if (uploadIntent) await cleanupUploadIntent(supabase, uploadIntent.id);
       return stateWithGeneralError(GENERAL_ERROR);
     }
 
     const reservation = (Array.isArray(reservationData) ? reservationData[0] : reservationData) as RegistrationReservation | undefined;
-    if (!reservation) return stateWithGeneralError(GENERAL_ERROR);
+    if (!reservation) {
+      logRegistrationStageFailure("rpc-v4", new Error("reservation RPC returned no row"));
+      return stateWithGeneralError(GENERAL_ERROR);
+    }
 
     if (reservation.result_code === "DUPLICATE_EMAIL") {
       if (uploadIntent) await cleanupUploadIntent(supabase, uploadIntent.id);
@@ -414,6 +453,7 @@ export async function submitRegistration(
       };
     }
 
+    stage = "billing";
     if (
       reservation.result_code !== "CREATED" ||
       !reservation.participant_id ||
@@ -429,6 +469,7 @@ export async function submitRegistration(
       !reservation.billing_amount ||
       !reservation.billing_created_at
     ) {
+      logRegistrationStageFailure("billing", new Error("reservation billing data was incomplete"));
       if (uploadIntent) await cleanupUploadIntent(supabase, uploadIntent.id);
       return stateWithGeneralError(GENERAL_ERROR);
     }
@@ -439,7 +480,10 @@ export async function submitRegistration(
       reservation.email_log_id,
       reservation.email_generation,
     );
-    if (!reservedEmailLog || reservedEmailLog.status !== "PENDING") return stateWithGeneralError(GENERAL_ERROR);
+    if (!reservedEmailLog || reservedEmailLog.status !== "PENDING") {
+      logRegistrationStageFailure("billing", new Error("reserved registration email log was not pending"));
+      return stateWithGeneralError(GENERAL_ERROR);
+    }
 
     const billing = {
       billingNumber: reservation.billing_number,
@@ -453,6 +497,7 @@ export async function submitRegistration(
     };
 
     let emailDelivery: EmailDeliveryStatus = "failed";
+    stage = "registration-email";
     try {
       const qrPngBuffer = await generateParticipantQrPng(reservation.qr_token);
       const emailResult = await sendRegistrationEmail({
@@ -479,6 +524,7 @@ export async function submitRegistration(
           null,
         );
       } else {
+        logRegistrationStageFailure("registration-email", new Error(emailResult.errorCategory));
         await finalizeRegistrationEmail(
           supabase,
           reservation.participant_id,
@@ -489,7 +535,8 @@ export async function submitRegistration(
           emailResult.errorCategory,
         );
       }
-    } catch {
+    } catch (error) {
+      logRegistrationStageFailure("registration-email", error);
       await finalizeRegistrationEmail(
         supabase,
         reservation.participant_id,
@@ -502,6 +549,7 @@ export async function submitRegistration(
     }
 
     let billingEmailDelivery: EmailDeliveryStatus = "failed";
+    stage = "billing-email";
     const billingEmailResult = await sendBillingEmail({
       recipientEmail: reservation.email,
       ...billing,
@@ -519,6 +567,7 @@ export async function submitRegistration(
         null,
       );
     } else {
+      logRegistrationStageFailure("billing-email", new Error(billingEmailResult.errorMessage));
       await finalizeBillingEmail(
         supabase,
         reservation.billing_id,
@@ -534,7 +583,8 @@ export async function submitRegistration(
       billing,
       billingEmailDelivery,
     );
-  } catch {
+  } catch (error) {
+    logRegistrationStageFailure(stage, error);
     if (uploadIntent) {
       try {
         await cleanupUploadIntent(createAdminClient(), uploadIntent.id);
