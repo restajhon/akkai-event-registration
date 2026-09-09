@@ -25,6 +25,11 @@ type DatabaseParticipantRow = {
   created_at: string;
 };
 
+type DatabaseBillingRow = {
+  participant_id: string;
+  payment_status: "PAID" | "UNPAID";
+};
+
 type SessionRow = {
   id: string;
   code: "ARRIVAL" | "SEMINAR" | "DAY3";
@@ -50,10 +55,27 @@ function emptyAttendance(): AttendanceSummary {
 export async function loadParticipantPage(
   query: string,
   requestedPage: number,
+  billingStatus: "all" | "PAID" | "UNPAID" = "all",
 ): Promise<ParticipantPageData | null> {
   try {
     const adminSupabase = createAdminClient();
     const offset = (requestedPage - 1) * PAGE_SIZE;
+    let billingParticipantIds: string[] | null = null;
+    if (billingStatus !== "all") {
+      const billingFilterResult = await adminSupabase
+        .from("registration_billings")
+        .select("participant_id")
+        .eq("payment_status", billingStatus);
+
+      if (billingFilterResult.error) {
+        return null;
+      }
+
+      billingParticipantIds = (billingFilterResult.data ?? []).map(
+        (row) => row.participant_id as string,
+      );
+    }
+
     let participantQuery = adminSupabase
       .from("participants")
       .select(
@@ -61,6 +83,13 @@ export async function loadParticipantPage(
         { count: "exact" },
       )
       .order("created_at", { ascending: false });
+
+    if (billingParticipantIds) {
+      participantQuery = participantQuery.in(
+        "id",
+        billingParticipantIds.length > 0 ? billingParticipantIds : ["00000000-0000-0000-0000-000000000000"],
+      );
+    }
 
     if (query) {
       const escapedQuery = escapePostgrestSearchValue(query);
@@ -74,6 +103,8 @@ export async function loadParticipantPage(
       registeredResult,
       cancelledResult,
       emailFailedResult,
+      paidResult,
+      unpaidResult,
       sessionsResult,
     ] = await Promise.all([
       participantQuery.range(offset, offset + PAGE_SIZE - 1),
@@ -89,6 +120,14 @@ export async function loadParticipantPage(
         .from("participants")
         .select("id", { count: "exact", head: true })
         .eq("email_status", "FAILED"),
+      adminSupabase
+        .from("registration_billings")
+        .select("id", { count: "exact", head: true })
+        .eq("payment_status", "PAID"),
+      adminSupabase
+        .from("registration_billings")
+        .select("id", { count: "exact", head: true })
+        .eq("payment_status", "UNPAID"),
         adminSupabase
           .from("sessions")
           .select("id, code")
@@ -100,6 +139,8 @@ export async function loadParticipantPage(
       registeredResult.error ||
       cancelledResult.error ||
       emailFailedResult.error ||
+      paidResult.error ||
+      unpaidResult.error ||
       sessionsResult.error
     ) {
       return null;
@@ -110,6 +151,20 @@ export async function loadParticipantPage(
     const participantIds = participantRows.map((participant) => participant.id);
     const sessionIds = sessionRows.map((session) => session.id);
     let attendanceRows: AttendanceRow[] = [];
+    let billingRows: DatabaseBillingRow[] = [];
+
+    if (participantIds.length > 0) {
+      const billingResult = await adminSupabase
+        .from("registration_billings")
+        .select("participant_id, payment_status")
+        .in("participant_id", participantIds);
+
+      if (billingResult.error) {
+        return null;
+      }
+
+      billingRows = (billingResult.data ?? []) as DatabaseBillingRow[];
+    }
 
     if (participantIds.length > 0 && sessionIds.length > 0) {
       const attendanceResult = await adminSupabase
@@ -136,6 +191,9 @@ export async function loadParticipantPage(
         day3: AttendanceSummary;
       }
     >();
+    const billingByParticipant = new Map(
+      billingRows.map((billing) => [billing.participant_id, billing.payment_status]),
+    );
 
     for (const attendance of attendanceRows) {
       const sessionCode = sessionCodeById.get(attendance.session_id);
@@ -186,6 +244,7 @@ export async function loadParticipantPage(
         participationScope: participant.participation_scope,
         actuarialConsultantStatus: participant.actuarial_consultant_status,
         attendsPaiCongress: participant.attends_pai_congress,
+        billingStatus: billingByParticipant.get(participant.id) ?? null,
         registrationStatus: participant.registration_status,
         emailStatus: participant.email_status,
         createdAt: participant.created_at,
@@ -202,11 +261,14 @@ export async function loadParticipantPage(
         registered: registeredResult.count ?? 0,
         cancelled: cancelledResult.count ?? 0,
         emailFailed: emailFailedResult.count ?? 0,
+        paid: paidResult.count ?? 0,
+        unpaid: unpaidResult.count ?? 0,
       },
       totalCount,
       page: requestedPage,
       totalPages: Math.max(1, Math.ceil(totalCount / PAGE_SIZE)),
       query,
+      billingStatus,
     };
   } catch {
     return null;

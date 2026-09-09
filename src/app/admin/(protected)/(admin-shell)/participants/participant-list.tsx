@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import { initialParticipantActionState } from "@/lib/participants/participant-action-state";
+import {
+  billingStatusClassName,
+  billingStatusLabel,
+} from "@/lib/billing/status";
 
 import { resendRegistrationQr } from "./actions";
 import { searchParticipants } from "./search-actions";
@@ -184,6 +188,20 @@ function ParticipantStatus({
   );
 }
 
+function BillingStatus({
+  status,
+}: {
+  status: ParticipantListItem["billingStatus"];
+}) {
+  return (
+    <span
+      className={`inline-flex min-h-7 items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${billingStatusClassName(status)}`}
+    >
+      {billingStatusLabel(status)}
+    </span>
+  );
+}
+
 export function ParticipantList({
   initialData,
 }: {
@@ -193,7 +211,7 @@ export function ParticipantList({
     searchParticipants,
     { data: initialData, message: null },
   );
-  const { participants, summary, query, page, totalPages, totalCount } =
+  const { participants, summary, query, billingStatus, page, totalPages, totalCount } =
     searchState.data;
 
   return (
@@ -242,6 +260,19 @@ export function ParticipantList({
               type="search"
             />
             <input name="page" type="hidden" value="1" />
+            <label className="sr-only" htmlFor="participant-billing-status">Status billing</label>
+            <select
+              className="min-h-11 rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac]"
+              disabled={searchPending}
+              id="participant-billing-status"
+              name="billingStatus"
+              defaultValue={billingStatus}
+              key={billingStatus}
+            >
+              <option value="all">Semua status billing</option>
+              <option value="PAID">Lunas</option>
+              <option value="UNPAID">Belum Dibayar</option>
+            </select>
             <button
               className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-5 text-sm font-semibold text-white outline-none hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
               disabled={searchPending}
@@ -272,6 +303,8 @@ export function ParticipantList({
           <SummaryCard label="Terdaftar" value={summary.registered} />
           <SummaryCard label="Dibatalkan" value={summary.cancelled} />
           <SummaryCard label="Email Gagal Sebelum Diterima" value={summary.emailFailed} />
+          <SummaryCard label="Lunas" value={summary.paid} />
+          <SummaryCard label="Belum Dibayar" value={summary.unpaid} />
         </section>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-[#5b6c7c]">
@@ -309,7 +342,8 @@ export function ParticipantList({
                     <th className="w-[14%] px-3 py-3" scope="col">Paket</th>
                     <th className="w-[16%] px-3 py-3" scope="col">Konsultan Aktuaria</th>
                     <th className="w-[10%] px-3 py-3" scope="col">Hadir Kongres PAI</th>
-                    <th className="w-[14%] px-3 py-3" scope="col">Status Registrasi</th>
+                     <th className="w-[12%] px-3 py-3" scope="col">Status Registrasi</th>
+                     <th className="w-[12%] px-3 py-3" scope="col">Billing</th>
                     <th className="w-[15%] px-3 py-3" scope="col">Registrasi Kedatangan</th>
                      <th className="w-[12%] px-3 py-3" scope="col">Seminar</th>
                      <th className="w-[12%] px-3 py-3" scope="col">Registrasi Kepulangan</th>
@@ -332,7 +366,8 @@ export function ParticipantList({
         <nav aria-label="Pagination peserta" className="mt-5 flex items-center justify-between gap-3">
           {page > 1 ? (
             <form action={searchAction}>
-              <input name="query" type="hidden" value={query} />
+               <input name="query" type="hidden" value={query} />
+               <input name="billingStatus" type="hidden" value={billingStatus} />
               <input name="page" type="hidden" value={page - 1} />
               <button
                 aria-label="Halaman sebelumnya"
@@ -348,7 +383,8 @@ export function ParticipantList({
           )}
           {page < totalPages ? (
             <form action={searchAction}>
-              <input name="query" type="hidden" value={query} />
+               <input name="query" type="hidden" value={query} />
+               <input name="billingStatus" type="hidden" value={billingStatus} />
               <input name="page" type="hidden" value={page + 1} />
               <button
                 aria-label="Halaman berikutnya"
@@ -407,6 +443,10 @@ function ParticipantCard({ participant }: { participant: ParticipantListItem }) 
            <dt className="text-xs uppercase tracking-wide text-[#897657]">Hadir Kongres PAI</dt>
            <dd className="mt-1 break-words font-medium text-[#344d68]">{booleanLabel(participant.attendsPaiCongress)}</dd>
          </div>
+         <div>
+           <dt className="text-xs uppercase tracking-wide text-[#897657]">Status Billing</dt>
+           <dd className="mt-1"><BillingStatus status={participant.billingStatus} /></dd>
+         </div>
         <div>
           <dt className="text-xs uppercase tracking-wide text-[#897657]">Registrasi Kedatangan</dt>
           <dd className="mt-1"><AttendanceCell attendance={participant.arrival} /></dd>
@@ -463,9 +503,12 @@ function ParticipantTableRow({
         <p className="break-words font-medium">{participant.actuarialConsultantStatus ?? "-"}</p>
       </td>
       <td className="px-3 py-3.5">{booleanLabel(participant.attendsPaiCongress)}</td>
-      <td className="px-3 py-3.5">
-        <ParticipantStatus status={participant.registrationStatus} />
-      </td>
+       <td className="px-3 py-3.5">
+         <ParticipantStatus status={participant.registrationStatus} />
+       </td>
+       <td className="px-3 py-3.5">
+         <BillingStatus status={participant.billingStatus} />
+       </td>
       <td className="px-3 py-3.5">
         <AttendanceCell attendance={participant.arrival} />
       </td>

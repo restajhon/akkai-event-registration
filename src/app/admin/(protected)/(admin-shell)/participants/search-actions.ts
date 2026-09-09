@@ -8,6 +8,7 @@ import { loadParticipantPage } from "./participant-data";
 import type { ParticipantPageData } from "./participant-page-data";
 
 const pageSchema = z.coerce.number().int().min(1).catch(1);
+const billingStatusSchema = z.enum(["all", "PAID", "UNPAID"]).catch("all");
 
 export type ParticipantSearchState = {
   data: ParticipantPageData;
@@ -33,7 +34,8 @@ export async function searchParticipants(
     ? ""
     : normalizeSearchQuery(formData.get("query"));
   const requestedPage = pageSchema.parse(formData.get("page"));
-  const data = await loadParticipantPage(query, requestedPage);
+  const billingStatus = billingStatusSchema.parse(formData.get("billingStatus"));
+  const data = await loadParticipantPage(query, requestedPage, billingStatus);
 
   if (!data) {
     return {

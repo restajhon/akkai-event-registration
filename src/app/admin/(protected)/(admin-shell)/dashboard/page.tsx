@@ -7,6 +7,13 @@ import {
   type UserRole,
 } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  calculateDashboardKpis,
+  type DashboardAttendance,
+  type DashboardBilling,
+  type DashboardParticipant,
+  type DashboardTravel,
+} from "@/lib/admin/dashboard-kpis";
 
 import { DashboardRealtimeClient } from "./dashboard-realtime-client";
 
@@ -22,14 +29,39 @@ type StationStatus =
 
 type SessionRow = {
   id: string;
-  code: string;
+  code: "ARRIVAL" | "SEMINAR" | "DAY3";
   name: string;
   event_date: string;
   status: SessionStatus;
 };
 
 type AttendanceRow = {
+  participant_id: string;
   session_id: string;
+  check_in_time: string;
+};
+
+type DashboardParticipantDatabaseRow = {
+  id: string;
+  registration_id: string;
+  full_name: string;
+  package_type: string | null;
+  participation_scope: string | null;
+  actuarial_consultant_status: string | null;
+  polo_model: string | null;
+  polo_size: string | null;
+  created_at: string;
+  registration_status: "REGISTERED" | "CANCELLED";
+};
+type DashboardDocumentRow = { participant_id: string };
+type MemberMeetingRow = { attendance_type: "SELF" | "PROXY" };
+type DashboardBillingDatabaseRow = { participant_id: string; payment_status: "PAID" | "UNPAID" };
+type DashboardTravelDatabaseRow = {
+  participant_id: string;
+  outbound_date: string;
+  outbound_time: string;
+  return_date: string;
+  return_time: string;
 };
 
 type StationRow = {
@@ -68,6 +100,9 @@ type DashboardData = {
   activeAttendanceCount: number;
   activeScannerCount: number;
   stations: DashboardStation[];
+  kpis: ReturnType<typeof calculateDashboardKpis>;
+  recentRegistrations: DashboardParticipant[];
+  memberMeeting: { total: number; self: number; proxy: number };
 };
 
 const stationStatusPriority: Record<StationStatus, number> = {
@@ -151,6 +186,54 @@ function compareStationRows(left: StationRow, right: StationRow) {
   return left.station_name.localeCompare(right.station_name, "id");
 }
 
+function DistributionCard({
+  title,
+  values,
+}: {
+  title: string;
+  values: Record<string, number>;
+}) {
+  const entries = Object.entries(values);
+
+  return (
+    <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
+      <h2 className="text-lg font-semibold text-[#142842]">{title}</h2>
+      {entries.length === 0 ? (
+        <p className="mt-3 text-sm text-[#897657]">Belum ada data.</p>
+      ) : (
+        <dl className="mt-3 divide-y divide-[#eee6d8] text-sm">
+          {entries.map(([label, value]) => (
+            <div className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0" key={label}>
+              <dt className="break-words text-[#5b6c7c]">{label}</dt>
+              <dd className="font-bold text-[#142842]">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </section>
+  );
+}
+
+function TravelSummary({ kpis }: { kpis: ReturnType<typeof calculateDashboardKpis> }) {
+  return (
+    <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
+      <h2 className="text-lg font-semibold text-[#142842]">Kelengkapan Travel</h2>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-lg bg-[#fbf5e8] p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#897657]">Arrival</p>
+          <p className="mt-1 text-xl font-bold text-[#267044]">{kpis.travel.arrivalComplete} lengkap</p>
+          <p className="text-sm text-[#5b6c7c]">{kpis.travel.arrivalIncomplete} belum lengkap</p>
+        </div>
+        <div className="rounded-lg bg-[#fbf5e8] p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#897657]">Departure</p>
+          <p className="mt-1 text-xl font-bold text-[#267044]">{kpis.travel.departureComplete} lengkap</p>
+          <p className="text-sm text-[#5b6c7c]">{kpis.travel.departureIncomplete} belum lengkap</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function canLoadScannerDashboardData(role: UserRole) {
   return (
     hasPermission(role, "scanner.pair") ||
@@ -172,8 +255,10 @@ export async function loadDashboardData(
     const [participantsResult, sessionsResult] = await Promise.all([
       adminSupabase
         .from("participants")
-        .select("id", { count: "exact", head: true })
-        .eq("registration_status", "REGISTERED"),
+        .select(
+          "id, registration_id, full_name, package_type, participation_scope, actuarial_consultant_status, polo_model, polo_size, created_at, registration_status",
+        )
+        .order("created_at", { ascending: false }),
       adminSupabase
         .from("sessions")
         .select("id, code, name, event_date, status")
@@ -185,8 +270,74 @@ export async function loadDashboardData(
       return null;
     }
 
-    const registeredCount = participantsResult.count ?? 0;
+    const participantRows = (participantsResult.data ?? []) as DashboardParticipantDatabaseRow[];
+    const registeredParticipants = participantRows.filter(
+      (participant) => participant.registration_status === "REGISTERED",
+    );
+    const registeredParticipantKpis: DashboardParticipant[] = registeredParticipants.map(
+      (participant) => ({
+        id: participant.id,
+        registrationId: participant.registration_id,
+        fullName: participant.full_name,
+        packageType: participant.package_type,
+        participationScope: participant.participation_scope,
+        actuarialConsultantStatus: participant.actuarial_consultant_status,
+        poloModel: participant.polo_model,
+        poloSize: participant.polo_size,
+        createdAt: participant.created_at,
+      }),
+    );
+    const registeredCount = registeredParticipants.length;
     const sessions = (sessionsResult.data ?? []) as SessionRow[];
+    const sessionIds = sessions.map((session) => session.id);
+    const [billingResult, travelResult, documentResult, attendanceResult, memberMeetingResult] = await Promise.all([
+      adminSupabase.from("registration_billings").select("participant_id, payment_status"),
+      adminSupabase.from("participant_travel").select("participant_id, outbound_date, outbound_time, return_date, return_time"),
+      adminSupabase.from("registration_documents").select("participant_id"),
+      sessionIds.length > 0
+        ? adminSupabase.from("attendance").select("participant_id, session_id, check_in_time").in("session_id", sessionIds)
+        : Promise.resolve({ data: [], error: null }),
+      adminSupabase.from("member_meeting_submissions").select("attendance_type"),
+    ]);
+
+    if ([billingResult, travelResult, documentResult, attendanceResult, memberMeetingResult].some((result) => result.error)) {
+      return null;
+    }
+
+    const billingRows: DashboardBilling[] = (
+      (billingResult.data ?? []) as DashboardBillingDatabaseRow[]
+    ).map((row) => ({
+      participantId: row.participant_id,
+      paymentStatus: row.payment_status,
+    }));
+    const travelRows: DashboardTravel[] = (
+      (travelResult.data ?? []) as DashboardTravelDatabaseRow[]
+    ).map((row) => ({
+      participantId: row.participant_id,
+      outboundDate: row.outbound_date,
+      outboundTime: row.outbound_time,
+      returnDate: row.return_date,
+      returnTime: row.return_time,
+    }));
+    const attendanceRows = (attendanceResult.data ?? []) as AttendanceRow[];
+    const dashboardAttendance: DashboardAttendance[] = attendanceRows
+      .map((row) => {
+        const code = sessions.find((session) => session.id === row.session_id)?.code;
+        return code === "ARRIVAL" || code === "SEMINAR" || code === "DAY3"
+          ? { participantId: row.participant_id, sessionCode: code }
+          : null;
+      })
+      .filter((row): row is DashboardAttendance => row !== null);
+    const kpis = calculateDashboardKpis(
+      registeredParticipantKpis,
+      billingRows,
+      travelRows,
+      ((documentResult.data ?? []) as DashboardDocumentRow[]).map(
+        (row) => row.participant_id,
+      ),
+      dashboardAttendance,
+    );
+    const memberMeetingRows = (memberMeetingResult.data ?? []) as MemberMeetingRow[];
     let stationRows: StationRow[] = [];
 
     if (canViewScanner) {
@@ -207,18 +358,8 @@ export async function loadDashboardData(
     const attendanceCountBySession = new Map<string, number>();
 
     if (activeSessionIds.length > 0) {
-      const { data: attendanceData, error: attendanceError } = await adminSupabase
-        .from("attendance")
-        .select("session_id")
-        .in("session_id", activeSessionIds);
-
-      if (attendanceError) {
-        return null;
-      }
-
-      const attendanceRows = (attendanceData ?? []) as AttendanceRow[];
-
       for (const attendance of attendanceRows) {
+        if (!activeSessionIds.includes(attendance.session_id)) continue;
         attendanceCountBySession.set(
           attendance.session_id,
           (attendanceCountBySession.get(attendance.session_id) ?? 0) + 1,
@@ -292,6 +433,13 @@ export async function loadDashboardData(
       activeAttendanceCount,
       activeScannerCount,
       stations,
+      kpis,
+      recentRegistrations: registeredParticipantKpis.slice(0, 5),
+      memberMeeting: {
+        total: memberMeetingRows.length,
+        self: memberMeetingRows.filter((row) => row.attendance_type === "SELF").length,
+        proxy: memberMeetingRows.filter((row) => row.attendance_type === "PROXY").length,
+      },
     };
   } catch {
     return null;
@@ -592,12 +740,27 @@ export default async function AdminDashboardPage() {
 
         <section
           aria-label="Ringkasan operasional"
-          className={`mt-4 grid gap-3 sm:grid-cols-2 ${canViewScanner ? "xl:grid-cols-3" : ""}`}
+          className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
         >
           <KpiCard
-            label="Peserta Terdaftar"
+            label="Total Peserta"
             subtitle="Registrasi aktif"
-            value={dashboardData.registeredCount}
+            value={dashboardData.kpis.totalParticipants}
+          />
+          <KpiCard
+            label="Total Lunas"
+            subtitle="Billing berstatus PAID"
+            value={dashboardData.kpis.paidCount}
+          />
+          <KpiCard
+            label="Total Belum Dibayar"
+            subtitle="Billing berstatus UNPAID"
+            value={dashboardData.kpis.unpaidCount}
+          />
+          <KpiCard
+            label="Persentase Pembayaran"
+            subtitle="Dari billing yang tersedia"
+            value={dashboardData.kpis.paymentPercentage}
           />
           <KpiCard
             label={checkInLabel}
@@ -617,6 +780,56 @@ export default async function AdminDashboardPage() {
               value={dashboardData.activeScannerCount}
             />
           ) : null}
+        </section>
+
+        <section aria-label="KPI detail peserta" className="mt-5 grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <DistributionCard title="Distribusi Paket" values={dashboardData.kpis.packageDistribution} />
+            <DistributionCard title="Pilihan Mengikuti Acara" values={dashboardData.kpis.participationDistribution} />
+            <DistributionCard title="Kategori CIAC" values={dashboardData.kpis.ciacDistribution} />
+            <DistributionCard title="Model / Ukuran Poloshirt" values={dashboardData.kpis.poloDistribution} />
+          </div>
+          <div className="grid gap-4">
+            <TravelSummary kpis={dashboardData.kpis} />
+            <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
+              <h2 className="text-lg font-semibold text-[#142842]">Kehadiran dan Dokumen</h2>
+              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                <div><dt className="text-[#897657]">ARRIVAL</dt><dd className="font-bold text-[#142842]">{dashboardData.kpis.attendanceBySession.ARRIVAL} peserta</dd></div>
+                <div><dt className="text-[#897657]">SEMINAR</dt><dd className="font-bold text-[#142842]">{dashboardData.kpis.attendanceBySession.SEMINAR} peserta</dd></div>
+                <div><dt className="text-[#897657]">DAY3</dt><dd className="font-bold text-[#142842]">{dashboardData.kpis.attendanceBySession.DAY3} peserta</dd></div>
+                <div><dt className="text-[#897657]">Surat Keterangan Kerja</dt><dd className="font-bold text-[#142842]">{dashboardData.kpis.certificateCount} dokumen</dd></div>
+              </dl>
+            </section>
+            <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
+              <h2 className="text-lg font-semibold text-[#142842]">Rapat Anggota</h2>
+              {dashboardData.memberMeeting.total === 0 ? (
+                <p className="mt-3 text-sm text-[#897657]">Belum ada data rapat anggota.</p>
+              ) : (
+                <p className="mt-3 text-sm text-[#5b6c7c]">
+                  {dashboardData.memberMeeting.total} submission: {dashboardData.memberMeeting.self} hadir sendiri dan {dashboardData.memberMeeting.proxy} dikuasakan.
+                </p>
+              )}
+            </section>
+          </div>
+        </section>
+
+        <section className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5" aria-labelledby="recent-registrations-heading">
+          <h2 className="text-xl font-semibold text-[#142842]" id="recent-registrations-heading">Registrasi Terbaru</h2>
+          {dashboardData.recentRegistrations.length === 0 ? (
+            <p className="mt-3 text-sm text-[#897657]">Belum ada registrasi terbaru.</p>
+          ) : (
+            <div className="mt-3 divide-y divide-[#eee6d8]">
+              {dashboardData.recentRegistrations.map((participant) => (
+                <div className="flex flex-col gap-1 py-3 first:pt-0 sm:flex-row sm:items-center sm:justify-between" key={participant.id}>
+                  <div>
+                    <p className="font-semibold text-[#142842]">{participant.fullName}</p>
+                    <p className="text-xs text-[#9a7526]">{participant.registrationId}</p>
+                  </div>
+                  <p className="text-sm text-[#5b6c7c]">{participant.packageType ?? "Paket belum diisi"} · {formatActivityTime(participant.createdAt)}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section

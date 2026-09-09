@@ -4,6 +4,11 @@ import { z } from "zod";
 import { requirePermission } from "@/lib/auth/server";
 import { formatIndonesianRupiah, PAYMENT_INSTRUCTIONS } from "@/lib/billing/pricing";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { loadPickupAssignmentDetail } from "@/lib/admin/assignment-data";
+import { getEffectivePickupPoint } from "@/lib/admin/pickup-mapping";
+import type { PickupParticipant } from "@/lib/admin/assignment-types";
+import { billingStatusLabel } from "@/lib/billing/status";
+import { hasPermission } from "@/lib/auth/permissions";
 
 import {
   ResendQrButton,
@@ -55,6 +60,7 @@ type DetailData = {
   day3: AttendanceSummary;
   billing: BillingRow | null;
   certificate: CertificateRow | null;
+  pickup: PickupParticipant | null;
 };
 
 type BillingRow = {
@@ -136,6 +142,7 @@ function emailStatusClassName(status: DatabaseParticipantRow["email_status"]) {
 
 async function loadDetailData(
   registrationId: string,
+  canViewPickup: boolean,
 ): Promise<DetailData | null> {
   try {
     const adminSupabase = createAdminClient();
@@ -152,6 +159,7 @@ async function loadDetailData(
     }
 
     const participantRow = participant as DatabaseParticipantRow;
+    const pickup = canViewPickup ? await loadPickupAssignmentDetail(registrationId) : null;
     const { data: billing, error: billingError } = await adminSupabase
       .from("registration_billings")
       .select("id, billing_number, registration_id, full_name, kka_name, package_type, participation_scope, amount, payment_status, paid_at, paid_by, billing_email_status, billing_email_error, created_at")
@@ -247,6 +255,7 @@ async function loadDetailData(
       day3,
       billing: billingWithAdmin,
       certificate: certificate as CertificateRow | null,
+      pickup,
     };
   } catch {
     return null;
@@ -312,7 +321,7 @@ export default async function ParticipantDetailPage({
 }: {
   params: Promise<{ registrationId: string }>;
 }) {
-  await requirePermission("participants.view");
+  const profile = await requirePermission("participants.view");
 
   const { registrationId: rawRegistrationId } = await params;
   const parsedRegistrationId = registrationIdSchema.safeParse(rawRegistrationId);
@@ -326,7 +335,10 @@ export default async function ParticipantDetailPage({
     );
   }
 
-  const detailData = await loadDetailData(parsedRegistrationId.data);
+  const detailData = await loadDetailData(
+    parsedRegistrationId.data,
+    hasPermission(profile.role, "pickup.view"),
+  );
 
   if (!detailData) {
     return (
@@ -459,7 +471,7 @@ export default async function ParticipantDetailPage({
                <DetailField label="Pilihan mengikuti acara" value={detailData.billing.participation_scope} />
                <DetailField label="Rincian biaya" value={`${detailData.billing.package_type}: ${formatIndonesianRupiah(detailData.billing.amount)}`} />
                <DetailField label="Total tagihan" value={formatIndonesianRupiah(detailData.billing.amount)} />
-               <DetailField label="Status pembayaran" value={detailData.billing.payment_status === "PAID" ? "Lunas" : "Belum Dibayar"} valueClassName={detailData.billing.payment_status === "PAID" ? "text-[#267044]" : "text-[#80631e]"} />
+                <DetailField label="Status pembayaran" value={billingStatusLabel(detailData.billing.payment_status)} valueClassName={detailData.billing.payment_status === "PAID" ? "text-[#267044]" : "text-[#80631e]"} />
                <DetailField label="Tanggal pembayaran" value={formatDateTime(detailData.billing.paid_at, "Belum dibayar")} />
                <DetailField label="Admin yang mengubah status" value={detailData.billing.paid_by_name ?? "Belum ada"} />
                <DetailField label="Status email tagihan" value={detailData.billing.billing_email_status === "SENT" ? "Diterima layanan pengiriman" : detailData.billing.billing_email_status === "FAILED" ? "Gagal dikirim" : "Belum diproses"} />
@@ -468,6 +480,24 @@ export default async function ParticipantDetailPage({
              {detailData.billing.billing_email_error ? <p className="mt-4 text-sm text-[#9b3d31]">Log email: {detailData.billing.billing_email_error}</p> : null}
              <p className="mt-4 text-sm leading-6 text-[#5b6c7c]">Instruksi pembayaran: {PAYMENT_INSTRUCTIONS.bank}, rekening {PAYMENT_INSTRUCTIONS.accountNumber} atas nama {PAYMENT_INSTRUCTIONS.accountName}. Batas akhir {PAYMENT_INSTRUCTIONS.deadline}. Bukti: {PAYMENT_INSTRUCTIONS.proofEmail} atau {PAYMENT_INSTRUCTIONS.proofWhatsapp}.</p>
              <BillingPaymentForm billingId={detailData.billing.id} registrationId={participant.registration_id} paymentStatus={detailData.billing.payment_status} />
+           </section>
+          ) : null}
+
+         {detailData.pickup ? (
+           <section aria-labelledby="travel-pickup-heading" className="mt-4 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
+             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+               <div>
+                 <h2 className="text-xl font-semibold text-[#142842]" id="travel-pickup-heading">Travel dan Pickup</h2>
+                 <p className="mt-1 text-sm text-[#5b6c7c]">Titik travel menjadi default; koreksi manual yang sudah ada tetap diprioritaskan.</p>
+               </div>
+               <Link className="text-sm font-semibold text-[#344d68] underline underline-offset-4" href={`/admin/pickup/${participant.registration_id}`}>Buka assignment pickup</Link>
+             </div>
+             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+               <DetailField label="Arrival travel" value={detailData.pickup.travel?.outboundDestination ?? "Belum diisi"} />
+               <DetailField label="Pickup arrival" value={getEffectivePickupPoint("ARRIVAL", detailData.pickup.arrivalAssignment, detailData.pickup.travel).value ?? "Belum diisi"} />
+               <DetailField label="Departure travel" value={detailData.pickup.travel?.returnDestination ?? "Belum diisi"} />
+               <DetailField label="Drop-off departure" value={getEffectivePickupPoint("DEPARTURE", detailData.pickup.departureAssignment, detailData.pickup.travel).value ?? "Belum diisi"} />
+             </div>
            </section>
          ) : null}
 

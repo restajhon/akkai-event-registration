@@ -88,7 +88,15 @@ describe("dashboard RBAC isolation", () => {
     );
 
     expect(dashboardData?.stations).toEqual([]);
-    expect(queriedTables).toEqual(["participants", "sessions", "attendance"]);
+    expect(queriedTables).toEqual([
+      "participants",
+      "sessions",
+      "registration_billings",
+      "participant_travel",
+      "registration_documents",
+      "attendance",
+      "member_meeting_submissions",
+    ]);
     expect(queriedTables).not.toContain("scanner_stations");
   });
 

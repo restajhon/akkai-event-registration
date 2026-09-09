@@ -3,6 +3,8 @@ export type AttendanceSummary = {
   checkedInAt: string | null;
 };
 
+export type ParticipantBillingStatus = "PAID" | "UNPAID" | null;
+
 export type ParticipantListItem = {
   registrationId: string;
   fullName: string;
@@ -12,6 +14,7 @@ export type ParticipantListItem = {
   participationScope: string | null;
   actuarialConsultantStatus: string | null;
   attendsPaiCongress: boolean | null;
+  billingStatus: ParticipantBillingStatus;
   registrationStatus: "REGISTERED" | "CANCELLED";
   emailStatus: "PENDING" | "SENT" | "FAILED";
   createdAt: string;
@@ -24,6 +27,8 @@ export type ParticipantSummary = {
   registered: number;
   cancelled: number;
   emailFailed: number;
+  paid: number;
+  unpaid: number;
 };
 
 export type ParticipantPageData = {
@@ -33,4 +38,5 @@ export type ParticipantPageData = {
   page: number;
   totalPages: number;
   query: string;
+  billingStatus: "all" | "PAID" | "UNPAID";
 };

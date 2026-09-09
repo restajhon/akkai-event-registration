@@ -7,6 +7,7 @@ import type {
   PickupAssignment,
   PickupParticipant,
 } from "@/lib/admin/assignment-types";
+import { getEffectivePickupPoint } from "@/lib/admin/pickup-mapping";
 
 type TransferType = "ARRIVAL" | "DEPARTURE";
 type AssignmentFilter = "all" | "assigned" | "unassigned";
@@ -221,7 +222,19 @@ export function PickupAssignmentBoard({
                         {assignmentLabel(assignment)}
                       </span>
                     </td>
-                     <td className="px-4 py-4">{isArrival ? assignment?.pickupPoint ?? "-" : assignment?.dropoffPoint ?? "-"}</td>
+                      <td className="px-4 py-4">
+                        {(() => {
+                          const point = getEffectivePickupPoint(transferType, assignment, travel);
+                          return (
+                            <>
+                              <span>{point.value ?? "Belum diisi"}</span>
+                              {point.source === "TRAVEL" ? (
+                                <span className="mt-1 block text-xs text-[#897657]">Default dari travel peserta</span>
+                              ) : null}
+                            </>
+                          );
+                        })()}
+                      </td>
                      <td className="px-4 py-4">{assignment?.vehicleLabel ?? "-"}</td>
                      <td className="px-4 py-4">{assignment?.notes ?? "-"}</td>
                     <td className="px-4 py-4">

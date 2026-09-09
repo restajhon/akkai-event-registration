@@ -10,6 +10,7 @@ import type {
   PickupParticipant,
   PickupTransferType,
 } from "@/lib/admin/assignment-types";
+import { getEffectivePickupPoint } from "@/lib/admin/pickup-mapping";
 
 import { upsertPickupAssignment } from "./actions";
 
@@ -30,6 +31,7 @@ export function PickupAssignmentForm({
       : participant.departureAssignment;
   const canEdit = participant.registrationStatus === "REGISTERED";
   const prefix = transferType.toLowerCase();
+  const effectivePoint = getEffectivePickupPoint(transferType, assignment, participant.travel);
 
   return (
     <div className="mt-5 border-t border-[#eee6d8] pt-5">
@@ -65,16 +67,19 @@ export function PickupAssignmentForm({
           <label className="text-sm font-semibold text-[#344d68]" htmlFor={`${prefix}-pickup-point`}>
             Titik Jemput
           </label>
-          <input
+           <input
             className="mt-1.5 min-h-11 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac] disabled:bg-[#f2f0eb]"
-            defaultValue={assignment?.pickupPoint ?? ""}
+             defaultValue={effectivePoint.value ?? ""}
             disabled={!canEdit || pending}
             id={`${prefix}-pickup-point`}
             maxLength={150}
             name="pickupPoint"
             placeholder="Contoh: Lobby hotel"
             type="text"
-          />
+           />
+           {effectivePoint.source === "TRAVEL" ? (
+             <p className="mt-1 text-xs text-[#897657]">Default dari tujuan arrival travel peserta; dapat dikoreksi manual.</p>
+           ) : null}
         </div> : null}
         {transferType === "DEPARTURE" ? <div>
           <label className="text-sm font-semibold text-[#344d68]" htmlFor={`${prefix}-dropoff-point`}>
@@ -82,14 +87,17 @@ export function PickupAssignmentForm({
           </label>
           <input
             className="mt-1.5 min-h-11 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac] disabled:bg-[#f2f0eb]"
-            defaultValue={assignment?.dropoffPoint ?? ""}
+             defaultValue={effectivePoint.value ?? ""}
             disabled={!canEdit || pending}
             id={`${prefix}-dropoff-point`}
             maxLength={150}
             name="dropoffPoint"
             placeholder="Contoh: Bandara Ahmad Yani"
             type="text"
-          />
+           />
+           {effectivePoint.source === "TRAVEL" ? (
+             <p className="mt-1 text-xs text-[#897657]">Default dari tujuan travel kepulangan peserta; dapat dikoreksi manual.</p>
+           ) : null}
         </div> : null}
         <div>
           <label className="text-sm font-semibold text-[#344d68]" htmlFor={`${prefix}-vehicle-label`}>

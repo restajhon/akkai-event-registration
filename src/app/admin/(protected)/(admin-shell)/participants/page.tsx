@@ -35,7 +35,7 @@ export default async function ParticipantsPage({
     redirect("/admin/participants");
   }
 
-  const pageData = await loadParticipantPage("", 1);
+  const pageData = await loadParticipantPage("", 1, "all");
 
   if (!pageData) {
     return <ParticipantPageError />;
