@@ -259,7 +259,7 @@ export function TravelForm() {
             ) : null}
           </div>
           <div className={styles.field}>
-            <FieldLabel htmlFor="outbound_time">Waktu Keberangkatan</FieldLabel>
+            <FieldLabel htmlFor="outbound_time">Waktu Kedatangan</FieldLabel>
             <input
               aria-describedby={
                 errors.outbound_time ? "outbound_time-error" : undefined
