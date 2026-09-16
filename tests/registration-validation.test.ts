@@ -53,6 +53,13 @@ describe("registration form contract", () => {
     expect(registrationSchema.safeParse(baseValues).success).toBe(true);
   });
 
+  it("accepts separate participants that share one valid email address", () => {
+    const first = registrationSchema.safeParse({ ...baseValues, full_name: "Peserta Pertama" });
+    const second = registrationSchema.safeParse({ ...baseValues, full_name: "Peserta Kedua" });
+    expect(first.success).toBe(true);
+    expect(second.success).toBe(true);
+  });
+
   it("requires a certificate upload intent for a new participant", () => {
     const result = registrationSchema.safeParse({
       ...baseValues,

@@ -9,6 +9,7 @@ import {
   type RegistrationEmailErrorCategory,
 } from "@/lib/email/registration-email";
 import { generateParticipantQrPng } from "@/lib/qr/participant-qr";
+import { logRegistrationStageDetails } from "@/lib/registration/diagnostics";
 import type { ParticipantActionState } from "@/lib/participants/participant-action-state";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -176,6 +177,7 @@ async function finalizeEmailAttempt(
   finalStatus: "SENT" | "FAILED",
   providerMessageId: string | null,
   errorCategory: RegistrationEmailErrorCategory | null,
+  errorMessage: string | null = null,
 ): Promise<FinalizationResult | null> {
   const { data, error } = await supabase.rpc(
     "finalize_participant_email_attempt",
@@ -185,7 +187,7 @@ async function finalizeEmailAttempt(
       p_email_generation: emailGeneration,
       p_final_status: finalStatus,
       p_provider_message_id: providerMessageId,
-      p_error_category: errorCategory,
+        p_error_category: errorMessage ?? errorCategory,
       p_sent_at: finalStatus === "SENT" ? new Date().toISOString() : null,
     },
   );
@@ -276,8 +278,6 @@ export async function correctParticipantEmail(
         };
       case "NO_CHANGE":
         return infoState("Email peserta tidak berubah.");
-      case "DUPLICATE_EMAIL":
-        return errorState("Email tersebut sudah digunakan oleh peserta lain.");
       case "EMAIL_SEND_PENDING":
         return infoState(
           "Masih ada proses pengiriman email yang baru saja dimulai. Tunggu hingga proses tersebut selesai sebelum mengubah alamat email.",
@@ -454,6 +454,7 @@ export async function resendRegistrationQr(
     });
 
     if (!emailResult.success) {
+      logRegistrationStageDetails("registration-email", emailResult.diagnostic);
       await finalizeEmailAttempt(
         supabase,
         participantRow.id,
@@ -462,6 +463,7 @@ export async function resendRegistrationQr(
         "FAILED",
         null,
         emailResult.errorCategory,
+        emailResult.errorMessage,
       );
       revalidateParticipantPaths(registrationId);
       return errorState(

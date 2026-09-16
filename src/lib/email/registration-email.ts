@@ -2,6 +2,10 @@ import "server-only";
 
 import { Resend } from "resend";
 
+import {
+  getRegistrationDiagnosticError,
+  type RegistrationDiagnosticDetails,
+} from "@/lib/registration/diagnostics";
 import { createRegistrationEmailTemplate } from "./registration-email-template";
 
 export type RegistrationEmailErrorCategory =
@@ -18,6 +22,8 @@ export type RegistrationEmailResult =
   | {
       success: false;
       errorCategory: RegistrationEmailErrorCategory;
+      errorMessage: string;
+      diagnostic: RegistrationDiagnosticDetails;
     };
 
 type SendRegistrationEmailInput = {
@@ -47,9 +53,15 @@ export async function sendRegistrationEmail({
   const fromEmail = process.env.RESEND_FROM_EMAIL;
 
   if (!apiKey || !fromEmail) {
+    const diagnostic = getRegistrationDiagnosticError(
+      new Error("email provider is not configured"),
+      "resend",
+    );
     return {
       success: false,
       errorCategory: "CONFIGURATION_ERROR",
+      errorMessage: diagnostic.message,
+      diagnostic,
     };
   }
 
@@ -83,9 +95,12 @@ export async function sendRegistrationEmail({
     );
 
     if (error || !data?.id) {
+      const diagnostic = getRegistrationDiagnosticError({ data, error }, "resend");
       return {
         success: false,
         errorCategory: "PROVIDER_ERROR",
+        errorMessage: diagnostic.message,
+        diagnostic,
       };
     }
 
@@ -93,10 +108,13 @@ export async function sendRegistrationEmail({
       success: true,
       providerMessageId: data.id,
     };
-  } catch {
+  } catch (error) {
+    const diagnostic = getRegistrationDiagnosticError(error, "resend");
     return {
       success: false,
       errorCategory: "PROVIDER_ERROR",
+      errorMessage: diagnostic.message,
+      diagnostic,
     };
   }
 }

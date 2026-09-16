@@ -55,6 +55,7 @@ type AttendanceRow = {
 
 type DetailData = {
   participant: DatabaseParticipantRow;
+  sharedEmailCount: number;
   arrival: AttendanceSummary;
   seminar: AttendanceSummary;
   day3: AttendanceSummary;
@@ -159,6 +160,11 @@ async function loadDetailData(
     }
 
     const participantRow = participant as DatabaseParticipantRow;
+    const sharedEmailResult = await adminSupabase
+      .from("participants")
+      .select("id", { count: "exact", head: true })
+      .eq("email", participantRow.email);
+    const sharedEmailCount = sharedEmailResult.error ? 1 : sharedEmailResult.count ?? 1;
     const pickup = canViewPickup ? await loadPickupAssignmentDetail(registrationId) : null;
     const { data: billing, error: billingError } = await adminSupabase
       .from("registration_billings")
@@ -250,6 +256,7 @@ async function loadDetailData(
 
     return {
       participant: participantRow,
+      sharedEmailCount,
       arrival,
       seminar,
       day3,
@@ -396,6 +403,13 @@ export default async function ParticipantDetailPage({
           </h2>
           <dl className="mt-5 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
             <DetailField label="Email" value={participant.email} />
+            {detailData.sharedEmailCount > 1 ? (
+              <DetailField
+                label="Indikator email bersama"
+                value={`Email ini digunakan oleh ${detailData.sharedEmailCount} peserta`}
+                valueClassName="text-[#80631e]"
+              />
+            ) : null}
             <DetailField label="WhatsApp / Kontak" value={participant.phone_number} />
             <DetailField
               label="Nomor Anggota"
@@ -457,7 +471,19 @@ export default async function ParticipantDetailPage({
                </a>
              </div>
            ) : null}
-         </section>
+          </section>
+
+          <section aria-label="Download informasi pendaftaran" className="mt-4 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
+            <h2 className="text-xl font-semibold text-[#142842]">Informasi Pendaftaran</h2>
+            <p className="mt-1 text-sm text-[#5b6c7c]">Buat file PDF untuk peserta yang sedang dibuka. QR di dalam file tetap milik peserta ini.</p>
+            <a
+              className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-white outline-none hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+              download
+              href={`/api/admin/participants/${participant.registration_id}/ticket`}
+            >
+              Download Informasi Pendaftaran
+            </a>
+          </section>
 
          {detailData.billing ? (
            <section aria-labelledby="billing-heading" className="mt-4 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">

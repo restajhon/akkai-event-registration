@@ -175,6 +175,7 @@ export function RegistrationForm() {
   const [clientErrors, setClientErrors] =
     useState<RegistrationFieldErrors>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const idempotencyInputRef = useRef<HTMLInputElement>(null);
 
   const errors: RegistrationFieldErrors = {
     ...state.fieldErrors,
@@ -226,6 +227,10 @@ export function RegistrationForm() {
     if (isPending || submitLocked) {
       event.preventDefault();
       return;
+    }
+
+    if (idempotencyInputRef.current && !idempotencyInputRef.current.value) {
+      idempotencyInputRef.current.value = crypto.randomUUID();
     }
 
     const result = registrationSchema.safeParse(formData);
@@ -322,6 +327,11 @@ export function RegistrationForm() {
       noValidate
       onSubmit={handleSubmit}
     >
+      <input
+        name="registration_idempotency_key"
+        ref={idempotencyInputRef}
+        type="hidden"
+      />
       {submissionMessage ? (
         <div className={styles.generalAlert} role="alert">
           <span aria-hidden="true" className={styles.alertMark}>
@@ -471,11 +481,19 @@ export function RegistrationForm() {
           />
           {errors.email ? (
             <ErrorMessage id="email-error" message={errors.email} />
-          ) : (
-            <p className={styles.helper} id="email-helper">
-              Gunakan alamat email aktif untuk komunikasi panitia.
-            </p>
-          )}
+           ) : (
+             <>
+               <p className={styles.helper} id="email-helper">
+                Gunakan alamat email aktif untuk komunikasi panitia. Satu alamat
+                email dapat digunakan untuk beberapa pendaftar apabila pendaftaran
+                dibantu oleh admin atau sekretariat.
+               </p>
+               <p className={styles.helper}>
+                Jika membantu beberapa peserta, pastikan data setiap peserta tidak
+                tertukar sebelum mengirim formulir.
+               </p>
+             </>
+           )}
         </div>
 
         </div>
@@ -793,7 +811,7 @@ export function RegistrationForm() {
       <div className={styles.submitArea}>
         <button
           className={styles.submitButton}
-           disabled={isPending}
+            disabled={isPending || submitLocked}
           type="submit"
         >
           {isPending ? "Mengirim Pendaftaran..." : "Kirim Pendaftaran"}

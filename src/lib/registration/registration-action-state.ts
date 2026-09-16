@@ -14,7 +14,6 @@ export type RegistrationBillingSummary = {
 export type RegistrationActionStatus =
   | "idle"
   | "validation-error"
-  | "duplicate-email"
   | "duplicate-member-number"
   | "general-error"
   | "submitted";

@@ -44,6 +44,47 @@ describe("registration billing email", () => {
     );
   });
 
+  it("returns safe metadata for an SDK provider error", async () => {
+    send.mockResolvedValue({
+      data: null,
+      error: {
+        name: "validation_error",
+        statusCode: 422,
+        errorCode: "invalid_from",
+        message: "invalid sender for peserta@example.com",
+      },
+    });
+
+    await expect(sendBillingEmail(input)).resolves.toMatchObject({
+      success: false,
+      errorMessage: "invalid sender for [redacted-email]",
+      diagnostic: {
+        provider: "resend",
+        statusCode: 422,
+        errorType: "validation_error",
+        errorCode: "invalid_from",
+      },
+    });
+  });
+
+  it("returns safe metadata when the provider throws a native Error", async () => {
+    send.mockRejectedValue(
+      Object.assign(new Error("upstream failed at https://api.example.test"), {
+        statusCode: 503,
+      }),
+    );
+
+    await expect(sendBillingEmail(input)).resolves.toMatchObject({
+      success: false,
+      errorMessage: "upstream failed at [redacted-url]",
+      diagnostic: {
+        provider: "resend",
+        statusCode: 503,
+        errorType: "Error",
+      },
+    });
+  });
+
   it("renders the required invoice card data in the email", () => {
     const template = createBillingEmailTemplate(input);
     expect(template.subject).toContain("INV-AKKAI26-000001");

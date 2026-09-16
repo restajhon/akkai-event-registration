@@ -25,6 +25,8 @@ type DatabaseParticipantRow = {
   created_at: string;
 };
 
+type ParticipantEmailCountRow = { email: string };
+
 type DatabaseBillingRow = {
   participant_id: string;
   payment_status: "PAID" | "UNPAID";
@@ -147,6 +149,15 @@ export async function loadParticipantPage(
     }
 
     const participantRows = (participantsResult.data ?? []) as DatabaseParticipantRow[];
+    const participantEmails = Array.from(new Set(participantRows.map((participant) => participant.email)));
+    const sharedEmailResult = participantEmails.length > 0
+      ? await adminSupabase.from("participants").select("email").in("email", participantEmails)
+      : { data: [], error: null };
+    if (sharedEmailResult.error) return null;
+    const emailCounts = new Map<string, number>();
+    for (const row of (sharedEmailResult.data ?? []) as ParticipantEmailCountRow[]) {
+      emailCounts.set(row.email, (emailCounts.get(row.email) ?? 0) + 1);
+    }
     const sessionRows = (sessionsResult.data ?? []) as SessionRow[];
     const participantIds = participantRows.map((participant) => participant.id);
     const sessionIds = sessionRows.map((session) => session.id);
@@ -239,6 +250,7 @@ export async function loadParticipantPage(
         registrationId: participant.registration_id,
         fullName: participant.full_name,
         email: participant.email,
+        sharedEmailCount: emailCounts.get(participant.email) ?? 1,
         phoneNumber: participant.phone_number,
         packageType: participant.package_type,
         participationScope: participant.participation_scope,

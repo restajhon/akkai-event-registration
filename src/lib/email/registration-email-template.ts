@@ -13,8 +13,6 @@ export type RegistrationEmailTemplate = {
   text: string;
 };
 
-const SUBJECT = "Konfirmasi Registrasi Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026";
-
 function escapeHtml(value: string) {
   return value.replace(
     /[&<>'"]/g,
@@ -46,7 +44,7 @@ export function createRegistrationEmailTemplate({
     attendsPaiCongress === null ? "-" : attendsPaiCongress ? "Ya" : "Tidak";
 
   return {
-    subject: SUBJECT,
+    subject: `Konfirmasi Registrasi AKKAI 2026 | ${fullName} | ${registrationId}`,
     html: `<!doctype html>
 <html lang="id">
   <body style="margin:0;background:#fcf9f2;color:#263246;font-family:Arial,Helvetica,sans-serif;">

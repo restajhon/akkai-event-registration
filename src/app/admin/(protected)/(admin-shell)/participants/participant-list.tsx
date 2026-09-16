@@ -63,6 +63,88 @@ function booleanLabel(value: boolean | null) {
   return value === null ? "-" : value ? "Ya" : "Tidak";
 }
 
+function SharedEmailIndicator({ count }: { count: number }) {
+  return count > 1 ? (
+    <p className="mt-1 text-xs font-semibold text-[#80631e]">Email ini digunakan oleh {count} peserta</p>
+  ) : null;
+}
+
+function ParticipantCheckbox({
+  registrationId,
+  checked,
+  onChange,
+}: {
+  registrationId: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <input
+      aria-label={`Pilih peserta ${registrationId}`}
+      checked={checked}
+      className="mt-1 h-5 w-5 accent-[#142842]"
+      onChange={(event) => onChange(event.target.checked)}
+      type="checkbox"
+    />
+  );
+}
+
+function BulkTicketButton({ registrationIds }: { registrationIds: string[] }) {
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function downloadTickets() {
+    if (registrationIds.length === 0 || pending) return;
+    setPending(true);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/admin/participants/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ registrationIds }),
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "ZIP belum dapat dibuat.");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "AKKAI-2026-Tiket-Terpilih.zip";
+      anchor.click();
+      URL.revokeObjectURL(url);
+      const encodedFailures = response.headers.get("X-AKKAI-Ticket-Failures");
+      if (encodedFailures) {
+        const failures = JSON.parse(decodeURIComponent(encodedFailures)) as Array<{ registrationId: string }>;
+        setMessage(failures.length > 0
+          ? `${failures.length} tiket gagal dibuat: ${failures.map((failure) => failure.registrationId).join(", ")}`
+          : `${registrationIds.length} tiket berhasil diunduh.`);
+      } else {
+        setMessage(`${registrationIds.length} tiket berhasil diunduh.`);
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "ZIP belum dapat dibuat.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="grid justify-items-start gap-1.5">
+      <button
+        className="inline-flex min-h-11 items-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-white outline-none hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={pending || registrationIds.length === 0}
+        onClick={downloadTickets}
+        type="button"
+      >
+        {pending ? "Membuat ZIP..." : "Download QR/Tiket Terpilih"}
+      </button>
+      {message ? <p aria-live="polite" className="text-xs text-[#5b6c7c]" role="status">{message}</p> : null}
+    </div>
+  );
+}
+
 export function ResendQrButton({
   registrationId,
   email,
@@ -213,6 +295,24 @@ export function ParticipantList({
   );
   const { participants, summary, query, billingStatus, page, totalPages, totalCount } =
     searchState.data;
+  const [selectedRegistrationIds, setSelectedRegistrationIds] = useState<string[]>([]);
+  const selectedSet = new Set(selectedRegistrationIds);
+  const allCurrentPageSelected = participants.length > 0 && participants.every((participant) => selectedSet.has(participant.registrationId));
+
+  function setSelected(registrationId: string, checked: boolean) {
+    setSelectedRegistrationIds((current) => checked
+      ? Array.from(new Set([...current, registrationId]))
+      : current.filter((id) => id !== registrationId));
+  }
+
+  function setCurrentPageSelected(checked: boolean) {
+    setSelectedRegistrationIds((current) => {
+      const currentPageIds = new Set(participants.map((participant) => participant.registrationId));
+      return checked
+        ? Array.from(new Set([...current, ...currentPageIds]))
+        : current.filter((id) => !currentPageIds.has(id));
+    });
+  }
 
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
@@ -225,13 +325,16 @@ export function ParticipantList({
           <p className="mt-1 text-sm text-[#5b6c7c]">
             Kelola data dan status kehadiran peserta AKKAI 2026.
           </p>
-          <a
-            className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
-            download="AKKAI-2026-Peserta.xlsx"
-            href="/api/admin/participant-export"
-          >
-            Download Excel
-          </a>
+          <div className="mt-4 flex flex-wrap items-start gap-2">
+            <a
+              className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
+              download="AKKAI-2026-Peserta.xlsx"
+              href="/api/admin/participant-export"
+            >
+              Download Excel
+            </a>
+            <BulkTicketButton registrationIds={selectedRegistrationIds} />
+          </div>
         </header>
 
         <section
@@ -327,17 +430,27 @@ export function ParticipantList({
           </div>
         ) : (
           <>
-            <div className="mt-4 grid gap-3 lg:hidden">
-              {participants.map((participant) => (
-                <ParticipantCard key={participant.registrationId} participant={participant} />
-              ))}
-            </div>
+             <div className="mt-4 grid gap-3 lg:hidden">
+               {participants.map((participant) => (
+                 <ParticipantCard
+                   checked={selectedSet.has(participant.registrationId)}
+                   key={participant.registrationId}
+                   onCheckedChange={(checked) => setSelected(participant.registrationId, checked)}
+                   participant={participant}
+                 />
+               ))}
+             </div>
 
             <div className="mt-4 hidden overflow-hidden rounded-xl border border-[#e4d8c4] bg-[#fffdf8] lg:block">
               <table aria-label="Daftar peserta" className="w-full table-fixed text-left text-sm">
                 <thead className="border-b border-[#e4d8c4] bg-[#f1eadc] text-xs uppercase tracking-wide text-[#897657]">
                   <tr>
-                    <th className="w-[23%] px-3 py-3" scope="col">Peserta</th>
+                     <th className="w-[23%] px-3 py-3" scope="col">
+                       <label className="flex items-start gap-2">
+                         <input aria-label="Pilih semua peserta di halaman ini" checked={allCurrentPageSelected} className="mt-0.5 h-4 w-4 accent-[#142842]" onChange={(event) => setCurrentPageSelected(event.target.checked)} type="checkbox" />
+                         <span>Peserta</span>
+                       </label>
+                     </th>
                     <th className="w-[14%] px-3 py-3" scope="col">Kontak</th>
                     <th className="w-[14%] px-3 py-3" scope="col">Paket</th>
                     <th className="w-[16%] px-3 py-3" scope="col">Konsultan Aktuaria</th>
@@ -352,9 +465,11 @@ export function ParticipantList({
                 </thead>
                 <tbody className="divide-y divide-[#eee6d8]">
                   {participants.map((participant) => (
-                    <ParticipantTableRow
-                      key={participant.registrationId}
-                      participant={participant}
+                     <ParticipantTableRow
+                       checked={selectedSet.has(participant.registrationId)}
+                       key={participant.registrationId}
+                       onCheckedChange={(checked) => setSelected(participant.registrationId, checked)}
+                       participant={participant}
                     />
                   ))}
                 </tbody>
@@ -413,15 +528,19 @@ function SummaryCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ParticipantCard({ participant }: { participant: ParticipantListItem }) {
+function ParticipantCard({ participant, checked, onCheckedChange }: { participant: ParticipantListItem; checked: boolean; onCheckedChange: (checked: boolean) => void }) {
   const cancelled = participant.registrationStatus === "CANCELLED";
 
   return (
     <article className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h2 className="break-words text-xl font-semibold text-[#142842]">{participant.fullName}</h2>
-          <p className="mt-1 break-all text-sm font-semibold text-[#9a7526]">{participant.registrationId}</p>
+         <div className="flex min-w-0 items-start gap-3">
+           <ParticipantCheckbox checked={checked} onChange={onCheckedChange} registrationId={participant.registrationId} />
+           <div className="min-w-0">
+           <h2 className="break-words text-xl font-semibold text-[#142842]">{participant.fullName}</h2>
+           <p className="mt-1 break-all text-sm font-semibold text-[#9a7526]">{participant.registrationId}</p>
+           <SharedEmailIndicator count={participant.sharedEmailCount} />
+           </div>
         </div>
         <ParticipantStatus status={participant.registrationStatus} />
       </div>
@@ -480,16 +599,26 @@ function ParticipantCard({ participant }: { participant: ParticipantListItem }) 
 
 function ParticipantTableRow({
   participant,
+  checked,
+  onCheckedChange,
 }: {
   participant: ParticipantListItem;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
 }) {
   const cancelled = participant.registrationStatus === "CANCELLED";
 
   return (
     <tr className="align-top text-[#344d68]">
-      <td className="px-3 py-3.5">
-        <p className="break-words font-semibold text-[#142842]">{participant.fullName}</p>
-        <p className="mt-1 break-all text-xs font-semibold text-[#9a7526]">{participant.registrationId}</p>
+       <td className="px-3 py-3.5">
+         <div className="flex items-start gap-2">
+           <ParticipantCheckbox checked={checked} onChange={onCheckedChange} registrationId={participant.registrationId} />
+           <div>
+         <p className="break-words font-semibold text-[#142842]">{participant.fullName}</p>
+         <p className="mt-1 break-all text-xs font-semibold text-[#9a7526]">{participant.registrationId}</p>
+         <SharedEmailIndicator count={participant.sharedEmailCount} />
+           </div>
+         </div>
       </td>
       <td className="px-3 py-3.5">
         <p className="break-words font-medium">{participant.email}</p>

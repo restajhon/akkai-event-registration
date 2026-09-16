@@ -9,6 +9,7 @@ export type ParticipantListItem = {
   registrationId: string;
   fullName: string;
   email: string;
+  sharedEmailCount: number;
   phoneNumber: string;
   packageType: string | null;
   participationScope: string | null;

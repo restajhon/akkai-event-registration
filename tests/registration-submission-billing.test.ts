@@ -15,7 +15,7 @@ vi.mock("@/lib/email/billing-email", () => ({ sendBillingEmail: mocks.sendBillin
 
 import { submitRegistration } from "@/app/register/actions";
 
-function validForm() {
+function validForm(idempotencyKey = crypto.randomUUID()) {
   const form = new FormData();
   form.set("full_name", "Peserta AKKAI");
   form.set("email", "peserta@example.com");
@@ -30,6 +30,7 @@ function validForm() {
   form.set("attends_pai_congress", "true");
   form.set("privacy_consent", "on");
   form.set("certificate_upload_id", "");
+  form.set("registration_idempotency_key", idempotencyKey);
   return form;
 }
 
@@ -46,6 +47,24 @@ describe("registration submission billing", () => {
       maybeSingle: vi.fn().mockResolvedValue({
         data: {
           participant_id: "participant-1",
+          recipient_email: "peserta@example.com",
+          email_generation: 0,
+          status: "PENDING",
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          participant_id: "participant-1",
+          recipient_email: "peserta@example.com",
+          email_generation: 0,
+          status: "PENDING",
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          participant_id: "participant-2",
           recipient_email: "peserta@example.com",
           email_generation: 0,
           status: "PENDING",
@@ -75,9 +94,24 @@ describe("registration submission billing", () => {
       .mockResolvedValueOnce({ data: [{ result_code: "CURRENT_GENERATION" }], error: null })
       .mockResolvedValueOnce({ data: [{ result_code: "UPDATED" }], error: null })
       .mockResolvedValueOnce({
-        data: { result_code: "DUPLICATE_EMAIL" },
+        data: {
+          result_code: "CREATED",
+          participant_id: "participant-2",
+          registration_id: "AKKAI26-000002",
+          full_name: "Peserta Kedua",
+          email: "peserta@example.com",
+          qr_token: "b".repeat(64),
+          email_log_id: "email-log-2",
+          email_generation: 0,
+          billing_id: "billing-2",
+          billing_number: "INV-AKKAI26-000002",
+          billing_amount: 6_000_000,
+          billing_created_at: "2026-09-08T00:00:00.000Z",
+        },
         error: null,
-      });
+      })
+      .mockResolvedValueOnce({ data: [{ result_code: "CURRENT_GENERATION" }], error: null })
+      .mockResolvedValueOnce({ data: [{ result_code: "UPDATED" }], error: null });
 
     mocks.createAdminClient.mockReturnValue({
       rpc,
@@ -85,14 +119,14 @@ describe("registration submission billing", () => {
     });
   });
 
-  it("creates billing after registration and does not email a duplicate billing", async () => {
+  it("creates separate participant, billing, QR, and email attempts for the same email", async () => {
     const first = await submitRegistration(
       { status: "idle", fieldErrors: {} },
-      validForm(),
+      validForm("registration-submit-key-0001"),
     );
     const second = await submitRegistration(
       { status: "idle", fieldErrors: {} },
-      validForm(),
+      validForm("registration-submit-key-0002"),
     );
 
     expect(first).toMatchObject({
@@ -103,8 +137,15 @@ describe("registration submission billing", () => {
       },
       billingEmailDelivery: "accepted",
     });
-    expect(second.status).toBe("duplicate-email");
-    expect(mocks.sendBillingEmail).toHaveBeenCalledTimes(1);
+    expect(second).toMatchObject({
+      status: "submitted",
+      registrationId: "AKKAI26-000002",
+      billing: { billingNumber: "INV-AKKAI26-000002" },
+    });
+    expect(mocks.generateParticipantQrPng).toHaveBeenNthCalledWith(1, "a".repeat(64));
+    expect(mocks.generateParticipantQrPng).toHaveBeenNthCalledWith(2, "b".repeat(64));
+    expect(mocks.sendRegistrationEmail).toHaveBeenCalledTimes(2);
+    expect(mocks.sendBillingEmail).toHaveBeenCalledTimes(2);
     expect(mocks.sendBillingEmail).toHaveBeenCalledWith(
       expect.objectContaining({ recipientEmail: "peserta@example.com", amount: 6_000_000 }),
     );

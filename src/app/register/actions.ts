@@ -36,15 +36,13 @@ const GENERAL_ERROR =
   "Terjadi kendala saat memproses pendaftaran. Silakan coba kembali.";
 const UPLOAD_ERROR =
   "Surat Keterangan Kerja belum dapat divalidasi. Silakan pilih file PDF, JPG, JPEG, atau PNG maksimal 2 MiB.";
-const DUPLICATE_EMAIL_ERROR =
-  "Email ini sudah terdaftar. Silakan cek email konfirmasi sebelumnya atau hubungi panitia.";
 const DUPLICATE_MEMBER_NUMBER_ERROR =
   "Nomor anggota ini sudah terdaftar. Silakan cek kembali data Anda atau hubungi panitia.";
 const REGISTRATION_CLOSED_ERROR = "Periode registrasi telah ditutup.";
 const REGISTRATION_DIAGNOSTIC_STAGES: RegistrationDiagnosticStage[] = [
   "upload-intent",
   "storage-upload",
-  "rpc-v4",
+  "rpc-v5",
   "billing",
   "registration-email",
   "billing-email",
@@ -82,6 +80,8 @@ type ReservedEmailLog = {
   email_generation: number;
   status: "PENDING" | "SENT" | "FAILED";
 };
+
+type BillingEmailLogStatus = "PENDING" | "SENT" | "FAILED";
 
 type UploadPreparationState =
   | { status: "ready"; intentId: string; path: string; token: string }
@@ -300,6 +300,7 @@ async function finalizeRegistrationEmail(
   finalStatus: "SENT" | "FAILED",
   providerMessageId: string | null,
   errorCategory: RegistrationEmailErrorCategory | null,
+  errorMessage: string | null = null,
 ) {
   try {
     await supabase.rpc("finalize_participant_email_attempt", {
@@ -308,7 +309,7 @@ async function finalizeRegistrationEmail(
       p_email_generation: emailGeneration,
       p_final_status: finalStatus,
       p_provider_message_id: providerMessageId,
-      p_error_category: errorCategory,
+      p_error_category: errorMessage ?? errorCategory,
       p_sent_at: finalStatus === "SENT" ? new Date().toISOString() : null,
     });
   } catch (error) {
@@ -357,6 +358,18 @@ async function getReservedEmailLog(
   return data as ReservedEmailLog;
 }
 
+async function getBillingEmailLogStatus(
+  supabase: ReturnType<typeof createAdminClient>,
+  billingId: string,
+): Promise<BillingEmailLogStatus | null> {
+  const { data, error } = await supabase
+    .from("registration_billing_email_logs")
+    .select("status")
+    .eq("billing_id", billingId)
+    .maybeSingle();
+  return error || !data ? null : (data.status as BillingEmailLogStatus);
+}
+
 function formatBillingDate(dateValue: string) {
   return new Intl.DateTimeFormat("id-ID", {
     dateStyle: "long",
@@ -387,6 +400,11 @@ export async function submitRegistration(
     };
   }
 
+  const idempotencyKey = getFormValue(formData, "registration_idempotency_key").trim();
+  if (idempotencyKey.length < 16 || idempotencyKey.length > 200) {
+    return stateWithGeneralError(GENERAL_ERROR);
+  }
+
   let supabase: ReturnType<typeof createAdminClient>;
   let uploadIntent: UploadIntent | null = null;
   let stage: RegistrationDiagnosticStage = "upload-intent";
@@ -414,9 +432,9 @@ export async function submitRegistration(
       }
     }
 
-    stage = "rpc-v4";
+    stage = "rpc-v5";
     const { data: reservationData, error: reservationError } = await supabase.rpc(
-      "create_participant_with_registration_reservation_v4",
+      "create_participant_with_registration_reservation_v5",
       {
         p_full_name: parsed.data.full_name,
         p_email: parsed.data.email,
@@ -431,12 +449,13 @@ export async function submitRegistration(
         p_attends_pai_congress: parsed.data.attends_pai_congress,
         p_privacy_consent_at: new Date().toISOString(),
         p_certificate_upload_intent_id: uploadIntent?.id ?? null,
+        p_idempotency_key: idempotencyKey,
       },
     );
 
     if (reservationError || !reservationData) {
       logRegistrationStageFailure(
-        "rpc-v4",
+        "rpc-v5",
         reservationError ?? new Error("reservation RPC returned no data"),
       );
       if (uploadIntent) await cleanupUploadIntent(supabase, uploadIntent.id);
@@ -445,19 +464,8 @@ export async function submitRegistration(
 
     const reservation = (Array.isArray(reservationData) ? reservationData[0] : reservationData) as RegistrationReservation | undefined;
     if (!reservation) {
-      logRegistrationStageFailure("rpc-v4", new Error("reservation RPC returned no row"));
+      logRegistrationStageFailure("rpc-v5", new Error("reservation RPC returned no row"));
       return stateWithGeneralError(GENERAL_ERROR);
-    }
-
-    if (reservation.result_code === "DUPLICATE_EMAIL") {
-      if (uploadIntent) await cleanupUploadIntent(supabase, uploadIntent.id);
-      return {
-        status: "duplicate-email",
-        fieldErrors: {},
-        emailDelivery: "not-attempted",
-        billingEmailDelivery: "not-attempted",
-        generalError: DUPLICATE_EMAIL_ERROR,
-      };
     }
 
     if (reservation.result_code === "DUPLICATE_MEMBER_NUMBER") {
@@ -473,7 +481,7 @@ export async function submitRegistration(
 
     stage = "billing";
     if (
-      reservation.result_code !== "CREATED" ||
+      !["CREATED", "ALREADY_CREATED"].includes(reservation.result_code) ||
       !reservation.participant_id ||
       !reservation.registration_id ||
       !reservation.full_name ||
@@ -498,7 +506,10 @@ export async function submitRegistration(
       reservation.email_log_id,
       reservation.email_generation,
     );
-    if (!reservedEmailLog || reservedEmailLog.status !== "PENDING") {
+    if (
+      !reservedEmailLog ||
+      (reservedEmailLog.status !== "PENDING" && reservation.result_code !== "ALREADY_CREATED")
+    ) {
       logRegistrationStageFailure("billing", new Error("reserved registration email log was not pending"));
       return stateWithGeneralError(GENERAL_ERROR);
     }
@@ -514,35 +525,49 @@ export async function submitRegistration(
       createdAt: reservation.billing_created_at,
     };
 
-    let emailDelivery: EmailDeliveryStatus = "failed";
-    stage = "registration-email";
-    try {
-      const qrPngBuffer = await generateParticipantQrPng(reservation.qr_token);
-      const emailResult = await sendRegistrationEmail({
-        recipientEmail: reservedEmailLog.recipient_email,
-        fullName: reservation.full_name,
-        registrationId: reservation.registration_id,
-        packageType: parsed.data.package_type,
-        participationScope: parsed.data.participation_scope,
-        actuarialConsultantStatus: parsed.data.actuarial_consultant_status,
-        attendsPaiCongress: parsed.data.attends_pai_congress,
-        qrPngBuffer,
-        idempotencyKey: `registration:${reservation.participant_id}`,
-      });
+    let emailDelivery: EmailDeliveryStatus = reservedEmailLog.status === "SENT" ? "accepted" : "failed";
+    if (reservedEmailLog.status === "PENDING") {
+      stage = "registration-email";
+      try {
+        const qrPngBuffer = await generateParticipantQrPng(reservation.qr_token);
+        const emailResult = await sendRegistrationEmail({
+          recipientEmail: reservedEmailLog.recipient_email,
+          fullName: reservation.full_name,
+          registrationId: reservation.registration_id,
+          packageType: parsed.data.package_type,
+          participationScope: parsed.data.participation_scope,
+          actuarialConsultantStatus: parsed.data.actuarial_consultant_status,
+          attendsPaiCongress: parsed.data.attends_pai_congress,
+          qrPngBuffer,
+          idempotencyKey: `registration:${reservation.participant_id}`,
+        });
 
-      if (emailResult.success) {
-        emailDelivery = "accepted";
-        await finalizeRegistrationEmail(
-          supabase,
-          reservation.participant_id,
-          reservation.email_log_id,
-          reservation.email_generation,
-          "SENT",
-          emailResult.providerMessageId,
-          null,
-        );
-      } else {
-        logRegistrationStageFailure("registration-email", new Error(emailResult.errorCategory));
+        if (emailResult.success) {
+          emailDelivery = "accepted";
+          await finalizeRegistrationEmail(
+            supabase,
+            reservation.participant_id,
+            reservation.email_log_id,
+            reservation.email_generation,
+            "SENT",
+            emailResult.providerMessageId,
+            null,
+          );
+        } else {
+          logRegistrationStageDetails("registration-email", emailResult.diagnostic);
+          await finalizeRegistrationEmail(
+            supabase,
+            reservation.participant_id,
+            reservation.email_log_id,
+            reservation.email_generation,
+            "FAILED",
+            null,
+            emailResult.errorCategory,
+            emailResult.errorMessage,
+          );
+        }
+      } catch (error) {
+        logRegistrationStageFailure("registration-email", error);
         await finalizeRegistrationEmail(
           supabase,
           reservation.participant_id,
@@ -550,49 +575,46 @@ export async function submitRegistration(
           reservation.email_generation,
           "FAILED",
           null,
-          emailResult.errorCategory,
+          "QR_GENERATION_ERROR",
         );
       }
-    } catch (error) {
-      logRegistrationStageFailure("registration-email", error);
-      await finalizeRegistrationEmail(
-        supabase,
-        reservation.participant_id,
-        reservation.email_log_id,
-        reservation.email_generation,
-        "FAILED",
-        null,
-        "QR_GENERATION_ERROR",
-      );
     }
 
     let billingEmailDelivery: EmailDeliveryStatus = "failed";
-    stage = "billing-email";
-    const billingEmailResult = await sendBillingEmail({
-      recipientEmail: reservation.email,
-      ...billing,
-      createdAt: formatBillingDate(reservation.billing_created_at),
-      idempotencyKey: `billing:${reservation.billing_id}`,
-    });
+    let shouldSendBillingEmail = true;
+    if (reservation.result_code === "ALREADY_CREATED") {
+      const existingBillingStatus = await getBillingEmailLogStatus(supabase, reservation.billing_id);
+      shouldSendBillingEmail = existingBillingStatus === "PENDING" || existingBillingStatus === null;
+      billingEmailDelivery = existingBillingStatus === "SENT" ? "accepted" : "failed";
+    }
+    if (shouldSendBillingEmail) {
+      stage = "billing-email";
+      const billingEmailResult = await sendBillingEmail({
+        recipientEmail: reservation.email,
+        ...billing,
+        createdAt: formatBillingDate(reservation.billing_created_at),
+        idempotencyKey: `billing:${reservation.billing_id}`,
+      });
 
-    if (billingEmailResult.success) {
-      billingEmailDelivery = "accepted";
-      await finalizeBillingEmail(
-        supabase,
-        reservation.billing_id,
-        "SENT",
-        billingEmailResult.providerMessageId,
-        null,
-      );
-    } else {
-      logRegistrationStageFailure("billing-email", new Error(billingEmailResult.errorMessage));
-      await finalizeBillingEmail(
-        supabase,
-        reservation.billing_id,
-        "FAILED",
-        null,
-        billingEmailResult.errorMessage,
-      );
+      if (billingEmailResult.success) {
+        billingEmailDelivery = "accepted";
+        await finalizeBillingEmail(
+          supabase,
+          reservation.billing_id,
+          "SENT",
+          billingEmailResult.providerMessageId,
+          null,
+        );
+      } else {
+        logRegistrationStageDetails("billing-email", billingEmailResult.diagnostic);
+        await finalizeBillingEmail(
+          supabase,
+          reservation.billing_id,
+          "FAILED",
+          null,
+          billingEmailResult.errorMessage,
+        );
+      }
     }
 
     return submittedState(

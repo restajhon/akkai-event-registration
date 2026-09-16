@@ -3,13 +3,21 @@ import "server-only";
 import { Resend } from "resend";
 
 import {
+  getRegistrationDiagnosticError,
+  type RegistrationDiagnosticDetails,
+} from "@/lib/registration/diagnostics";
+import {
   createBillingEmailTemplate,
   type BillingEmailTemplateInput,
 } from "./billing-email-template";
 
 export type BillingEmailResult =
   | { success: true; providerMessageId: string }
-  | { success: false; errorMessage: string };
+  | {
+      success: false;
+      errorMessage: string;
+      diagnostic: RegistrationDiagnosticDetails;
+    };
 
 export async function sendBillingEmail(
   input: BillingEmailTemplateInput & {
@@ -21,7 +29,15 @@ export async function sendBillingEmail(
   const fromEmail = process.env.RESEND_FROM_EMAIL;
 
   if (!apiKey || !fromEmail) {
-    return { success: false, errorMessage: "CONFIGURATION_ERROR" };
+    const diagnostic = getRegistrationDiagnosticError(
+      new Error("email provider is not configured"),
+      "resend",
+    );
+    return {
+      success: false,
+      errorMessage: "CONFIGURATION_ERROR",
+      diagnostic,
+    };
   }
 
   try {
@@ -38,11 +54,21 @@ export async function sendBillingEmail(
     );
 
     if (error || !data?.id) {
-      return { success: false, errorMessage: "PROVIDER_ERROR" };
+      const diagnostic = getRegistrationDiagnosticError({ data, error }, "resend");
+      return {
+        success: false,
+        errorMessage: diagnostic.message,
+        diagnostic,
+      };
     }
 
     return { success: true, providerMessageId: data.id };
-  } catch {
-    return { success: false, errorMessage: "PROVIDER_ERROR" };
+  } catch (error) {
+    const diagnostic = getRegistrationDiagnosticError(error, "resend");
+    return {
+      success: false,
+      errorMessage: diagnostic.message,
+      diagnostic,
+    };
   }
 }
