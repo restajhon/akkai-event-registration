@@ -91,7 +91,7 @@ const requiredMessages = {
   polo_model: "Model Poloshirt wajib dipilih.",
   package_type: "Paket yang diambil wajib dipilih.",
   participation_scope: "Mengikuti wajib dipilih.",
-  actuarial_consultant_status: "Sertifikasi CIAC wajib dipilih.",
+  actuarial_consultant_status: "Status CIAC tidak valid.",
   attends_pai_congress: "Kehadiran Kongres PAI wajib dipilih.",
   privacy_consent: "Persetujuan penggunaan data wajib diberikan.",
   certificate_file: "Upload Surat Keterangan Kerja wajib diisi.",
@@ -122,9 +122,17 @@ export const registrationSchema = z
     participation_scope: z.enum(PARTICIPATION_SCOPES, {
       error: requiredMessages.participation_scope,
     }),
-    actuarial_consultant_status: z.enum(ACTUARIAL_CONSULTANT_STATUSES, {
-      error: requiredMessages.actuarial_consultant_status,
-    }),
+    actuarial_consultant_status: z.preprocess(
+      (value) => {
+        if (value === null || value === undefined) return null;
+        if (typeof value !== "string") return value;
+        const normalized = value.trim();
+        return normalized === "" ? null : normalized;
+      },
+      z.enum(ACTUARIAL_CONSULTANT_STATUSES, {
+        error: requiredMessages.actuarial_consultant_status,
+      }).nullable(),
+    ),
     attends_pai_congress: z
       .enum(PAI_CONGRESS_OPTIONS, { error: requiredMessages.attends_pai_congress })
       .transform((value) => value === "true"),

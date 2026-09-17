@@ -665,7 +665,7 @@ export function RegistrationForm() {
 
         <div className={styles.field}>
           <label className={styles.label} htmlFor="actuarial_consultant_status">
-             Sertifikasi Konsultan Aktuaria Indonesia (CIAC) <span className={styles.required}>(wajib)</span>
+            Status CIAC <span className={styles.required}>(opsional)</span>
           </label>
           <select
             aria-describedby={
@@ -677,11 +677,10 @@ export function RegistrationForm() {
             className={`${styles.select} ${errors.actuarial_consultant_status ? styles.inputError : ""}`}
             id="actuarial_consultant_status"
             name="actuarial_consultant_status"
-             onChange={(event) => chooseActuarialStatus(event.target.value)}
-            required
+            onChange={(event) => chooseActuarialStatus(event.target.value)}
             value={formData.actuarial_consultant_status}
           >
-             <option value="">Pilih status CIAC</option>
+            <option value="">Pilih status CIAC</option>
             {ACTUARIAL_CONSULTANT_STATUSES.map((status) => (
               <option key={status} value={status}>{status}</option>
             ))}

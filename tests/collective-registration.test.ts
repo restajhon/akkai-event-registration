@@ -58,6 +58,15 @@ describe("collective registration contract", () => {
     expect(collectiveParticipantSchema.safeParse(cards[0]).success).toBe(true);
   });
 
+  it("accepts a collective card without CIAC status and normalizes it to null", () => {
+    const card = participant(1);
+    card.actuarial_consultant_status = "";
+    const result = collectiveParticipantSchema.safeParse(card);
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.actuarial_consultant_status).toBeNull();
+  });
+
   it("rejects a card with missing required data before submission", () => {
     const result = collectiveParticipantSchema.safeParse({ ...participant(1), full_name: "" });
     expect(result.success).toBe(false);
@@ -142,6 +151,32 @@ describe("collective registration delivery isolation", () => {
     expect(mocks.sendBillingEmail).toHaveBeenCalledTimes(5);
     expect(mocks.sendRegistrationEmail.mock.calls.map(([input]) => input.recipientEmail).sort()).toEqual(
       Array.from({ length: 5 }, (_, index) => `peserta-${index + 1}@example.com`).sort(),
+    );
+    const rpc = mocks.createAdminClient.mock.results[0]?.value.rpc;
+    expect(rpc).toHaveBeenCalledWith(
+      "create_participant_with_registration_reservation_v6",
+      expect.objectContaining({
+        p_actuarial_consultant_status: "Penerima Grandfathering CIAC",
+      }),
+    );
+  });
+
+  it("submits a collective participant without CIAC status and sends null to the RPC", async () => {
+    const card = participant(1);
+    card.actuarial_consultant_status = "";
+    const formData = new FormData();
+    formData.set("payload", JSON.stringify({
+      idempotency_key: "00000000-0000-4000-8000-000000000003",
+      participants: [card],
+    }));
+
+    const result = await submitCollectiveRegistration({ status: "idle", fieldErrors: [], participants: [] }, formData);
+
+    expect(result.status).toBe("submitted");
+    const rpc = mocks.createAdminClient.mock.results[0]?.value.rpc;
+    expect(rpc).toHaveBeenCalledWith(
+      "create_participant_with_registration_reservation_v6",
+      expect.objectContaining({ p_actuarial_consultant_status: null }),
     );
   });
 });

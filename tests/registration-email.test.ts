@@ -38,6 +38,20 @@ describe("registration email", () => {
     });
   });
 
+  it("renders a blank CIAC status without failing email preparation", async () => {
+    await expect(sendRegistrationEmail({
+      ...input,
+      actuarialConsultantStatus: null,
+    })).resolves.toMatchObject({ success: true });
+
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining("Konsultan Aktuaria: -"),
+      }),
+      expect.anything(),
+    );
+  });
+
   it("handles the Resend SDK response envelope without exposing it", async () => {
     send.mockResolvedValue({
       data: { requestId: "not logged" },

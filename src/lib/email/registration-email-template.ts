@@ -3,7 +3,7 @@ type RegistrationEmailTemplateInput = {
   registrationId: string;
   packageType: string;
   participationScope: string;
-  actuarialConsultantStatus: string;
+  actuarialConsultantStatus: string | null;
   attendsPaiCongress: boolean | null;
 };
 
@@ -39,7 +39,7 @@ export function createRegistrationEmailTemplate({
   const safeRegistrationId = escapeHtml(registrationId);
   const safePackageType = escapeHtml(packageType);
   const safeParticipationScope = escapeHtml(participationScope);
-  const safeActuarialConsultantStatus = escapeHtml(actuarialConsultantStatus);
+  const safeActuarialConsultantStatus = escapeHtml(actuarialConsultantStatus ?? "-");
   const paiCongressAnswer =
     attendsPaiCongress === null ? "-" : attendsPaiCongress ? "Ya" : "Tidak";
 
@@ -114,7 +114,7 @@ Pendaftaran Anda untuk Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi
 Nomor Registrasi: ${registrationId}
 Paket yang diambil: ${packageType}
 Mengikuti: ${participationScope}
-Konsultan Aktuaria: ${actuarialConsultantStatus}
+Konsultan Aktuaria: ${actuarialConsultantStatus ?? "-"}
 Hadir Kongres PAI: ${paiCongressAnswer}
 Tanggal: 19–21 Oktober 2026
 Lokasi: Semarang

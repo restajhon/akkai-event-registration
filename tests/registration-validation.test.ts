@@ -53,6 +53,28 @@ describe("registration form contract", () => {
     expect(registrationSchema.safeParse(baseValues).success).toBe(true);
   });
 
+  it("accepts a blank or explicit null CIAC status and normalizes it to null", () => {
+    const blank = registrationSchema.safeParse({
+      ...baseValues,
+      actuarial_consultant_status: "",
+    });
+    const explicitNull = registrationSchema.safeParse({
+      ...baseValues,
+      actuarial_consultant_status: null,
+    });
+    expect(blank.success && blank.data.actuarial_consultant_status).toBeNull();
+    expect(explicitNull.success && explicitNull.data.actuarial_consultant_status).toBeNull();
+  });
+
+  it("preserves a selected CIAC status", () => {
+    const result = registrationSchema.safeParse(baseValues);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.actuarial_consultant_status).toBe("Penerima Grandfathering CIAC");
+    }
+  });
+
   it("accepts separate participants that share one valid email address", () => {
     const first = registrationSchema.safeParse({ ...baseValues, full_name: "Peserta Pertama" });
     const second = registrationSchema.safeParse({ ...baseValues, full_name: "Peserta Kedua" });

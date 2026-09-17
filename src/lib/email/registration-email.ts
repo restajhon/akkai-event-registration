@@ -32,7 +32,7 @@ type SendRegistrationEmailInput = {
   registrationId: string;
   packageType: string;
   participationScope: string;
-  actuarialConsultantStatus: string;
+  actuarialConsultantStatus: string | null;
   attendsPaiCongress: boolean | null;
   qrPngBuffer: Buffer;
   idempotencyKey: string;

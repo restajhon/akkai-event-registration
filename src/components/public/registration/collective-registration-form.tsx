@@ -226,7 +226,7 @@ function ParticipantCard({
         <SelectField id={id("polo_model")} label="Model Poloshirt" value={participant.polo_model} options={POLO_MODELS} error={errors.polo_model} onChange={(value) => update("polo_model", value)} />
         <SelectField id={id("polo_size")} label="Ukuran Poloshirt" value={participant.polo_size} options={POLO_SIZES} error={errors.polo_size} onChange={(value) => update("polo_size", value)} />
         <SelectField id={id("participation_scope")} label="Pilihan acara" value={participant.participation_scope} options={PARTICIPATION_SCOPES} error={errors.participation_scope} onChange={(value) => update("participation_scope", value)} />
-        <SelectField id={id("actuarial_consultant_status")} label="Status CIAC" value={participant.actuarial_consultant_status} options={ACTUARIAL_CONSULTANT_STATUSES} error={errors.actuarial_consultant_status} onChange={(value) => update("actuarial_consultant_status", value)} />
+        <SelectField id={id("actuarial_consultant_status")} label="Status CIAC" value={participant.actuarial_consultant_status} options={ACTUARIAL_CONSULTANT_STATUSES} error={errors.actuarial_consultant_status} onChange={(value) => update("actuarial_consultant_status", value)} required={false} />
         <SelectField id={id("attends_pai_congress")} label="Hadir Kongres PAI" value={participant.attends_pai_congress} options={PAI_CONGRESS_OPTIONS.map((value) => value === "true" ? "true" : "false")} error={errors.attends_pai_congress} onChange={(value) => update("attends_pai_congress", value)} />
       </div>
       {participant.actuarial_consultant_status === "Peserta Baru" ? (

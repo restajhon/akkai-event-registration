@@ -149,5 +149,31 @@ describe("registration submission billing", () => {
     expect(mocks.sendBillingEmail).toHaveBeenCalledWith(
       expect.objectContaining({ recipientEmail: "peserta@example.com", amount: 6_000_000 }),
     );
+    const rpc = mocks.createAdminClient.mock.results[0]?.value.rpc;
+    expect(rpc).toHaveBeenNthCalledWith(
+      1,
+      "create_participant_with_registration_reservation_v5",
+      expect.objectContaining({
+        p_actuarial_consultant_status: "Penerima Grandfathering CIAC",
+      }),
+    );
+  });
+
+  it("submits a single registration without CIAC status and sends null to the RPC", async () => {
+    const form = validForm("registration-submit-key-0003");
+    form.set("actuarial_consultant_status", "");
+
+    const result = await submitRegistration(
+      { status: "idle", fieldErrors: {} },
+      form,
+    );
+
+    expect(result.status).toBe("submitted");
+    const rpc = mocks.createAdminClient.mock.results[0]?.value.rpc;
+    expect(rpc).toHaveBeenNthCalledWith(
+      1,
+      "create_participant_with_registration_reservation_v5",
+      expect.objectContaining({ p_actuarial_consultant_status: null }),
+    );
   });
 });
