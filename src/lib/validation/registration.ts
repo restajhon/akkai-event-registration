@@ -59,6 +59,28 @@ export type RegistrationFormValues = {
   certificate_upload_id: string;
 };
 
+export type CollectiveParticipantFormValues = RegistrationFormValues & {
+  member_number: string;
+  institution: string;
+  include_travel: boolean;
+  travel: RegistrationTravelValues;
+};
+
+export type RegistrationTravelValues = {
+  outbound_date: string;
+  outbound_time: string;
+  outbound_transport_mode: string;
+  outbound_transport_number: string;
+  outbound_origin: string;
+  outbound_destination: string;
+  return_date: string;
+  return_time: string;
+  return_transport_mode: string;
+  return_transport_number: string;
+  return_destination: string;
+  extend_stay: boolean;
+};
+
 const requiredMessages = {
   full_name: "Nama lengkap wajib diisi.",
   email: "Email wajib diisi.",
@@ -128,6 +150,84 @@ export const registrationSchema = z
   });
 
 export type NormalizedRegistrationData = z.output<typeof registrationSchema>;
+
+const travelSchema = z.object({
+  outbound_date: z.string().trim().min(1, "Tanggal keberangkatan wajib diisi."),
+  outbound_time: z.string().trim().min(1, "Waktu keberangkatan wajib diisi."),
+  outbound_transport_mode: z.string().trim().min(1, "Moda keberangkatan wajib diisi.").max(50),
+  outbound_transport_number: z.string().trim().max(100),
+  outbound_origin: z.string().trim().min(1, "Asal keberangkatan wajib diisi.").max(150),
+  outbound_destination: z.string().trim().min(1, "Tujuan keberangkatan wajib diisi.").max(150),
+  return_date: z.string().trim().min(1, "Tanggal kepulangan wajib diisi."),
+  return_time: z.string().trim().min(1, "Waktu kepulangan wajib diisi."),
+  return_transport_mode: z.string().trim().min(1, "Moda kepulangan wajib diisi.").max(50),
+  return_transport_number: z.string().trim().max(100),
+  return_destination: z.string().trim().min(1, "Tujuan kepulangan wajib diisi.").max(150),
+  extend_stay: z.boolean(),
+});
+
+export const collectiveParticipantSchema = z
+  .object({
+    ...registrationSchema.shape,
+    certificate_file: z.custom<File | null | undefined>(
+      (value) => value === undefined || value === null || (typeof File !== "undefined" && value instanceof File),
+    ).optional(),
+    member_number: z.string().trim().max(50, "Nomor anggota maksimal 50 karakter."),
+    institution: z.string().trim().max(150, "Institusi maksimal 150 karakter."),
+    include_travel: z.boolean(),
+    travel: travelSchema.partial().nullable(),
+  })
+  .superRefine((data, context) => {
+    if (data.actuarial_consultant_status === "Peserta Baru" && !data.certificate_file && !data.certificate_upload_id) {
+      context.addIssue({ code: "custom", path: ["certificate_file"], message: requiredMessages.certificate_file });
+    }
+    if (data.actuarial_consultant_status !== "Peserta Baru" && (data.certificate_file || data.certificate_upload_id)) {
+      context.addIssue({ code: "custom", path: ["certificate_file"], message: "Upload hanya diperlukan untuk Peserta Baru." });
+    }
+    if (data.include_travel) {
+      const travelResult = travelSchema.safeParse(data.travel);
+      if (!travelResult.success) {
+        for (const issue of travelResult.error.issues) {
+          context.addIssue({
+            ...issue,
+            path: ["travel", ...issue.path],
+          });
+        }
+      } else if (travelResult.data.return_date < travelResult.data.outbound_date) {
+        context.addIssue({
+          code: "custom",
+          path: ["travel", "return_date"],
+          message: "Tanggal kepulangan tidak boleh sebelum keberangkatan.",
+        });
+      }
+    }
+  });
+
+export type NormalizedCollectiveParticipantData = z.output<
+  typeof collectiveParticipantSchema
+>;
+
+export const collectiveRegistrationPayloadSchema = z.object({
+  idempotency_key: z.string().uuid(),
+  participants: z.array(collectiveParticipantSchema).min(1).max(100),
+});
+
+export type CollectiveParticipantFieldErrors = Partial<
+  Record<keyof CollectiveParticipantFormValues | "travel" | `travel.${keyof RegistrationTravelValues}`, string>
+>;
+
+export function getCollectiveParticipantFieldErrors(
+  error: z.ZodError,
+): CollectiveParticipantFieldErrors {
+  const fieldErrors: CollectiveParticipantFieldErrors = {};
+  for (const issue of error.issues) {
+    const field = issue.path[0];
+    if (typeof field === "string" && !fieldErrors[field as keyof CollectiveParticipantFormValues]) {
+      fieldErrors[field as keyof CollectiveParticipantFormValues] = issue.message;
+    }
+  }
+  return fieldErrors;
+}
 
 export type RegistrationFieldErrors = Partial<
   Record<RegistrationField, string>

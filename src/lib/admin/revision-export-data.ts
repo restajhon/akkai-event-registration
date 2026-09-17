@@ -8,6 +8,7 @@ import type { ParticipantExportRow } from "./revision-exports";
 type ParticipantRow = {
   id: string;
   registration_id: string;
+  batch_id: string | null;
   full_name: string;
   member_number: string | null;
   email: string;
@@ -131,11 +132,23 @@ function assignmentStatus(value: PickupRow | undefined) {
   return value.status === "COMPLETED" ? "Selesai" : "Terjadwal";
 }
 
-export async function loadParticipantExportRows(): Promise<ParticipantExportRow[] | null> {
+export async function loadParticipantExportRows(batchCode = "all"): Promise<ParticipantExportRow[] | null> {
   try {
     const supabase = createAdminClient();
+    let batchId: string | null = null;
+    if (batchCode !== "all") {
+      const batchResult = await supabase.from("registration_batches").select("id").eq("batch_code", batchCode).maybeSingle();
+      if (batchResult.error) return null;
+      batchId = batchResult.data?.id ?? null;
+      if (!batchId) return [];
+    }
+    const batchResult = await supabase.from("registration_batches").select("id, batch_code");
+    if (batchResult.error) return null;
+    const batchCodeById = new Map((batchResult.data ?? []).map((row) => [row.id as string, row.batch_code as string]));
+    let participantQuery = supabase.from("participants").select("id, registration_id, batch_id, full_name, member_number, email, phone_number, institution, participant_category, position, kka_name, polo_size, polo_model, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status, email_status, last_email_sent_at, privacy_consent_at, created_at, updated_at").order("created_at", { ascending: false });
+    if (batchId) participantQuery = participantQuery.eq("batch_id", batchId);
     const [participantsResult, billingsResult, documentsResult, travelResult, pickupResult, sessionsResult, attendanceResult, emailLogsResult] = await Promise.all([
-      supabase.from("participants").select("id, registration_id, full_name, member_number, email, phone_number, institution, participant_category, position, kka_name, polo_size, polo_model, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status, email_status, last_email_sent_at, privacy_consent_at, created_at, updated_at").order("created_at", { ascending: false }),
+      participantQuery,
       supabase.from("registration_billings").select("participant_id, billing_number, amount, currency, payment_status, paid_at, paid_by, billing_email_status, billing_email_sent_at"),
       supabase.from("registration_documents").select("participant_id, file_name, file_mime, file_size, created_at"),
       supabase.from("participant_travel").select("participant_id, outbound_date, outbound_time, outbound_transport_mode, outbound_transport_number, outbound_origin, outbound_destination, return_date, return_time, return_transport_mode, return_transport_number, return_destination, extend_stay"),
@@ -221,6 +234,7 @@ export async function loadParticipantExportRows(): Promise<ParticipantExportRow[
 
       return {
         registrationId: participant.registration_id,
+        batchCode: participant.batch_id ? batchCodeById.get(participant.batch_id) ?? "" : "",
         name: participant.full_name,
         kka: participant.kka_name ?? "",
         position: participant.position ?? "",

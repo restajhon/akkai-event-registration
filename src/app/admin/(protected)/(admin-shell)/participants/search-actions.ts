@@ -35,7 +35,9 @@ export async function searchParticipants(
     : normalizeSearchQuery(formData.get("query"));
   const requestedPage = pageSchema.parse(formData.get("page"));
   const billingStatus = billingStatusSchema.parse(formData.get("billingStatus"));
-  const data = await loadParticipantPage(query, requestedPage, billingStatus);
+  const rawBatchCode = formData.get("batchCode");
+  const batchCode = typeof rawBatchCode === "string" ? rawBatchCode.trim().slice(0, 30) : "all";
+  const data = await loadParticipantPage(query, requestedPage, billingStatus, batchCode || "all");
 
   if (!data) {
     return {

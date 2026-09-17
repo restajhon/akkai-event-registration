@@ -7,6 +7,7 @@ type AttendanceExportValue = { status: string; time: string; method: string; ope
 
 export type ParticipantExportRow = {
   registrationId: string;
+  batchCode: string;
   name: string;
   kka: string;
   position: string;
@@ -97,7 +98,7 @@ function sizeLabel(value: number | null) {
 export function buildParticipantWorkbook(rows: ParticipantExportRow[]) {
   const workbook = XLSX.utils.book_new();
   const headers = [
-    "Registration ID", "Nama", "KKA", "Jabatan", "No. HP", "Alamat Email", "Nomor Anggota", "Institusi", "Kategori Peserta",
+    "Registration ID", "Batch Code", "Nama", "KKA", "Jabatan", "No. HP", "Alamat Email", "Nomor Anggota", "Institusi", "Kategori Peserta",
     "Paket", "Harga Paket", "Mata Uang", "Pilihan Mengikuti Acara", "Kategori CIAC", "Model Poloshirt", "Ukuran Poloshirt", "Kehadiran Kongres PAI", "Status Registrasi",
     "Nomor Tagihan", "Status Billing", "Paid at", "Aktor/Admin Pembayaran",
     "Status Surat Keterangan Kerja", "Nama File SK", "Tipe File SK", "Ukuran File SK", "Waktu Upload SK",
@@ -110,6 +111,7 @@ export function buildParticipantWorkbook(rows: ParticipantExportRow[]) {
   ];
   const values = rows.map((row) => ({
     "Registration ID": row.registrationId,
+    "Batch Code": row.batchCode,
     Nama: row.name,
     KKA: row.kka,
     Jabatan: row.position,

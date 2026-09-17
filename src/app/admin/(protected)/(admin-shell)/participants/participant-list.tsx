@@ -293,7 +293,7 @@ export function ParticipantList({
     searchParticipants,
     { data: initialData, message: null },
   );
-  const { participants, summary, query, billingStatus, page, totalPages, totalCount } =
+  const { participants, summary, query, billingStatus, batchCode, batchOptions, page, totalPages, totalCount } =
     searchState.data;
   const [selectedRegistrationIds, setSelectedRegistrationIds] = useState<string[]>([]);
   const selectedSet = new Set(selectedRegistrationIds);
@@ -329,7 +329,7 @@ export function ParticipantList({
             <a
               className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
               download="AKKAI-2026-Peserta.xlsx"
-              href="/api/admin/participant-export"
+              href={batchCode === "all" ? "/api/admin/participant-export" : `/api/admin/participant-export?batchCode=${encodeURIComponent(batchCode)}`}
             >
               Download Excel
             </a>
@@ -375,6 +375,18 @@ export function ParticipantList({
               <option value="all">Semua status billing</option>
               <option value="PAID">Lunas</option>
               <option value="UNPAID">Belum Dibayar</option>
+            </select>
+            <label className="sr-only" htmlFor="participant-batch">Batch pendaftaran</label>
+            <select
+              className="min-h-11 min-w-0 rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac]"
+              disabled={searchPending}
+              id="participant-batch"
+              name="batchCode"
+              defaultValue={batchCode}
+              key={batchCode}
+            >
+              <option value="all">Semua batch</option>
+              {batchOptions.map((option) => <option key={option} value={option}>{option}</option>)}
             </select>
             <button
               className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-5 text-sm font-semibold text-white outline-none hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50"
@@ -483,6 +495,7 @@ export function ParticipantList({
             <form action={searchAction}>
                <input name="query" type="hidden" value={query} />
                <input name="billingStatus" type="hidden" value={billingStatus} />
+               <input name="batchCode" type="hidden" value={batchCode} />
               <input name="page" type="hidden" value={page - 1} />
               <button
                 aria-label="Halaman sebelumnya"
@@ -500,6 +513,7 @@ export function ParticipantList({
             <form action={searchAction}>
                <input name="query" type="hidden" value={query} />
                <input name="billingStatus" type="hidden" value={billingStatus} />
+               <input name="batchCode" type="hidden" value={batchCode} />
               <input name="page" type="hidden" value={page + 1} />
               <button
                 aria-label="Halaman berikutnya"
@@ -539,6 +553,7 @@ function ParticipantCard({ participant, checked, onCheckedChange }: { participan
            <div className="min-w-0">
            <h2 className="break-words text-xl font-semibold text-[#142842]">{participant.fullName}</h2>
            <p className="mt-1 break-all text-sm font-semibold text-[#9a7526]">{participant.registrationId}</p>
+            {participant.batchCode ? <p className="mt-1 text-xs font-semibold text-[#80631e]">{participant.batchCode}</p> : null}
            <SharedEmailIndicator count={participant.sharedEmailCount} />
            </div>
         </div>
@@ -615,7 +630,8 @@ function ParticipantTableRow({
            <ParticipantCheckbox checked={checked} onChange={onCheckedChange} registrationId={participant.registrationId} />
            <div>
          <p className="break-words font-semibold text-[#142842]">{participant.fullName}</p>
-         <p className="mt-1 break-all text-xs font-semibold text-[#9a7526]">{participant.registrationId}</p>
+          <p className="mt-1 break-all text-xs font-semibold text-[#9a7526]">{participant.registrationId}</p>
+          {participant.batchCode ? <Link className="mt-1 inline-block text-xs font-semibold text-[#80631e] underline underline-offset-2" href={`/admin/participants?batchCode=${encodeURIComponent(participant.batchCode)}`}>{participant.batchCode}</Link> : null}
          <SharedEmailIndicator count={participant.sharedEmailCount} />
            </div>
          </div>

@@ -36,3 +36,30 @@ export const initialRegistrationState: RegistrationActionState = {
   fieldErrors: {},
   emailDelivery: "not-attempted",
 };
+
+export type CollectiveParticipantResult = {
+  index: number;
+  status: "created-email-sent" | "created-email-failed" | "failed";
+  registrationId?: string;
+  billingNumber?: string;
+  amount?: number;
+  fullName: string;
+  email: string;
+  emailDelivery: EmailDeliveryStatus;
+  billingEmailDelivery: EmailDeliveryStatus;
+  message: string;
+};
+
+export type CollectiveRegistrationActionState = {
+  status: "idle" | "validation-error" | "general-error" | "submitted";
+  generalError?: string;
+  fieldErrors: Array<Partial<Record<string, string>>>;
+  batchCode?: string;
+  participants: CollectiveParticipantResult[];
+};
+
+export const initialCollectiveRegistrationState: CollectiveRegistrationActionState = {
+  status: "idle",
+  fieldErrors: [],
+  participants: [],
+};

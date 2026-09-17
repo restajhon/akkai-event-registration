@@ -16,6 +16,7 @@ import {
 } from "../participant-list";
 import { EmailCorrectionForm } from "../email-correction-form";
 import { BillingPaymentForm } from "../billing-payment-form";
+import { ParticipantEditForm } from "../participant-edit-form";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,8 @@ type DatabaseParticipantRow = {
   email: string;
   phone_number: string;
   member_number: string | null;
+  institution: string | null;
+  batch_id: string | null;
   kka_name: string | null;
   position: string | null;
   polo_size: string | null;
@@ -62,6 +65,23 @@ type DetailData = {
   billing: BillingRow | null;
   certificate: CertificateRow | null;
   pickup: PickupParticipant | null;
+  travel: TravelRow | null;
+  batchCode: string | null;
+};
+
+type TravelRow = {
+  outbound_date: string;
+  outbound_time: string;
+  outbound_transport_mode: string;
+  outbound_transport_number: string | null;
+  outbound_origin: string;
+  outbound_destination: string;
+  return_date: string;
+  return_time: string;
+  return_transport_mode: string;
+  return_transport_number: string | null;
+  return_destination: string;
+  extend_stay: boolean;
 };
 
 type BillingRow = {
@@ -150,7 +170,7 @@ async function loadDetailData(
     const { data: participant, error: participantError } = await adminSupabase
       .from("participants")
       .select(
-         "id, registration_id, full_name, email, phone_number, member_number, kka_name, position, polo_size, polo_model, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status, email_status, email_generation, last_email_sent_at, created_at",
+         "id, registration_id, full_name, email, phone_number, member_number, institution, batch_id, kka_name, position, polo_size, polo_model, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status, email_status, email_generation, last_email_sent_at, created_at",
       )
       .eq("registration_id", registrationId)
       .maybeSingle();
@@ -160,6 +180,15 @@ async function loadDetailData(
     }
 
     const participantRow = participant as DatabaseParticipantRow;
+    let batchCode: string | null = null;
+    if (participantRow.batch_id) {
+      const { data: batch } = await adminSupabase
+        .from("registration_batches")
+        .select("batch_code")
+        .eq("id", participantRow.batch_id)
+        .maybeSingle();
+      batchCode = batch?.batch_code ?? null;
+    }
     const sharedEmailResult = await adminSupabase
       .from("participants")
       .select("id", { count: "exact", head: true })
@@ -192,6 +221,12 @@ async function loadDetailData(
       .eq("participant_id", participantRow.id)
       .maybeSingle();
     if (certificateError) return null;
+    const { data: travel, error: travelError } = await adminSupabase
+      .from("participant_travel")
+      .select("outbound_date, outbound_time, outbound_transport_mode, outbound_transport_number, outbound_origin, outbound_destination, return_date, return_time, return_transport_mode, return_transport_number, return_destination, extend_stay")
+      .eq("participant_id", participantRow.id)
+      .maybeSingle();
+    if (travelError) return null;
     const { data: sessions, error: sessionsError } = await adminSupabase
       .from("sessions")
       .select("id, code")
@@ -263,6 +298,8 @@ async function loadDetailData(
       billing: billingWithAdmin,
       certificate: certificate as CertificateRow | null,
       pickup,
+      travel: travel as TravelRow | null,
+      batchCode,
     };
   } catch {
     return null;
@@ -374,6 +411,9 @@ export default async function ParticipantDetailPage({
               </p>
                <p className="mt-3 break-words text-sm text-[#5b6c7c]">
                  Konsultan Aktuaria: {participant.actuarial_consultant_status ?? "-"}
+                </p>
+               <p className="mt-1 break-words text-sm font-semibold text-[#80631e]">
+                 Batch: {detailData.batchCode ?? "Single registration"}
                </p>
             </div>
             <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
@@ -415,6 +455,7 @@ export default async function ParticipantDetailPage({
               label="Nomor Anggota"
               value={participant.member_number ?? "Tidak diisi"}
             />
+             <DetailField label="Institusi" value={participant.institution ?? "Tidak diisi"} />
              <DetailField label="Nama KKA" value={participant.kka_name ?? "Tidak diisi"} />
              <DetailField label="Jabatan" value={participant.position ?? "Tidak diisi"} />
             <DetailField label="Ukuran Poloshirt" value={participant.polo_size ?? "Tidak diisi"} />
@@ -453,11 +494,12 @@ export default async function ParticipantDetailPage({
             />
           </dl>
            <div className="mt-5 border-t border-[#eee6d8] pt-4">
-            <EmailCorrectionForm
-              currentEmail={participant.email}
-              emailGeneration={participant.email_generation}
-              registrationId={participant.registration_id}
-            />
+             <EmailCorrectionForm
+               currentEmail={participant.email}
+               emailGeneration={participant.email_generation}
+               registrationId={participant.registration_id}
+             />
+             <ParticipantEditForm participant={participant} travel={detailData.travel} />
            </div>
            {detailData.certificate ? (
              <div className="mt-5 border-t border-[#eee6d8] pt-4">
@@ -481,8 +523,13 @@ export default async function ParticipantDetailPage({
               download
               href={`/api/admin/participants/${participant.registration_id}/ticket`}
             >
-              Download Informasi Pendaftaran
-            </a>
+               Download Informasi Pendaftaran
+             </a>
+            {detailData.batchCode ? (
+              <a className="ml-2 mt-4 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]" download href={`/api/admin/batches/${detailData.batchCode}/tickets`}>
+                Download QR Batch
+              </a>
+            ) : null}
           </section>
 
          {detailData.billing ? (

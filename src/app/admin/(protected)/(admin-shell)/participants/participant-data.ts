@@ -22,6 +22,7 @@ type DatabaseParticipantRow = {
   attends_pai_congress: boolean | null;
   registration_status: "REGISTERED" | "CANCELLED";
   email_status: "PENDING" | "SENT" | "FAILED";
+  batch_id: string | null;
   created_at: string;
 };
 
@@ -58,10 +59,20 @@ export async function loadParticipantPage(
   query: string,
   requestedPage: number,
   billingStatus: "all" | "PAID" | "UNPAID" = "all",
+  batchCode = "all",
 ): Promise<ParticipantPageData | null> {
   try {
     const adminSupabase = createAdminClient();
     const offset = (requestedPage - 1) * PAGE_SIZE;
+    const batchesResult = await adminSupabase
+      .from("registration_batches")
+      .select("id, batch_code")
+      .order("created_at", { ascending: false });
+    if (batchesResult.error) return null;
+    const batches = (batchesResult.data ?? []) as Array<{ id: string; batch_code: string }>;
+    const selectedBatch = batchCode !== "all"
+      ? batches.find((batch) => batch.batch_code === batchCode)
+      : null;
     let billingParticipantIds: string[] | null = null;
     if (billingStatus !== "all") {
       const billingFilterResult = await adminSupabase
@@ -81,7 +92,7 @@ export async function loadParticipantPage(
     let participantQuery = adminSupabase
       .from("participants")
       .select(
-        "id, registration_id, full_name, email, phone_number, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status, email_status, created_at",
+        "id, registration_id, full_name, email, phone_number, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status, email_status, created_at, batch_id",
         { count: "exact" },
       )
       .order("created_at", { ascending: false });
@@ -90,6 +101,13 @@ export async function loadParticipantPage(
       participantQuery = participantQuery.in(
         "id",
         billingParticipantIds.length > 0 ? billingParticipantIds : ["00000000-0000-0000-0000-000000000000"],
+      );
+    }
+
+    if (batchCode !== "all") {
+      participantQuery = participantQuery.eq(
+        "batch_id",
+        selectedBatch?.id ?? "00000000-0000-0000-0000-000000000000",
       );
     }
 
@@ -263,6 +281,7 @@ export async function loadParticipantPage(
         arrival: attendance.arrival,
         seminar: attendance.seminar,
         day3: attendance.day3,
+        batchCode: batches.find((batch) => batch.id === participant.batch_id)?.batch_code ?? null,
       };
     });
     const totalCount = participantsResult.count ?? 0;
@@ -281,6 +300,8 @@ export async function loadParticipantPage(
       totalPages: Math.max(1, Math.ceil(totalCount / PAGE_SIZE)),
       query,
       billingStatus,
+      batchCode,
+      batchOptions: batches.map((batch) => batch.batch_code),
     };
   } catch {
     return null;

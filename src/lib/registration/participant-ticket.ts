@@ -126,3 +126,13 @@ export function participantTicketFileName(registrationId: string, fullName: stri
     .slice(0, 80) || "Peserta";
   return `${registrationId}_${safeName}.pdf`;
 }
+
+export function participantQrFileName(registrationId: string, fullName: string) {
+  const safeName = fullName
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80) || "Peserta";
+  return `${registrationId}_${safeName}_QR.png`;
+}

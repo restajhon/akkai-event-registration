@@ -20,13 +20,18 @@ import {
 } from "@/lib/registration/diagnostics";
 import {
   type EmailDeliveryStatus,
+  initialCollectiveRegistrationState,
   initialRegistrationState,
+  type CollectiveParticipantResult,
+  type CollectiveRegistrationActionState,
   type RegistrationActionState,
 } from "@/lib/registration/registration-action-state";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateParticipantQrPng } from "@/lib/qr/participant-qr";
 import {
   getRegistrationFieldErrors,
+  collectiveRegistrationPayloadSchema,
+  type NormalizedCollectiveParticipantData,
   registrationSchema,
   type RegistrationFormValues,
 } from "@/lib/validation/registration";
@@ -633,5 +638,291 @@ export async function submitRegistration(
       }
     }
     return stateWithGeneralError(GENERAL_ERROR);
+  }
+}
+
+function collectiveResultFailure(
+  index: number,
+  participant: Partial<NormalizedCollectiveParticipantData>,
+  message: string,
+): CollectiveParticipantResult {
+  return {
+    index,
+    status: "failed",
+    fullName: participant.full_name ?? `Peserta ${index + 1}`,
+    email: participant.email ?? "",
+    emailDelivery: "not-attempted",
+    billingEmailDelivery: "not-attempted",
+    message,
+  };
+}
+
+async function processCollectiveParticipant(
+  supabase: ReturnType<typeof createAdminClient>,
+  batchId: string,
+  batchKey: string,
+  index: number,
+  participant: NormalizedCollectiveParticipantData,
+): Promise<CollectiveParticipantResult> {
+  try {
+    const idempotencyKey = `collective:${batchKey}:${index + 1}`;
+    const { data: reservationData, error: reservationError } = await supabase.rpc(
+      "create_participant_with_registration_reservation_v6",
+      {
+        p_full_name: participant.full_name,
+        p_email: participant.email,
+        p_phone_number: participant.phone_number,
+        p_kka_name: participant.kka_name,
+        p_position: participant.position,
+        p_polo_size: participant.polo_size,
+        p_polo_model: participant.polo_model,
+        p_package_type: participant.package_type,
+        p_participation_scope: participant.participation_scope,
+        p_actuarial_consultant_status: participant.actuarial_consultant_status,
+        p_attends_pai_congress: participant.attends_pai_congress,
+        p_privacy_consent_at: new Date().toISOString(),
+        p_certificate_upload_intent_id: participant.certificate_upload_id || null,
+        p_idempotency_key: idempotencyKey,
+        p_batch_id: batchId,
+        p_member_number: participant.member_number || null,
+        p_institution: participant.institution || null,
+        p_travel: participant.include_travel ? participant.travel : null,
+      },
+    );
+
+    if (reservationError || !reservationData) {
+      logRegistrationStageFailure("rpc-v5", reservationError ?? new Error("collective reservation failed"));
+      if (participant.certificate_upload_id) await cleanupUploadIntent(supabase, participant.certificate_upload_id);
+      return collectiveResultFailure(index, participant, "Peserta gagal dibuat karena error sistem.");
+    }
+
+    const reservation = (Array.isArray(reservationData) ? reservationData[0] : reservationData) as RegistrationReservation | undefined;
+    if (!reservation) {
+      return collectiveResultFailure(index, participant, "Peserta gagal dibuat karena error sistem.");
+    }
+    if (reservation.result_code === "DUPLICATE_MEMBER_NUMBER") {
+      if (participant.certificate_upload_id) await cleanupUploadIntent(supabase, participant.certificate_upload_id);
+      return collectiveResultFailure(index, participant, "Nomor anggota sudah digunakan peserta lain.");
+    }
+    if (reservation.result_code === "BATCH_MISMATCH") {
+      if (participant.certificate_upload_id) await cleanupUploadIntent(supabase, participant.certificate_upload_id);
+      return collectiveResultFailure(index, participant, "Data batch tidak konsisten. Silakan kirim ulang formulir.");
+    }
+    if (
+      !["CREATED", "ALREADY_CREATED"].includes(reservation.result_code) ||
+      !reservation.participant_id ||
+      !reservation.registration_id ||
+      !reservation.full_name ||
+      !reservation.email ||
+      !reservation.qr_token ||
+      !reservation.email_log_id ||
+      !Number.isSafeInteger(reservation.email_generation) ||
+      reservation.email_generation === null ||
+      !reservation.billing_id ||
+      !reservation.billing_number ||
+      !reservation.billing_amount ||
+      !reservation.billing_created_at
+    ) {
+      if (participant.certificate_upload_id) await cleanupUploadIntent(supabase, participant.certificate_upload_id);
+      return collectiveResultFailure(index, participant, "Peserta gagal dibuat karena data billing tidak lengkap.");
+    }
+
+    const reservedEmailLog = await getReservedEmailLog(
+      supabase,
+      reservation.participant_id,
+      reservation.email_log_id,
+      reservation.email_generation,
+    );
+    if (!reservedEmailLog) {
+      return collectiveResultFailure(index, participant, "Peserta berhasil diproses, tetapi status email tidak tersedia.");
+    }
+
+    let emailDelivery: EmailDeliveryStatus = reservedEmailLog.status === "SENT" ? "accepted" : "failed";
+    if (reservedEmailLog.status === "PENDING") {
+      try {
+        const emailResult = await sendRegistrationEmail({
+          recipientEmail: reservedEmailLog.recipient_email,
+          fullName: reservation.full_name,
+          registrationId: reservation.registration_id,
+          packageType: participant.package_type,
+          participationScope: participant.participation_scope,
+          actuarialConsultantStatus: participant.actuarial_consultant_status,
+          attendsPaiCongress: participant.attends_pai_congress,
+          qrPngBuffer: await generateParticipantQrPng(reservation.qr_token),
+          idempotencyKey: `registration:${reservation.participant_id}`,
+        });
+        if (emailResult.success) {
+          emailDelivery = "accepted";
+          await finalizeRegistrationEmail(
+            supabase,
+            reservation.participant_id,
+            reservation.email_log_id,
+            reservation.email_generation,
+            "SENT",
+            emailResult.providerMessageId,
+            null,
+          );
+        } else {
+          logRegistrationStageDetails("registration-email", emailResult.diagnostic);
+          await finalizeRegistrationEmail(
+            supabase,
+            reservation.participant_id,
+            reservation.email_log_id,
+            reservation.email_generation,
+            "FAILED",
+            null,
+            emailResult.errorCategory,
+            emailResult.errorMessage,
+          );
+        }
+      } catch (error) {
+        logRegistrationStageFailure("registration-email", error);
+        await finalizeRegistrationEmail(
+          supabase,
+          reservation.participant_id,
+          reservation.email_log_id,
+          reservation.email_generation,
+          "FAILED",
+          null,
+          "QR_GENERATION_ERROR",
+        );
+      }
+    }
+
+    let billingEmailDelivery: EmailDeliveryStatus = "failed";
+    const existingBillingStatus = await getBillingEmailLogStatus(supabase, reservation.billing_id);
+    if (existingBillingStatus === "SENT") billingEmailDelivery = "accepted";
+    if (existingBillingStatus === "PENDING" || existingBillingStatus === null) {
+      try {
+        const billingEmailResult = await sendBillingEmail({
+          recipientEmail: reservation.email,
+          billingNumber: reservation.billing_number,
+          registrationId: reservation.registration_id,
+          fullName: reservation.full_name,
+          kkaName: participant.kka_name,
+          packageType: participant.package_type,
+          participationScope: participant.participation_scope,
+          amount: reservation.billing_amount,
+          createdAt: formatBillingDate(reservation.billing_created_at),
+          idempotencyKey: `billing:${reservation.billing_id}`,
+        });
+        if (billingEmailResult.success) {
+          billingEmailDelivery = "accepted";
+          await finalizeBillingEmail(supabase, reservation.billing_id, "SENT", billingEmailResult.providerMessageId, null);
+        } else {
+          logRegistrationStageDetails("billing-email", billingEmailResult.diagnostic);
+          await finalizeBillingEmail(supabase, reservation.billing_id, "FAILED", null, billingEmailResult.errorMessage);
+        }
+      } catch (error) {
+        logRegistrationStageFailure("billing-email", error);
+        await finalizeBillingEmail(supabase, reservation.billing_id, "FAILED", null, "Billing email failed");
+      }
+    }
+
+    const allEmailsAccepted = emailDelivery === "accepted" && billingEmailDelivery === "accepted";
+    return {
+      index,
+      status: allEmailsAccepted ? "created-email-sent" : "created-email-failed",
+      registrationId: reservation.registration_id,
+      billingNumber: reservation.billing_number,
+      amount: reservation.billing_amount,
+      fullName: reservation.full_name,
+      email: reservation.email,
+      emailDelivery,
+      billingEmailDelivery,
+      message: allEmailsAccepted
+        ? "Peserta berhasil dibuat dan email QR serta tagihan terkirim."
+        : "Peserta berhasil dibuat, tetapi satu atau lebih email gagal dikirim.",
+    };
+  } catch (error) {
+    logRegistrationStageFailure("rpc-v5", error);
+    return collectiveResultFailure(index, participant, "Peserta gagal dibuat karena error sistem.");
+  }
+}
+
+function collectiveValidationErrors(error: { issues: Array<{ path: PropertyKey[]; message: string }> }) {
+  const fieldErrors: Array<Partial<Record<string, string>>> = [];
+  for (const issue of error.issues) {
+    const index = issue.path[1];
+    if (issue.path[0] !== "participants" || typeof index !== "number") continue;
+    fieldErrors[index] ??= {};
+    const field = issue.path.slice(2).join(".") || "form";
+    fieldErrors[index][field] ??= issue.message;
+  }
+  return fieldErrors;
+}
+
+export async function submitCollectiveRegistration(
+  previousState: CollectiveRegistrationActionState,
+  formData: FormData,
+): Promise<CollectiveRegistrationActionState> {
+  void previousState;
+  if (!AKKAI_EVENT.registrationOpen) {
+    return { ...initialCollectiveRegistrationState, status: "general-error", generalError: REGISTRATION_CLOSED_ERROR };
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(String(formData.get("payload") ?? ""));
+  } catch {
+    return { ...initialCollectiveRegistrationState, status: "general-error", generalError: GENERAL_ERROR };
+  }
+
+  const parsed = collectiveRegistrationPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      ...initialCollectiveRegistrationState,
+      status: "validation-error",
+      fieldErrors: collectiveValidationErrors(parsed.error),
+    };
+  }
+
+  try {
+    const supabase = createAdminClient();
+    const { data: batch, error: batchError } = await supabase
+      .from("registration_batches")
+      .upsert(
+        { idempotency_key: parsed.data.idempotency_key, mode: "COLLECTIVE" },
+        { onConflict: "idempotency_key" },
+      )
+      .select("id, batch_code")
+      .single();
+
+    if (batchError || !batch) {
+      await Promise.all(
+        parsed.data.participants
+          .map((participant) => participant.certificate_upload_id)
+          .filter(Boolean)
+          .map((intentId) => cleanupUploadIntent(supabase, intentId)),
+      );
+      return { ...initialCollectiveRegistrationState, status: "general-error", generalError: GENERAL_ERROR };
+    }
+
+    const settled = await Promise.allSettled(
+      parsed.data.participants.map((participant, index) =>
+        processCollectiveParticipant(
+          supabase,
+          batch.id,
+          parsed.data.idempotency_key,
+          index,
+          participant,
+        ),
+      ),
+    );
+    const participants = settled.map((result, index) =>
+      result.status === "fulfilled"
+        ? result.value
+        : collectiveResultFailure(index, parsed.data.participants[index], "Peserta gagal dibuat karena error sistem."),
+    );
+
+    return {
+      status: "submitted",
+      fieldErrors: [],
+      batchCode: batch.batch_code,
+      participants,
+    };
+  } catch (error) {
+    logRegistrationStageFailure("rpc-v5", error);
+    return { ...initialCollectiveRegistrationState, status: "general-error", generalError: GENERAL_ERROR };
   }
 }

@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
-
 import { requirePermission } from "@/lib/auth/server";
 import { loadParticipantPage } from "./participant-data";
 
@@ -31,11 +29,10 @@ export default async function ParticipantsPage({
   await requirePermission("participants.view");
 
   const params = await searchParams;
-  if (Object.keys(params).length > 0) {
-    redirect("/admin/participants");
-  }
-
-  const pageData = await loadParticipantPage("", 1, "all");
+  const query = typeof params.query === "string" ? params.query.trim().slice(0, 100) : "";
+  const billingStatus = params.billingStatus === "PAID" || params.billingStatus === "UNPAID" ? params.billingStatus : "all";
+  const batchCode = typeof params.batchCode === "string" ? params.batchCode.trim().slice(0, 30) : "all";
+  const pageData = await loadParticipantPage(query, 1, billingStatus, batchCode);
 
   if (!pageData) {
     return <ParticipantPageError />;

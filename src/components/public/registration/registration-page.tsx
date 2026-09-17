@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AKKAI_EVENT } from "@/lib/akkai-event";
 
 import { Footer } from "../landing/footer";
-import { RegistrationForm } from "./registration-form";
+import { RegistrationFlow } from "./registration-flow";
 import { RegistrationHeader } from "./registration-header";
 import { RegistrationInformation } from "./registration-information";
 import styles from "./registration.module.css";
@@ -73,7 +73,7 @@ function RegistrationContent() {
 
        <div className={styles.workspace}>
          <div className={styles.formColumn}>
-           <RegistrationForm />
+            <RegistrationFlow />
          </div>
          <aside className={styles.sidebar}>
            <RegistrationInformation />

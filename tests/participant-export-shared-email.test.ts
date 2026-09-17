@@ -6,6 +6,7 @@ import { buildParticipantWorkbook, type ParticipantExportRow } from "@/lib/admin
 function exportRow(registrationId: string): ParticipantExportRow {
   return {
     registrationId,
+    batchCode: "",
     name: registrationId === "AKKAI26-000048" ? "Nyuluh Budi Santoso" : "Siti Aminah",
     kka: "KKA Maju", position: "Konsultan", phone: "081234567890", email: "admin@example.com",
     memberNumber: "", institution: "", participantCategory: "", packageType: "Twin Share", packagePrice: 6_000_000,
@@ -30,7 +31,7 @@ describe("participant export with shared email", () => {
     const rows = XLSX.utils.sheet_to_json(workbook.Sheets.Peserta, { header: 1 }) as string[][];
     const registrationIds = rows.slice(1).map((row) => row[0]);
     expect(registrationIds).toEqual(["AKKAI26-000048", "AKKAI26-000049"]);
-    expect(rows.slice(1).map((row) => row[5])).toEqual(["admin@example.com", "admin@example.com"]);
+    expect(rows.slice(1).map((row) => row[6])).toEqual(["admin@example.com", "admin@example.com"]);
     expect(JSON.stringify(rows)).not.toContain("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
   });
 });

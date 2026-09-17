@@ -16,6 +16,7 @@ import {
   emailCorrectionSchema,
   getEmailCorrectionFieldErrors,
 } from "@/lib/validation/email";
+import { participantEditDataSchema } from "@/lib/validation/participant-edit";
 
 const registrationIdSchema = z.string().regex(/^AKKAI26-[0-9]{6}$/);
 const STALE_PENDING_WINDOW_MS = 15 * 60 * 1000;
@@ -553,5 +554,121 @@ export async function updateRegistrationBillingPaymentStatus(
     };
   } catch {
     return errorState("Status pembayaran belum dapat diperbarui. Silakan coba kembali.");
+  }
+}
+
+function readOptionalFormString(formData: FormData, field: string) {
+  return readFormString(formData, field).trim();
+}
+
+function readParticipantTravel(formData: FormData) {
+  const values = {
+    outbound_date: readOptionalFormString(formData, "outbound_date"),
+    outbound_time: readOptionalFormString(formData, "outbound_time"),
+    outbound_transport_mode: readOptionalFormString(formData, "outbound_transport_mode"),
+    outbound_transport_number: readOptionalFormString(formData, "outbound_transport_number"),
+    outbound_origin: readOptionalFormString(formData, "outbound_origin"),
+    outbound_destination: readOptionalFormString(formData, "outbound_destination"),
+    return_date: readOptionalFormString(formData, "return_date"),
+    return_time: readOptionalFormString(formData, "return_time"),
+    return_transport_mode: readOptionalFormString(formData, "return_transport_mode"),
+    return_transport_number: readOptionalFormString(formData, "return_transport_number"),
+    return_destination: readOptionalFormString(formData, "return_destination"),
+  };
+  const hasTravel = Object.values(values).some(Boolean);
+  return hasTravel ? { ...values, extend_stay: readFormString(formData, "extend_stay") === "true" } : null;
+}
+
+export async function updateParticipantData(
+  previousState: ParticipantActionState,
+  formData: FormData,
+): Promise<ParticipantActionState> {
+  void previousState;
+  const profile = await getAuthorizedProfile("participants.manage");
+  if (!profile) return errorState("Anda tidak memiliki akses untuk mengubah data peserta.");
+
+  const parsed = participantEditDataSchema.safeParse({
+    registrationId: readFormString(formData, "registrationId"),
+    emailGeneration: readFormString(formData, "emailGeneration"),
+    full_name: readFormString(formData, "full_name"),
+    email: readFormString(formData, "email"),
+    phone_number: readFormString(formData, "phone_number"),
+    member_number: readFormString(formData, "member_number"),
+    institution: readFormString(formData, "institution"),
+    position: readFormString(formData, "position"),
+    kka_name: readFormString(formData, "kka_name"),
+    package_type: readFormString(formData, "package_type"),
+    participation_scope: readFormString(formData, "participation_scope"),
+    polo_size: readFormString(formData, "polo_size"),
+    polo_model: readFormString(formData, "polo_model"),
+    actuarial_consultant_status: readFormString(formData, "actuarial_consultant_status"),
+    attends_pai_congress: readFormString(formData, "attends_pai_congress"),
+    outbound_date: readOptionalFormString(formData, "outbound_date"),
+    outbound_time: readOptionalFormString(formData, "outbound_time"),
+    outbound_transport_mode: readOptionalFormString(formData, "outbound_transport_mode"),
+    outbound_transport_number: readOptionalFormString(formData, "outbound_transport_number"),
+    outbound_origin: readOptionalFormString(formData, "outbound_origin"),
+    outbound_destination: readOptionalFormString(formData, "outbound_destination"),
+    return_date: readOptionalFormString(formData, "return_date"),
+    return_time: readOptionalFormString(formData, "return_time"),
+    return_transport_mode: readOptionalFormString(formData, "return_transport_mode"),
+    return_transport_number: readOptionalFormString(formData, "return_transport_number"),
+    return_destination: readOptionalFormString(formData, "return_destination"),
+    extend_stay: readFormString(formData, "extend_stay") === "true" ? "true" : "false",
+  });
+  if (!parsed.success) return errorState(parsed.error.issues[0]?.message ?? "Data peserta tidak valid.");
+
+  const travel = readParticipantTravel(formData);
+
+  try {
+    const supabase = createAdminClient();
+    const { data: current, error: currentError } = await supabase
+      .from("participants")
+      .select("id, email, email_generation")
+      .eq("registration_id", parsed.data.registrationId)
+      .maybeSingle();
+    if (currentError || !current) return errorState("Peserta tidak ditemukan.");
+
+    if (parsed.data.email !== current.email) {
+      if (!(await getAuthorizedProfile("participants.email"))) return errorState("Anda tidak memiliki akses untuk mengubah email peserta.");
+      const { data: emailResult, error: emailError } = await supabase.rpc("correct_participant_email", {
+        p_participant_id: current.id,
+        p_new_email: parsed.data.email,
+        p_changed_by: profile.id,
+        p_expected_email_generation: parsed.data.emailGeneration,
+        p_allow_stale_pending: false,
+      });
+      const resultCode = (Array.isArray(emailResult) ? emailResult[0] : emailResult) as { result_code?: string } | null;
+      if (emailError || !["UPDATED", "NO_CHANGE"].includes(resultCode?.result_code ?? "")) {
+        return errorState("Email peserta belum dapat diperbarui. Pastikan form masih terbaru.");
+      }
+    }
+
+    const { data: updateResult, error: updateError } = await supabase.rpc("update_participant_data", {
+      p_participant_id: current.id,
+      p_actor_id: profile.id,
+      p_full_name: parsed.data.full_name,
+      p_phone_number: parsed.data.phone_number,
+      p_member_number: parsed.data.member_number || null,
+      p_institution: parsed.data.institution || null,
+      p_position: parsed.data.position || null,
+      p_kka_name: parsed.data.kka_name || null,
+      p_package_type: parsed.data.package_type,
+      p_participation_scope: parsed.data.participation_scope,
+      p_polo_size: parsed.data.polo_size,
+      p_polo_model: parsed.data.polo_model,
+      p_actuarial_consultant_status: parsed.data.actuarial_consultant_status,
+      p_attends_pai_congress: parsed.data.attends_pai_congress,
+      p_travel: travel,
+    });
+    const result = (Array.isArray(updateResult) ? updateResult[0] : updateResult) as { result_code?: string } | null;
+    if (updateError || result?.result_code !== "UPDATED") {
+      return errorState(result?.result_code === "DUPLICATE_MEMBER_NUMBER" ? "Nomor anggota sudah digunakan peserta lain." : "Data peserta belum dapat diperbarui.");
+    }
+
+    revalidateParticipantPaths(parsed.data.registrationId);
+    return { status: "success", message: "Data peserta berhasil diperbarui. Nomor registrasi dan QR tetap sama." };
+  } catch {
+    return errorState("Data peserta belum dapat diperbarui. Silakan coba kembali.");
   }
 }

@@ -7,7 +7,7 @@ import { buildParticipantWorkbook } from "@/lib/admin/revision-exports";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   const authorization = await authorizePermission("participants.export");
   if (!authorization.authorized) {
     return NextResponse.json(
@@ -15,7 +15,8 @@ export async function GET() {
       { status: authorization.status },
     );
   }
-  const rows = await loadParticipantExportRows();
+  const batchCode = new URL(request.url).searchParams.get("batchCode")?.trim().slice(0, 30) || "all";
+  const rows = await loadParticipantExportRows(batchCode);
 
   if (!rows) {
     return NextResponse.json({ error: "Participant data is unavailable." }, { status: 500 });

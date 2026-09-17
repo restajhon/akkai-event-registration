@@ -18,6 +18,7 @@ export type ParticipantListItem = {
   billingStatus: ParticipantBillingStatus;
   registrationStatus: "REGISTERED" | "CANCELLED";
   emailStatus: "PENDING" | "SENT" | "FAILED";
+  batchCode: string | null;
   createdAt: string;
   arrival: AttendanceSummary;
   seminar: AttendanceSummary;
@@ -40,4 +41,6 @@ export type ParticipantPageData = {
   totalPages: number;
   query: string;
   billingStatus: "all" | "PAID" | "UNPAID";
+  batchCode: string;
+  batchOptions: string[];
 };

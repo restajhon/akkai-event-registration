@@ -25,7 +25,7 @@ vi.mock("@/lib/stations/pairing", () => ({
 import { updateProfileAccess } from "@/app/admin/(protected)/(admin-shell)/access/actions";
 import { createStation } from "@/app/admin/(protected)/(admin-shell)/display/setup/actions";
 import { pairStation } from "@/app/admin/(protected)/(admin-shell)/scanner/pair/actions";
-import { updateRegistrationBillingPaymentStatus } from "@/app/admin/(protected)/(admin-shell)/participants/actions";
+import { updateParticipantData, updateRegistrationBillingPaymentStatus } from "@/app/admin/(protected)/(admin-shell)/participants/actions";
 import { POST as scannerCheckIn } from "@/app/admin/(protected)/(focused)/scanner/check-in/route";
 import { GET as privateCertificate } from "@/app/api/admin/participants/[registrationId]/certificate/route";
 
@@ -130,6 +130,39 @@ describe("RBAC route and action guards", () => {
     ).resolves.toMatchObject({ status: "error" });
     expect(mocks.getAuthorizedProfile).toHaveBeenCalledWith("participants.manage");
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
+  });
+
+  it("rejects unauthorized participant edits before database access", async () => {
+    mocks.getAuthorizedProfile.mockResolvedValue(null);
+    const formData = new FormData();
+    formData.set("registrationId", "AKKAI26-000001");
+
+    await expect(updateParticipantData({ status: "idle", message: null }, formData)).resolves.toMatchObject({ status: "error" });
+    expect(mocks.getAuthorizedProfile).toHaveBeenCalledWith("participants.manage");
+    expect(mocks.createAdminClient).not.toHaveBeenCalled();
+  });
+
+  it("updates editable fields through the protected participant RPC", async () => {
+    mocks.getAuthorizedProfile.mockResolvedValue({ id: "admin-1", full_name: "Admin", email: "admin@example.com", role: "ADMIN", is_active: true });
+    const rpc = vi.fn().mockResolvedValue({ data: [{ result_code: "UPDATED", billing_amount: 7_000_000 }], error: null });
+    const participantQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: "participant-1", email: "old@example.com", email_generation: 0 }, error: null }),
+    };
+    mocks.createAdminClient.mockReturnValue({ from: vi.fn().mockReturnValue(participantQuery), rpc });
+    const formData = new FormData();
+    for (const [key, value] of Object.entries({
+      registrationId: "AKKAI26-000001", emailGeneration: "0", full_name: "Peserta Diperbarui",
+      email: "old@example.com", phone_number: "081234567890", member_number: "", institution: "",
+      position: "Konsultan", kka_name: "KKA Maju", package_type: "Single",
+      participation_scope: "Seluruh acara", polo_size: "L", polo_model: "Lengan Panjang",
+      actuarial_consultant_status: "Penerima Grandfathering CIAC", attends_pai_congress: "true",
+      extend_stay: "false",
+    })) formData.set(key, value);
+
+    await expect(updateParticipantData({ status: "idle", message: null }, formData)).resolves.toMatchObject({ status: "success" });
+    expect(rpc).toHaveBeenCalledWith("update_participant_data", expect.objectContaining({ p_package_type: "Single", p_participant_id: "participant-1" }));
   });
 
   it("allows an existing participant manager to update payment status", async () => {
