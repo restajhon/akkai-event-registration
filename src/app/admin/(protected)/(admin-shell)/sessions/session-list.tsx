@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 
+import { AdminFeedback } from "@/components/admin/admin-ui";
 import { hasPermission } from "@/lib/auth/permissions";
 import type { UserRole } from "@/lib/auth/server";
 import { updateSessionStatus } from "./actions";
@@ -102,6 +103,12 @@ export function SessionList({ sessions, role }: SessionListProps) {
             Atur sesi check-in untuk rangkaian acara AKKAI 2026.
           </p>
         </header>
+
+        <div className="mt-5">
+          <AdminFeedback tone="warning">
+            Hanya satu sesi dapat aktif. Scanner dan station akan mengikuti sesi yang dibuka.
+          </AdminFeedback>
+        </div>
 
         {state.message ? (
           <p

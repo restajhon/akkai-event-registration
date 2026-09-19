@@ -8,6 +8,7 @@ import {
   billingStatusClassName,
   billingStatusLabel,
 } from "@/lib/billing/status";
+import type { ParticipantActionVisibility } from "@/lib/admin/participant-ui";
 
 import { resendRegistrationQr } from "./actions";
 import { searchParticipants } from "./search-actions";
@@ -285,8 +286,10 @@ function BillingStatus({
 }
 
 export function ParticipantList({
+  actionVisibility,
   initialData,
 }: {
+  actionVisibility: ParticipantActionVisibility;
   initialData: ParticipantPageData;
 }) {
   const [searchState, searchAction, searchPending] = useActionState(
@@ -326,14 +329,23 @@ export function ParticipantList({
             Kelola data dan status kehadiran peserta AKKAI 2026.
           </p>
           <div className="mt-4 flex flex-wrap items-start gap-2">
-            <a
+            {actionVisibility.canExport ? <a
               className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
               download="AKKAI-2026-Peserta.xlsx"
               href={batchCode === "all" ? "/api/admin/participant-export" : `/api/admin/participant-export?batchCode=${encodeURIComponent(batchCode)}`}
             >
               Download Excel
-            </a>
-            <BulkTicketButton registrationIds={selectedRegistrationIds} />
+            </a> : null}
+            {actionVisibility.canDownloadTicket ? <BulkTicketButton registrationIds={selectedRegistrationIds} /> : null}
+            {actionVisibility.canDownloadTicket && batchCode !== "all" ? (
+              <a
+                className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
+                download
+                href={`/api/admin/batches/${encodeURIComponent(batchCode)}/tickets`}
+              >
+                Download Tiket Batch
+              </a>
+            ) : null}
           </div>
         </header>
 
@@ -444,7 +456,8 @@ export function ParticipantList({
           <>
              <div className="mt-4 grid gap-3 lg:hidden">
                {participants.map((participant) => (
-                 <ParticipantCard
+                  <ParticipantCard
+                    actionVisibility={actionVisibility}
                    checked={selectedSet.has(participant.registrationId)}
                    key={participant.registrationId}
                    onCheckedChange={(checked) => setSelected(participant.registrationId, checked)}
@@ -478,6 +491,7 @@ export function ParticipantList({
                 <tbody className="divide-y divide-[#eee6d8]">
                   {participants.map((participant) => (
                      <ParticipantTableRow
+                       actionVisibility={actionVisibility}
                        checked={selectedSet.has(participant.registrationId)}
                        key={participant.registrationId}
                        onCheckedChange={(checked) => setSelected(participant.registrationId, checked)}
@@ -542,7 +556,7 @@ function SummaryCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ParticipantCard({ participant, checked, onCheckedChange }: { participant: ParticipantListItem; checked: boolean; onCheckedChange: (checked: boolean) => void }) {
+function ParticipantCard({ actionVisibility, participant, checked, onCheckedChange }: { actionVisibility: ParticipantActionVisibility; participant: ParticipantListItem; checked: boolean; onCheckedChange: (checked: boolean) => void }) {
   const cancelled = participant.registrationStatus === "CANCELLED";
 
   return (
@@ -602,21 +616,40 @@ function ParticipantCard({ participant, checked, onCheckedChange }: { participan
         >
           Lihat Detail
         </Link>
-        <ResendQrButton
+        {actionVisibility.canEdit ? (
+          <Link
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b99a5a] px-3.5 text-xs font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+            href={`/admin/participants/${participant.registrationId}#edit-participant`}
+          >
+            Edit Data
+          </Link>
+        ) : null}
+        {actionVisibility.canDownloadTicket ? (
+          <a
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b99a5a] px-3.5 text-xs font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+            download
+            href={`/api/admin/participants/${participant.registrationId}/ticket`}
+          >
+            Download QR/Tiket
+          </a>
+        ) : null}
+        {actionVisibility.canResendEmail ? <ResendQrButton
           disabled={cancelled}
           email={participant.email}
           registrationId={participant.registrationId}
-        />
+        /> : null}
       </div>
     </article>
   );
 }
 
 function ParticipantTableRow({
+  actionVisibility,
   participant,
   checked,
   onCheckedChange,
 }: {
+  actionVisibility: ParticipantActionVisibility;
   participant: ParticipantListItem;
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
@@ -665,17 +698,30 @@ function ParticipantTableRow({
       </td>
       <td className="px-3 py-3.5">
         <div className="grid justify-items-start gap-2">
-          <Link
+           <Link
             className="inline-flex min-h-11 items-center text-xs font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
             href={`/admin/participants/${participant.registrationId}`}
           >
-            Lihat Detail
-          </Link>
-          <ResendQrButton
-            disabled={cancelled}
-            email={participant.email}
-            registrationId={participant.registrationId}
-          />
+             Lihat Detail
+           </Link>
+           {actionVisibility.canEdit ? <Link
+             className="inline-flex min-h-11 items-center text-xs font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+             href={`/admin/participants/${participant.registrationId}#edit-participant`}
+           >
+             Edit Data
+           </Link> : null}
+           {actionVisibility.canDownloadTicket ? <a
+             className="inline-flex min-h-11 items-center text-xs font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+             download
+             href={`/api/admin/participants/${participant.registrationId}/ticket`}
+           >
+             Download QR/Tiket
+           </a> : null}
+           {actionVisibility.canResendEmail ? <ResendQrButton
+             disabled={cancelled}
+             email={participant.email}
+             registrationId={participant.registrationId}
+           /> : null}
         </div>
       </td>
     </tr>

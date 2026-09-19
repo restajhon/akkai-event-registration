@@ -1,4 +1,5 @@
 import { requirePermission } from "@/lib/auth/server";
+import { getParticipantActionVisibility } from "@/lib/admin/participant-ui";
 import { loadParticipantPage } from "./participant-data";
 
 import { ParticipantList } from "./participant-list";
@@ -26,7 +27,7 @@ export default async function ParticipantsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("participants.view");
+  const profile = await requirePermission("participants.view");
 
   const params = await searchParams;
   const query = typeof params.query === "string" ? params.query.trim().slice(0, 100) : "";
@@ -39,6 +40,9 @@ export default async function ParticipantsPage({
   }
 
   return (
-    <ParticipantList initialData={pageData} />
+    <ParticipantList
+      actionVisibility={getParticipantActionVisibility(profile.role)}
+      initialData={pageData}
+    />
   );
 }

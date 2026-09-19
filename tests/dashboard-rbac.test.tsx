@@ -85,6 +85,7 @@ describe("dashboard RBAC isolation", () => {
 
     const dashboardData = await loadDashboardData(
       canLoadScannerDashboardData(operationalProfile.role),
+      true,
     );
 
     expect(dashboardData?.stations).toEqual([]);
@@ -109,6 +110,14 @@ describe("dashboard RBAC isolation", () => {
 
     expect(canSubscribeToDashboardRealtime(operationalProfile.role)).toBe(false);
     expect(mocks.dashboardRealtimeClient).not.toHaveBeenCalled();
+  });
+
+  it("does not query member-meeting data without its permission", async () => {
+    const queriedTables = configureDashboardClient();
+
+    await loadDashboardData(false, false);
+
+    expect(queriedTables).not.toContain("member_meeting_submissions");
   });
 
   it("keeps dashboard realtime available to a role with display.view", () => {

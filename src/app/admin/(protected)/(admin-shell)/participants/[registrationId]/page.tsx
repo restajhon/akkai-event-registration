@@ -6,6 +6,7 @@ import { formatIndonesianRupiah, PAYMENT_INSTRUCTIONS } from "@/lib/billing/pric
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadPickupAssignmentDetail } from "@/lib/admin/assignment-data";
 import { getEffectivePickupPoint } from "@/lib/admin/pickup-mapping";
+import { getParticipantActionVisibility } from "@/lib/admin/participant-ui";
 import type { PickupParticipant } from "@/lib/admin/assignment-types";
 import { billingStatusLabel } from "@/lib/billing/status";
 import { hasPermission } from "@/lib/auth/permissions";
@@ -395,6 +396,7 @@ export default async function ParticipantDetailPage({
 
   const participant = detailData.participant;
   const isCancelled = participant.registration_status === "CANCELLED";
+  const actionVisibility = getParticipantActionVisibility(profile.role);
 
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
@@ -433,6 +435,29 @@ export default async function ParticipantDetailPage({
             </div>
           </div>
         </header>
+
+        <section aria-label="Aksi peserta" className="mt-4 flex flex-col gap-2 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-3 sm:flex-row sm:flex-wrap sm:items-start">
+          {actionVisibility.canEdit ? (
+            <a
+              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-white outline-none hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+              href="#edit-participant"
+            >
+              Edit Data Peserta
+            </a>
+          ) : null}
+          {actionVisibility.canResendEmail && !isCancelled ? (
+            <ResendQrButton email={participant.email} registrationId={participant.registration_id} />
+          ) : null}
+          {actionVisibility.canDownloadTicket ? (
+            <a
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+              download
+              href={`/api/admin/participants/${participant.registration_id}/ticket`}
+            >
+              Download QR/Tiket
+            </a>
+          ) : null}
+        </section>
 
         <section
           aria-labelledby="registration-information-heading"
@@ -493,13 +518,13 @@ export default async function ParticipantDetailPage({
               value={formatDateTime(participant.created_at)}
             />
           </dl>
-           <div className="mt-5 border-t border-[#eee6d8] pt-4">
-             <EmailCorrectionForm
-               currentEmail={participant.email}
-               emailGeneration={participant.email_generation}
-               registrationId={participant.registration_id}
-             />
-             <ParticipantEditForm participant={participant} travel={detailData.travel} />
+           <div className="mt-5 border-t border-[#eee6d8] pt-4" id="edit-participant">
+             {actionVisibility.canResendEmail ? <EmailCorrectionForm
+                currentEmail={participant.email}
+                emailGeneration={participant.email_generation}
+                registrationId={participant.registration_id}
+              /> : null}
+              {actionVisibility.canEdit ? <ParticipantEditForm participant={participant} travel={detailData.travel} /> : null}
            </div>
            {detailData.certificate ? (
              <div className="mt-5 border-t border-[#eee6d8] pt-4">
@@ -552,7 +577,7 @@ export default async function ParticipantDetailPage({
              </dl>
              {detailData.billing.billing_email_error ? <p className="mt-4 text-sm text-[#9b3d31]">Log email: {detailData.billing.billing_email_error}</p> : null}
              <p className="mt-4 text-sm leading-6 text-[#5b6c7c]">Instruksi pembayaran: {PAYMENT_INSTRUCTIONS.bank}, rekening {PAYMENT_INSTRUCTIONS.accountNumber} atas nama {PAYMENT_INSTRUCTIONS.accountName}. Batas akhir {PAYMENT_INSTRUCTIONS.deadline}. Bukti: {PAYMENT_INSTRUCTIONS.proofEmail} atau {PAYMENT_INSTRUCTIONS.proofWhatsapp}.</p>
-             <BillingPaymentForm billingId={detailData.billing.id} registrationId={participant.registration_id} paymentStatus={detailData.billing.payment_status} />
+              {actionVisibility.canEdit ? <BillingPaymentForm billingId={detailData.billing.id} registrationId={participant.registration_id} paymentStatus={detailData.billing.payment_status} /> : null}
            </section>
           ) : null}
 
@@ -574,7 +599,7 @@ export default async function ParticipantDetailPage({
            </section>
          ) : null}
 
-        <section
+        {actionVisibility.canResendEmail ? <section
           aria-labelledby="registration-email-heading"
           className="mt-4 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5"
         >
@@ -596,7 +621,7 @@ export default async function ParticipantDetailPage({
               />
             )}
           </div>
-        </section>
+        </section> : null}
 
         <section aria-labelledby="attendance-heading" className="mt-4">
           <h2 className="text-xl font-semibold text-[#142842]" id="attendance-heading">

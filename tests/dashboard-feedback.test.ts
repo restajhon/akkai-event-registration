@@ -119,4 +119,43 @@ describe("dashboard feedback mapping", () => {
     expect(result.certificateCount).toBe(1);
     expect(result.attendanceBySession).toEqual({ ARRIVAL: 1, SEMINAR: 1, DAY3: 0 });
   });
+
+  it("maps optional CIAC values to Belum diisi", () => {
+    const result = calculateDashboardKpis(
+      [{
+        id: "p1",
+        registrationId: "AKKAI26-000001",
+        fullName: "A",
+        packageType: null,
+        participationScope: null,
+        actuarialConsultantStatus: null,
+        poloModel: null,
+        poloSize: null,
+        createdAt: "2026-10-01",
+      }],
+      [],
+      [],
+      [],
+      [],
+    );
+
+    expect(result.ciacDistribution).toEqual({ "Belum diisi": 1 });
+    expect(result.paymentPercentage).toBe(0);
+    expect(result.travel).toEqual({
+      arrivalComplete: 0,
+      arrivalIncomplete: 1,
+      departureComplete: 0,
+      departureIncomplete: 1,
+    });
+  });
+
+  it("returns safe zero values for an empty dashboard", () => {
+    expect(calculateDashboardKpis([], [], [], [], [])).toMatchObject({
+      totalParticipants: 0,
+      paidCount: 0,
+      unpaidCount: 0,
+      paymentPercentage: 0,
+      attendanceBySession: { ARRIVAL: 0, SEMINAR: 0, DAY3: 0 },
+    });
+  });
 });

@@ -270,6 +270,7 @@ export function ScannerClient({
   const [cameraStatus, setCameraStatus] = useState<CameraStatus>("off");
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<SafeScanResult | null>(null);
+  const [online, setOnline] = useState(true);
 
   function stopVideoTracks() {
     const video = videoRef.current;
@@ -441,6 +442,21 @@ export function ScannerClient({
   }
 
   useEffect(() => {
+    function updateOnlineStatus() {
+      setOnline(window.navigator.onLine);
+    }
+
+    updateOnlineStatus();
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
+
+    return () => {
+      window.removeEventListener("online", updateOnlineStatus);
+      window.removeEventListener("offline", updateOnlineStatus);
+    };
+  }, []);
+
+  useEffect(() => {
     mountedRef.current = true;
 
     return () => {
@@ -500,9 +516,13 @@ export function ScannerClient({
             <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#897657]">Station</p>
             <p className="mt-0.5 truncate text-sm font-semibold text-[#142842]">{stationName}</p>
           </div>
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#edf7ef] px-3 py-1.5 text-xs font-bold text-[#267044]">
+          <span
+            aria-live="polite"
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${online ? "bg-[#edf7ef] text-[#267044]" : "bg-[#f7e6e3] text-[#9a3e35]"}`}
+            role="status"
+          >
             <span aria-hidden="true">●</span>
-            Sesi Aktif
+            {online ? "Online" : "Offline"}
           </span>
         </section>
 

@@ -2,100 +2,55 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { createContext, useContext, useState } from "react";
+import {
+  BedDouble,
+  BusFront,
+  CalendarClock,
+  ClipboardCheck,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Monitor,
+  RadioTower,
+  ScanLine,
+  ScrollText,
+  UserCog,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import { signOut } from "@/app/admin/actions";
-import { getRoleLabel, hasPermission, type Permission } from "@/lib/auth/permissions";
+import { getRoleLabel } from "@/lib/auth/permissions";
 import type { UserRole } from "@/lib/auth/server";
+
+import {
+  adminNavigationSections,
+  getActiveAdminNavigationHref,
+  getVisibleAdminNavigationItems,
+  shouldCloseAdminDrawer,
+  type AdminNavigationIcon,
+} from "./admin-navigation";
 
 export type AdminSidebarProfile = {
   full_name: string;
   role: UserRole;
 };
 
-type MenuItem = {
-  href: string;
-  label: string;
-  permission?: Permission;
-  roles?: readonly UserRole[];
-  section: "UTAMA" | "OPERASIONAL" | "MONITORING" | "SETUP";
+const navigationIcons: Record<AdminNavigationIcon, LucideIcon> = {
+  access: UserCog,
+  attendance: ClipboardCheck,
+  dashboard: LayoutDashboard,
+  display: Monitor,
+  meeting: ScrollText,
+  participants: Users,
+  pickup: BusFront,
+  rooms: BedDouble,
+  scanner: ScanLine,
+  sessions: CalendarClock,
+  station: RadioTower,
 };
-
-const menuItems: MenuItem[] = [
-  {
-    href: "/admin/dashboard",
-    label: "Dashboard",
-    permission: "dashboard.view",
-    section: "UTAMA",
-  },
-  {
-    href: "/admin/sessions",
-    label: "Sesi",
-    permission: "sessions.view",
-    section: "OPERASIONAL",
-  },
-  {
-    href: "/admin/scanner/pair",
-    label: "Scanner",
-    permission: "scanner.pair",
-    section: "OPERASIONAL",
-  },
-  {
-    href: "/admin/participants",
-    label: "Peserta",
-    permission: "participants.view",
-    section: "OPERASIONAL",
-  },
-  {
-    href: "/admin/member-meetings",
-    label: "Rapat Anggota",
-    permission: "member_meetings.view",
-    section: "OPERASIONAL",
-  },
-  {
-    href: "/admin/rooms",
-    label: "Room Assignment",
-    permission: "rooms.view",
-    section: "OPERASIONAL",
-  },
-  {
-    href: "/admin/pickup",
-    label: "Pickup Assignment",
-    permission: "pickup.view",
-    section: "OPERASIONAL",
-  },
-  {
-    href: "/admin/attendance",
-    label: "Kehadiran",
-    permission: "attendance.view",
-    section: "OPERASIONAL",
-  },
-  {
-    href: "/admin/display",
-    label: "Live Display",
-    permission: "display.view",
-    section: "MONITORING",
-  },
-  {
-    href: "/admin/display/setup",
-    label: "Station Scanner",
-    permission: "display.manage",
-    section: "SETUP",
-  },
-  {
-    href: "/admin/access",
-    label: "Akses Pengguna",
-    permission: "access.manage",
-    section: "SETUP",
-  },
-];
-
-const sectionOrder: MenuItem["section"][] = [
-  "UTAMA",
-  "OPERASIONAL",
-  "MONITORING",
-  "SETUP",
-];
 
 const AdminProfileContext = createContext<AdminSidebarProfile | null>(null);
 
@@ -123,28 +78,70 @@ export function useAdminProfile() {
   return profile;
 }
 
-function isActivePath(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function visibleItems(role: UserRole) {
-  return menuItems.filter((item) =>
-    item.roles ? item.roles.includes(role) : item.permission ? hasPermission(role, item.permission) : false,
-  );
-}
-
 export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const items = visibleItems(profile.role);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const drawerRef = useRef<HTMLElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const items = getVisibleAdminNavigationItems(profile.role);
+  const activeHref = getActiveAdminNavigationHref(pathname, items);
+  const drawerInteractive = isDesktop || drawerOpen;
 
   function closeDrawer() {
     setDrawerOpen(false);
   }
 
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!drawerOpen || isDesktop) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const menuButton = menuButtonRef.current;
+    document.body.style.overflow = "hidden";
+    const drawer = drawerRef.current;
+    const focusable = drawer?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.[0]?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (shouldCloseAdminDrawer(event.key)) {
+        event.preventDefault();
+        closeDrawer();
+        return;
+      }
+
+      if (event.key !== "Tab" || !focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      menuButton?.focus();
+    };
+  }, [drawerOpen, isDesktop]);
+
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#e4d8c4] bg-[#fffdf8] px-4 lg:hidden">
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#e4d8c4] bg-[#fffdf8]/95 px-4 backdrop-blur lg:hidden">
         <div>
           <p className="text-xs font-bold tracking-[0.18em] text-[#9a7526]">AKKAI 2026</p>
           <p className="mt-0.5 text-sm font-semibold text-[#142842]">Event Operations</p>
@@ -155,9 +152,10 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
           aria-label={drawerOpen ? "Tutup menu navigasi" : "Buka menu navigasi"}
           className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-[#b99a5a] text-xl text-[#142842] outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]"
           onClick={() => setDrawerOpen((open) => !open)}
+          ref={menuButtonRef}
           type="button"
         >
-          <span aria-hidden="true">{drawerOpen ? "×" : "☰"}</span>
+          {drawerOpen ? <X aria-hidden="true" size={20} /> : <Menu aria-hidden="true" size={20} />}
         </button>
       </header>
 
@@ -172,10 +170,15 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
 
       <aside
         aria-label="Navigasi admin"
-        className={`fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-[#e4d8c4] bg-[#fffdf8] px-4 py-5 transition-transform duration-200 lg:translate-x-0 ${
+        aria-hidden={!drawerInteractive}
+        aria-modal={drawerOpen && !isDesktop ? true : undefined}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(318px,calc(100vw-48px))] flex-col border-r border-[#e4d8c4] bg-[#fffdf8] px-4 py-5 shadow-[10px_0_28px_rgba(20,40,66,0.12)] transition-transform duration-200 motion-reduce:transition-none lg:w-[232px] lg:translate-x-0 lg:shadow-none ${
           drawerOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         id="admin-navigation-drawer"
+        inert={!drawerInteractive}
+        ref={drawerRef}
+        role={drawerOpen && !isDesktop ? "dialog" : undefined}
       >
         <div className="flex items-start justify-between gap-3 px-2">
           <div>
@@ -188,12 +191,12 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
             onClick={closeDrawer}
             type="button"
           >
-            <span aria-hidden="true">×</span>
+            <X aria-hidden="true" size={20} />
           </button>
         </div>
 
-        <nav className="mt-8 flex-1" aria-label="Menu utama">
-          {sectionOrder.map((section) => {
+        <nav className="mt-7 min-h-0 flex-1 overflow-y-auto pr-1" aria-label="Menu utama">
+          {adminNavigationSections.map((section) => {
             const sectionItems = items.filter((item) => item.section === section);
 
             if (sectionItems.length === 0) {
@@ -205,12 +208,13 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
                 <p className="px-2 text-[11px] font-bold tracking-[0.16em] text-[#897657]">{section}</p>
                 <div className="mt-2 grid gap-1">
                   {sectionItems.map((item) => {
-                    const active = isActivePath(pathname, item.href);
+                    const active = activeHref === item.href;
+                    const Icon = navigationIcons[item.icon];
 
                     return (
                       <Link
                         aria-current={active ? "page" : undefined}
-                        className={`flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#9a7526] ${
+                        className={`flex min-h-10 items-center gap-3 rounded-lg px-3 text-[13px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#9a7526] ${
                           active
                             ? "bg-[#142842] text-[#fffdf8]"
                             : "text-[#344d68] hover:bg-[#f1eadc] hover:text-[#142842]"
@@ -219,6 +223,7 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
                         key={item.href}
                         onClick={closeDrawer}
                       >
+                        <Icon aria-hidden="true" className="shrink-0" size={17} strokeWidth={1.8} />
                         {item.label}
                       </Link>
                     );
@@ -236,9 +241,10 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
           </p>
           <form action={signOut} className="mt-3">
             <button
-              className="flex min-h-11 w-full items-center rounded-lg px-3 text-left text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+              className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-semibold text-[#9a3e35] outline-none hover:bg-[#fff5f2] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
               type="submit"
             >
+              <LogOut aria-hidden="true" size={17} strokeWidth={1.8} />
               Keluar
             </button>
           </form>

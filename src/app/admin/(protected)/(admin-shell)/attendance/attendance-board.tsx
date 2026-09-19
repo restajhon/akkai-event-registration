@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { AdminMetricCard } from "@/components/admin/admin-ui";
 import type { OperationalParticipant, OperationalSessionCode } from "@/lib/admin/operational-data";
 
 type PresenceFilter = "all" | "present" | "absent";
@@ -59,6 +60,11 @@ export function AttendanceBoard({
     DAY3: "all",
   });
   const normalizedQuery = query.trim().toLowerCase();
+  const attendanceTotals = {
+    ARRIVAL: participants.filter((participant) => participant.arrival.checkedIn).length,
+    SEMINAR: participants.filter((participant) => participant.seminar.checkedIn).length,
+    DAY3: participants.filter((participant) => participant.day3.checkedIn).length,
+  };
   const visibleParticipants = participants.filter((participant) => {
     const matchesQuery =
       !normalizedQuery ||
@@ -92,6 +98,17 @@ export function AttendanceBoard({
             </a>
           ) : null}
         </header>
+
+        <section aria-label="Ringkasan kehadiran" className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
+          {sessions.map(({ code }) => (
+            <AdminMetricCard
+              key={code}
+              label={code}
+              subtitle="peserta"
+              value={attendanceTotals[code]}
+            />
+          ))}
+        </section>
 
         <section className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_180px_180px_180px]">
@@ -138,7 +155,36 @@ export function AttendanceBoard({
           <p className="mt-3 text-sm text-[#5b6c7c]">{visibleParticipants.length} dari {participants.length} peserta ditampilkan.</p>
         </section>
 
-        <div className="mt-5 overflow-x-auto rounded-xl border border-[#e4d8c4] bg-[#fffdf8]">
+        <div className="mt-5 grid gap-3 lg:hidden">
+          {visibleParticipants.map((participant) => (
+            <article className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4" key={participant.registrationId}>
+              <h2 className="break-words font-semibold text-[#142842]">{participant.fullName}</h2>
+              <p className="mt-1 break-all text-xs font-semibold text-[#9a7526]">{participant.registrationId}</p>
+              {participant.registrationStatus === "CANCELLED" ? (
+                <p className="mt-1 text-xs font-semibold text-[#9a3e35]">Registrasi dibatalkan</p>
+              ) : null}
+              <dl className="mt-4 grid gap-3 border-t border-[#eee6d8] pt-3">
+                {(["arrival", "seminar", "day3"] as const).map((session) => {
+                  const attendance = participant[session];
+                  return (
+                    <div className="flex items-start justify-between gap-3" key={session}>
+                      <dt className="text-xs font-bold uppercase tracking-wide text-[#897657]">{session === "arrival" ? "ARRIVAL" : session === "seminar" ? "SEMINAR" : "DAY3"}</dt>
+                      <dd className="text-right">
+                        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${presenceClassName(attendance.checkedIn)}`}>
+                          {presenceLabel(attendance.checkedIn)}
+                        </span>
+                        {attendance.checkedInAt ? <p className="mt-1 text-xs text-[#897657]">{formatCheckIn(attendance.checkedInAt)}</p> : null}
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            </article>
+          ))}
+          {visibleParticipants.length === 0 ? <p className="rounded-xl border border-dashed border-[#d8cbb6] bg-[#fffdf8] p-8 text-center text-sm text-[#5b6c7c]">Peserta tidak ditemukan.</p> : null}
+        </div>
+
+        <div className="mt-5 hidden overflow-x-auto rounded-xl border border-[#e4d8c4] bg-[#fffdf8] lg:block">
           <table className="min-w-[1000px] w-full text-left text-sm">
             <thead className="border-b border-[#e4d8c4] bg-[#fbf5e8] text-xs uppercase tracking-wide text-[#897657]">
               <tr>

@@ -1,5 +1,11 @@
 import Link from "next/link";
 
+import {
+  AdminEmptyState,
+  AdminMetricCard,
+  AdminPageHeader,
+  AdminStatusBadge,
+} from "@/components/admin/admin-ui";
 import { hasPermission } from "@/lib/auth/permissions";
 import {
   requirePermission,
@@ -249,6 +255,7 @@ export function canSubscribeToDashboardRealtime(role: UserRole) {
 
 export async function loadDashboardData(
   canViewScanner: boolean,
+  canViewMemberMeeting: boolean,
 ): Promise<DashboardData | null> {
   try {
     const adminSupabase = createAdminClient();
@@ -297,7 +304,9 @@ export async function loadDashboardData(
       sessionIds.length > 0
         ? adminSupabase.from("attendance").select("participant_id, session_id, check_in_time").in("session_id", sessionIds)
         : Promise.resolve({ data: [], error: null }),
-      adminSupabase.from("member_meeting_submissions").select("attendance_type"),
+      canViewMemberMeeting
+        ? adminSupabase.from("member_meeting_submissions").select("attendance_type")
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
     if ([billingResult, travelResult, documentResult, attendanceResult, memberMeetingResult].some((result) => result.error)) {
@@ -446,18 +455,17 @@ export async function loadDashboardData(
   }
 }
 
-function DashboardHeader() {
+function DashboardHeader({ ready = true }: { ready?: boolean }) {
   return (
-    <header className="border-b border-[#dfd3bf] pb-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[#142842] sm:text-3xl">
-          Dashboard Operasional
-        </h1>
-        <p className="mt-1 text-sm text-[#5b6c7c]">
-          Ringkasan operasional AKKAI 2026.
-        </p>
-      </div>
-    </header>
+    <AdminPageHeader
+      description="Ringkasan operasional AKKAI 2026."
+      status={
+        <AdminStatusBadge tone={ready ? "success" : "error"}>
+          {ready ? "Database terhubung" : "Database bermasalah"}
+        </AdminStatusBadge>
+      }
+      title="Dashboard Operasional"
+    />
   );
 }
 
@@ -465,7 +473,7 @@ function DashboardError() {
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-6 sm:px-8 sm:py-8">
       <section className="mx-auto max-w-[1380px]">
-        <DashboardHeader />
+        <DashboardHeader ready={false} />
         <div className="mt-6 rounded-2xl border border-[#ead3cc] bg-[#fff5f2] p-6 text-sm text-[#9b3d31]" role="alert">
           <p className="font-semibold">Dashboard belum dapat dimuat.</p>
           <p className="mt-1">
@@ -474,24 +482,6 @@ function DashboardError() {
         </div>
       </section>
     </main>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  subtitle,
-}: {
-  label: string;
-  value: number;
-  subtitle: string;
-}) {
-  return (
-    <article className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] px-4 py-3.5 sm:px-5 sm:py-4">
-      <p className="text-sm font-semibold text-[#5b6c7c]">{label}</p>
-      <p className="mt-1.5 text-3xl font-bold tracking-tight text-[#142842] sm:text-4xl">{value}</p>
-      <p className="mt-1 text-sm text-[#897657]">{subtitle}</p>
-    </article>
   );
 }
 
@@ -660,7 +650,8 @@ export default async function AdminDashboardPage() {
   const profile = await requirePermission("dashboard.view");
   const canViewScanner = canLoadScannerDashboardData(profile.role);
   const canViewDashboardRealtime = canSubscribeToDashboardRealtime(profile.role);
-  const dashboardData = await loadDashboardData(canViewScanner);
+  const canViewMemberMeeting = hasPermission(profile.role, "member_meetings.view");
+  const dashboardData = await loadDashboardData(canViewScanner, canViewMemberMeeting);
 
   if (!dashboardData) {
     return <DashboardError />;
@@ -713,21 +704,19 @@ export default async function AdminDashboardPage() {
           </div>
 
           {dashboardData.activeSessions.length === 0 ? (
-            <div className="mt-3 flex flex-col gap-3 rounded-xl border border-[#e5cb8c] bg-[#fff9eb] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-              <div>
-                <p className="font-semibold text-[#142842]">Belum ada sesi aktif</p>
-                <p className="mt-1 text-sm text-[#80631e]">
-                  {hasPermission(profile.role, "sessions.manage") ? "Buka sesi untuk mulai menerima check-in peserta." : "Tunggu admin membuka sesi."}
-                </p>
-              </div>
-              {hasPermission(profile.role, "sessions.manage") ? (
-                <Link
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-4 py-2.5 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
-                  href="/admin/sessions"
-                >
-                  Kelola Sesi
-                </Link>
-              ) : null}
+            <div className="mt-3">
+              <AdminEmptyState
+                action={hasPermission(profile.role, "sessions.manage") ? (
+                 <Link
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#142842] px-4 py-2.5 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:w-auto"
+                    href="/admin/sessions"
+                  >
+                    Kelola Sesi
+                  </Link>
+                ) : null}
+                description={hasPermission(profile.role, "sessions.manage") ? "Buka sesi untuk mulai menerima check-in peserta." : "Tunggu admin membuka sesi."}
+                title="Belum ada sesi aktif"
+              />
             </div>
           ) : (
             <div className="mt-3 grid gap-3 lg:grid-cols-2">
@@ -740,29 +729,30 @@ export default async function AdminDashboardPage() {
 
         <section
           aria-label="Ringkasan operasional"
-          className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+          className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6"
         >
-          <KpiCard
+          <AdminMetricCard
             label="Total Peserta"
-            subtitle="Registrasi aktif"
+            subtitle="Registrasi tercatat"
             value={dashboardData.kpis.totalParticipants}
           />
-          <KpiCard
+          <AdminMetricCard
             label="Total Lunas"
-            subtitle="Billing berstatus PAID"
+            subtitle="Pembayaran terverifikasi"
             value={dashboardData.kpis.paidCount}
           />
-          <KpiCard
-            label="Total Belum Dibayar"
-            subtitle="Billing berstatus UNPAID"
+          <AdminMetricCard
+            label="Belum Dibayar"
+            subtitle="Menunggu pembayaran"
             value={dashboardData.kpis.unpaidCount}
           />
-          <KpiCard
-            label="Persentase Pembayaran"
-            subtitle="Dari billing yang tersedia"
-            value={dashboardData.kpis.paymentPercentage}
+          <AdminMetricCard
+            label="Pembayaran"
+            progress={dashboardData.kpis.paymentPercentage}
+            subtitle="Dari billing tersedia"
+            value={`${dashboardData.kpis.paymentPercentage}%`}
           />
-          <KpiCard
+          <AdminMetricCard
             label={checkInLabel}
             subtitle={checkInSubtitle}
             value={
@@ -774,7 +764,7 @@ export default async function AdminDashboardPage() {
             }
           />
           {canViewScanner ? (
-            <KpiCard
+            <AdminMetricCard
               label="Scanner Aktif"
               subtitle="Station siap digunakan"
               value={dashboardData.activeScannerCount}
@@ -782,7 +772,9 @@ export default async function AdminDashboardPage() {
           ) : null}
         </section>
 
-        <section aria-label="KPI detail peserta" className="mt-5 grid gap-4 lg:grid-cols-2">
+        <section aria-labelledby="participant-profile-heading" className="mt-7">
+          <h2 className="text-xl font-semibold text-[#142842]" id="participant-profile-heading">Profil Kebutuhan Peserta</h2>
+          <div className="mt-3 grid gap-4 lg:grid-cols-2">
           <div className="grid gap-4 sm:grid-cols-2">
             <DistributionCard title="Distribusi Paket" values={dashboardData.kpis.packageDistribution} />
             <DistributionCard title="Pilihan Mengikuti Acara" values={dashboardData.kpis.participationDistribution} />
@@ -800,7 +792,7 @@ export default async function AdminDashboardPage() {
                 <div><dt className="text-[#897657]">Surat Keterangan Kerja</dt><dd className="font-bold text-[#142842]">{dashboardData.kpis.certificateCount} dokumen</dd></div>
               </dl>
             </section>
-            <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
+            {canViewMemberMeeting ? <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
               <h2 className="text-lg font-semibold text-[#142842]">Rapat Anggota</h2>
               {dashboardData.memberMeeting.total === 0 ? (
                 <p className="mt-3 text-sm text-[#897657]">Belum ada data rapat anggota.</p>
@@ -809,7 +801,8 @@ export default async function AdminDashboardPage() {
                   {dashboardData.memberMeeting.total} submission: {dashboardData.memberMeeting.self} hadir sendiri dan {dashboardData.memberMeeting.proxy} dikuasakan.
                 </p>
               )}
-            </section>
+            </section> : null}
+          </div>
           </div>
         </section>
 

@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 
+import { AdminMetricCard } from "@/components/admin/admin-ui";
 import { getRoleLabel } from "@/lib/auth/permissions";
 import type { UserRole } from "@/lib/auth/server";
 
@@ -30,6 +31,11 @@ export function AccessList({ profiles }: { profiles: AccessProfile[] }) {
     updateProfileAccess,
     initialState,
   );
+  const roleSummary = roles.map((role) => ({
+    label: getRoleLabel(role),
+    role,
+    value: profiles.filter((profile) => profile.role === role).length,
+  }));
 
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-6 sm:px-8 sm:py-8">
@@ -45,6 +51,17 @@ export function AccessList({ profiles }: { profiles: AccessProfile[] }) {
             Atur peran dan status akun admin AKKAI 2026.
           </p>
         </header>
+
+        <section aria-label="Ringkasan peran pengguna" className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          {roleSummary.map((item) => (
+            <AdminMetricCard
+              key={item.role}
+              label={item.label}
+              subtitle="akun"
+              value={item.value}
+            />
+          ))}
+        </section>
 
         {state.message ? (
           <p
@@ -109,6 +126,11 @@ export function AccessList({ profiles }: { profiles: AccessProfile[] }) {
               </div>
             </form>
           ))}
+          {profiles.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-[#d8cbb6] bg-[#fffdf8] p-8 text-center text-sm text-[#5b6c7c]">
+              Belum ada akun admin yang dapat dikelola.
+            </p>
+          ) : null}
         </div>
       </section>
     </main>

@@ -3,6 +3,15 @@
 :root {
   --background: #fcf9f2;
   --foreground: #0a1b33;
+  --admin-canvas: #f7f3ea;
+  --admin-surface: #fffdf8;
+  --admin-primary: #142842;
+  --admin-secondary: #344d68;
+  --admin-muted: #5b6c7c;
+  --admin-gold: #9a7526;
+  --admin-border: #e4d8c4;
+  --admin-error: #9a3e35;
+  --admin-success: #2f6b4f;
 }
 
 @theme inline {
@@ -18,6 +27,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -32,4 +42,39 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--admin-gold);
+  outline-offset: 2px;
+}
+
+.admin-root {
+  font-family: var(--font-admin-body), Arial, Helvetica, sans-serif;
+}
+
+.admin-root main > section > header h1,
+.admin-root main > header h1 {
+  font-family: var(--font-admin-display), Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+
+.admin-root main {
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

@@ -184,7 +184,60 @@ export function PickupAssignmentBoard({
           </p>
         </section>
 
-         <div className="mt-5 overflow-x-auto rounded-xl border border-[#e4d8c4] bg-[#fffdf8]">
+         <div className="mt-5 grid gap-3 lg:hidden">
+           {visibleParticipants.map((participant) => {
+             const assignment = selectAssignment(participant, transferType);
+             const travel = participant.travel;
+             const isArrival = transferType === "ARRIVAL";
+             const point = getEffectivePickupPoint(transferType, assignment, travel);
+
+             return (
+               <article className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4" key={participant.registrationId}>
+                 <div className="flex items-start justify-between gap-3">
+                   <div className="min-w-0">
+                     <h2 className="break-words font-semibold text-[#142842]">{participant.fullName}</h2>
+                     <p className="mt-1 break-all text-xs font-semibold text-[#9a7526]">{participant.registrationId}</p>
+                     {participant.registrationStatus === "CANCELLED" ? (
+                       <p className="mt-1 text-xs font-semibold text-[#9a3e35]">Registrasi dibatalkan</p>
+                     ) : null}
+                   </div>
+                   <span className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${assignmentClassName(assignment)}`}>
+                     {assignmentLabel(assignment)}
+                   </span>
+                 </div>
+                 <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-[#eee6d8] pt-3 text-sm">
+                   <div>
+                     <dt className="text-[10px] font-bold uppercase tracking-wide text-[#897657]">Travel</dt>
+                     <dd className="mt-1 break-words font-medium text-[#344d68]">{travel ? "Lengkap" : "Belum diisi"}</dd>
+                   </div>
+                   <div>
+                     <dt className="text-[10px] font-bold uppercase tracking-wide text-[#897657]">Moda</dt>
+                     <dd className="mt-1 break-words font-medium text-[#344d68]">{travel ? (isArrival ? travel.outboundTransportMode : travel.returnTransportMode) : "-"}</dd>
+                   </div>
+                   <div className="col-span-2">
+                     <dt className="text-[10px] font-bold uppercase tracking-wide text-[#897657]">{isArrival ? "Titik Jemput" : "Titik Antar"}</dt>
+                     <dd className="mt-1 break-words font-medium text-[#344d68]">{point.value ?? "Belum diisi"}</dd>
+                   </div>
+                   <div className="col-span-2">
+                     <dt className="text-[10px] font-bold uppercase tracking-wide text-[#897657]">Kendaraan</dt>
+                     <dd className="mt-1 break-words font-medium text-[#344d68]">{assignment?.vehicleLabel ?? "Belum diisi"}</dd>
+                   </div>
+                 </dl>
+                 <Link
+                   className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                   href={`/admin/pickup/${participant.registrationId}`}
+                 >
+                   Lihat / Edit
+                 </Link>
+               </article>
+             );
+           })}
+           {visibleParticipants.length === 0 ? (
+             <p className="rounded-xl border border-dashed border-[#d8cbb6] bg-[#fffdf8] p-8 text-center text-sm text-[#5b6c7c]">Peserta tidak ditemukan.</p>
+           ) : null}
+         </div>
+
+         <div className="mt-5 hidden overflow-x-auto rounded-xl border border-[#e4d8c4] bg-[#fffdf8] lg:block">
            <table className="min-w-[1050px] w-full text-left text-sm">
             <thead className="border-b border-[#e4d8c4] bg-[#fbf5e8] text-xs uppercase tracking-wide text-[#897657]">
               <tr>

@@ -143,7 +143,39 @@ export function RoomAssignmentBoard({
           </p>
         </section>
 
-        <div className="mt-5 overflow-x-auto rounded-xl border border-[#e4d8c4] bg-[#fffdf8]">
+        <div className="mt-5 grid gap-3 lg:hidden">
+          {visibleParticipants.map((participant) => (
+            <article className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4" key={participant.registrationId}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="break-words font-semibold text-[#142842]">{participant.fullName}</h2>
+                  <p className="mt-1 break-all text-xs font-semibold text-[#9a7526]">{participant.registrationId}</p>
+                  <p className="mt-1 text-xs text-[#637487]">Paket {participant.packageType ?? "belum diisi"}</p>
+                </div>
+                <span className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClassName(participant)}`}>
+                  {statusLabel(participant)}
+                </span>
+              </div>
+              <div className="mt-4 border-t border-[#eee6d8] pt-3">
+                <p className={`text-sm font-semibold ${isAssigned(participant) ? "text-[#344d68]" : "text-[#80631e]"}`}>
+                  {participant.assignment?.roomNumber ? `Kamar ${participant.assignment.roomNumber}` : "Kamar belum ditetapkan"}
+                </p>
+                {participant.assignment?.notes ? <p className="mt-1 break-words text-xs text-[#637487]">{participant.assignment.notes}</p> : null}
+                <Link
+                  className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                  href={`/admin/rooms/${participant.registrationId}`}
+                >
+                  Lihat / Edit
+                </Link>
+              </div>
+            </article>
+          ))}
+          {visibleParticipants.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-[#d8cbb6] bg-[#fffdf8] p-8 text-center text-sm text-[#5b6c7c]">Peserta tidak ditemukan.</p>
+          ) : null}
+        </div>
+
+        <div className="mt-5 hidden overflow-x-auto rounded-xl border border-[#e4d8c4] bg-[#fffdf8] lg:block">
           <table className="min-w-[900px] w-full text-left text-sm">
             <thead className="border-b border-[#e4d8c4] bg-[#fbf5e8] text-xs uppercase tracking-wide text-[#897657]">
               <tr>
