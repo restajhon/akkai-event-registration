@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { MonitorUp } from "lucide-react";
 
+import { AdminEmptyState, AdminPageHeader } from "@/components/admin/admin-ui";
+import { hasPermission } from "@/lib/auth/permissions";
 import { requirePermission } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -145,7 +148,7 @@ function DisplaySelectionError() {
 }
 
 export default async function LiveDisplaySelectionPage() {
-  await requirePermission("display.view");
+  const profile = await requirePermission("display.view");
 
   const displayStations = await loadDisplayStations();
 
@@ -154,34 +157,44 @@ export default async function LiveDisplaySelectionPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f3ea] px-4 py-8 sm:px-8 sm:py-10">
-      <section className="mx-auto max-w-5xl">
-        <header className="rounded-2xl border border-[#e4d8c4] bg-[#fffdf8] p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold tracking-[0.2em] text-[#9a7526]">
-                AKKAI 2026
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#142842]">
-                Live Display
-              </h1>
-              <p className="mt-2 text-sm text-[#5b6c7c]">
-                Pilih station yang akan ditampilkan pada layar check-in.
-              </p>
-            </div>
+    <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
+      <section className="mx-auto max-w-[1200px]">
+        <AdminPageHeader
+          action={
+            <div className="flex flex-wrap gap-2">
+              {hasPermission(profile.role, "display.manage") ? (
+                <Link className="inline-flex min-h-11 items-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-white outline-none hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526]" href="/admin/display/setup">
+                  Kelola Station
+                </Link>
+              ) : null}
             <Link
-              className="text-sm font-semibold text-[#344d68] underline underline-offset-4 hover:text-[#142842]"
+                className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] outline-none hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
               href="/admin/dashboard"
             >
-              Kembali ke Dashboard
+                Dashboard
             </Link>
           </div>
-        </header>
+          }
+          description="Pilih station yang akan ditampilkan pada layar check-in secara realtime."
+          eyebrow="Operasional"
+          title="Live Display"
+        />
 
         {displayStations.length === 0 ? (
-          <p className="mt-6 rounded-2xl border border-dashed border-[#cfc5b4] bg-[#fffdf8] p-8 text-center text-sm text-[#5b6c7c]">
-            Belum ada station yang tersedia untuk Live Display.
-          </p>
+          <div className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-6">
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#f1eadc] text-[#9a7526]">
+              <MonitorUp aria-hidden="true" size={26} strokeWidth={1.7} />
+            </div>
+            <AdminEmptyState
+              action={hasPermission(profile.role, "display.manage") ? (
+                <Link className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-white outline-none hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:w-auto" href="/admin/display/setup">
+                  Siapkan Station
+                </Link>
+              ) : undefined}
+              description="Buat station untuk sesi aktif terlebih dahulu. Station yang tersedia akan muncul di halaman ini tanpa menggunakan data contoh."
+              title="Belum ada station untuk Live Display"
+            />
+          </div>
         ) : (
           <section className="mt-6 grid gap-4 lg:grid-cols-2">
             {displayStations.map(({ station, session }) => {

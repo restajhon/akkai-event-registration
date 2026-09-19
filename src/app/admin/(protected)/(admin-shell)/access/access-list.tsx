@@ -39,7 +39,7 @@ export function AccessList({ profiles }: { profiles: AccessProfile[] }) {
 
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-6 sm:px-8 sm:py-8">
-      <section className="mx-auto max-w-5xl">
+      <section className="mx-auto max-w-[1200px]">
         <header className="border-b border-[#dfd3bf] pb-5">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9a7526]">
             Setup

@@ -518,7 +518,7 @@ export default async function ParticipantDetailPage({
               value={formatDateTime(participant.created_at)}
             />
           </dl>
-           <div className="mt-5 border-t border-[#eee6d8] pt-4" id="edit-participant">
+            <div className="mt-5 border-t border-[#eee6d8] pt-4">
              {actionVisibility.canResendEmail ? <EmailCorrectionForm
                 currentEmail={participant.email}
                 emailGeneration={participant.email_generation}

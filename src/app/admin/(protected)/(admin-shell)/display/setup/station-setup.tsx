@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { RadioTower } from "lucide-react";
 import { useActionState, useState } from "react";
 
+import { AdminEmptyState, AdminFeedback } from "@/components/admin/admin-ui";
 import {
   closeStation,
   createStation,
@@ -352,10 +354,10 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
           </p>
           <form
             action={createAction}
-            className="mt-5 grid gap-4 sm:grid-cols-2"
+            className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] lg:items-end"
             onSubmit={() => setLastAction("create")}
           >
-            <label className="grid gap-2 text-sm font-semibold text-[#344d68] sm:col-span-2" htmlFor="station-name">
+            <label className="grid gap-2 text-sm font-semibold text-[#344d68]" htmlFor="station-name">
               Nama station
               <input
                 className="min-h-11 rounded-lg border border-[#cfc5b4] bg-[#fffdf8] px-3 text-sm font-normal text-[#142842] outline-none placeholder:text-[#b8ad9b] focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac] disabled:bg-[#f2f0eb]"
@@ -368,7 +370,7 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
                 type="text"
               />
             </label>
-            <label className="grid gap-2 text-sm font-semibold text-[#344d68] sm:col-span-2" htmlFor="station-session">
+            <label className="grid gap-2 text-sm font-semibold text-[#344d68]" htmlFor="station-session">
               Sesi
               <select
                 className="min-h-11 rounded-lg border border-[#cfc5b4] bg-[#fffdf8] px-3 text-sm font-normal text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac] disabled:cursor-not-allowed disabled:bg-[#f2f0eb]"
@@ -389,12 +391,12 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
               </select>
             </label>
             {sessions.length === 0 ? (
-              <p className="text-sm text-[#80631e] sm:col-span-2">
-                Belum ada sesi aktif. Buka sesi terlebih dahulu.
-              </p>
+              <div className="sm:col-span-2 lg:col-span-3">
+                <AdminFeedback tone="warning">Belum ada sesi aktif. Buka sesi terlebih dahulu sebelum membuat station.</AdminFeedback>
+              </div>
             ) : null}
             <button
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#142842] px-4 py-2.5 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2 sm:w-fit"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#142842] px-4 py-2.5 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2 sm:w-fit lg:col-span-1"
               disabled={sessions.length === 0 || pending}
               type="submit"
             >
@@ -414,9 +416,15 @@ export function StationSetup({ sessions, stations }: StationSetupProps) {
           </div>
 
           {stations.length === 0 ? (
-            <p className="mt-4 rounded-xl border border-dashed border-[#d8cbb6] bg-[#fffdf8] p-6 text-center text-sm text-[#5b6c7c]">
-              Belum ada station.
-            </p>
+            <div className="mt-4 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-5 sm:p-6">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#f1eadc] text-[#9a7526]">
+                <RadioTower aria-hidden="true" size={22} />
+              </div>
+              <AdminEmptyState
+                description="Buka sesi, lalu buat station di formulir di atas. Kode pairing hanya ditampilkan setelah station berhasil dibuat."
+                title="Belum ada scanner station"
+              />
+            </div>
           ) : (
             <div className="mt-4 divide-y divide-[#eee6d8] overflow-hidden rounded-xl border border-[#e4d8c4] bg-[#fffdf8]">
               {stations.map((station) => (

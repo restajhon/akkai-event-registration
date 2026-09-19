@@ -83,16 +83,18 @@ export function PickupAssignmentBoard({
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
       <section className="mx-auto max-w-[1400px]">
-        <header className="border-b border-[#dfd3bf] pb-5">
-          <p className="text-xs font-bold tracking-[0.18em] text-[#9a7526]">OPERASIONAL</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#142842] sm:text-3xl">
-            Pickup Operasional
-          </h1>
-          <p className="mt-1 text-sm text-[#5b6c7c]">
-            Kelola assignment dan pantau setiap kaki perjalanan tanpa mencampur kedatangan dengan kepulangan.
-          </p>
+        <header className="flex flex-col gap-4 border-b border-[#dfd3bf] pb-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-bold tracking-[0.18em] text-[#9a7526]">OPERASIONAL</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#142842] sm:text-3xl">
+              Pickup Operasional
+            </h1>
+            <p className="mt-1 max-w-3xl text-sm text-[#5b6c7c]">
+              Kelola assignment dan pantau setiap kaki perjalanan tanpa mencampur kedatangan dengan kepulangan.
+            </p>
+          </div>
           <a
-            className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
+            className="inline-flex min-h-11 shrink-0 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
             download="AKKAI-2026-Pickup-Assignment.xlsx"
             href="/api/admin/pickup-assignment-export"
           >
@@ -100,20 +102,19 @@ export function PickupAssignmentBoard({
           </a>
         </header>
 
-        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+        <div aria-label="Jenis perjalanan" className="mt-5 grid max-w-md grid-cols-2 overflow-hidden rounded-lg border border-[#d8cbb6] bg-[#fffdf8] p-1" role="group">
           {(["ARRIVAL", "DEPARTURE"] as const).map((leg) => (
             <button
-              className={`min-h-12 rounded-lg border px-4 text-left text-sm font-bold transition focus-visible:ring-2 focus-visible:ring-[#9a7526] ${
+              className={`min-h-10 rounded-md px-4 text-center text-sm font-bold transition focus-visible:ring-2 focus-visible:ring-[#9a7526] ${
                 transferType === leg
-                  ? "border-[#142842] bg-[#142842] text-white"
-                  : "border-[#d8cbb6] bg-[#fffdf8] text-[#344d68] hover:border-[#9a7526]"
+                  ? "bg-[#142842] text-white"
+                  : "text-[#344d68] hover:bg-[#f1eadc]"
               }`}
               key={leg}
               onClick={() => setTransferType(leg)}
               type="button"
             >
-              <span className="block text-xs tracking-[0.16em] opacity-70">PICKUP</span>
-              {leg === "ARRIVAL" ? "Kedatangan" : "Kepulangan"}
+              {leg === "ARRIVAL" ? "Arrival" : "Departure"}
             </button>
           ))}
         </div>
@@ -237,8 +238,8 @@ export function PickupAssignmentBoard({
            ) : null}
          </div>
 
-         <div className="mt-5 hidden overflow-x-auto rounded-xl border border-[#e4d8c4] bg-[#fffdf8] lg:block">
-           <table className="min-w-[1050px] w-full text-left text-sm">
+         <div aria-label="Geser horizontal untuk melihat seluruh kolom pickup" className="mt-5 hidden overflow-x-auto rounded-xl border border-[#e4d8c4] bg-[#fffdf8] lg:block" tabIndex={0}>
+           <table className="min-w-[1280px] w-full text-left text-sm">
             <thead className="border-b border-[#e4d8c4] bg-[#fbf5e8] text-xs uppercase tracking-wide text-[#897657]">
               <tr>
                 <th className="px-4 py-3 font-semibold">Registration ID</th>

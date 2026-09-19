@@ -87,6 +87,12 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
   const items = getVisibleAdminNavigationItems(profile.role);
   const activeHref = getActiveAdminNavigationHref(pathname, items);
   const drawerInteractive = isDesktop || drawerOpen;
+  const profileInitials = profile.full_name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((name) => name[0]?.toUpperCase())
+    .join("");
 
   function closeDrawer() {
     setDrawerOpen(false);
@@ -150,7 +156,7 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
           aria-controls="admin-navigation-drawer"
           aria-expanded={drawerOpen}
           aria-label={drawerOpen ? "Tutup menu navigasi" : "Buka menu navigasi"}
-          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-[#b99a5a] text-xl text-[#142842] outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+          className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-[#b99a5a] text-xl text-[#142842] outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526] ${drawerOpen ? "invisible" : ""}`}
           onClick={() => setDrawerOpen((open) => !open)}
           ref={menuButtonRef}
           type="button"
@@ -172,7 +178,7 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
         aria-label="Navigasi admin"
         aria-hidden={!drawerInteractive}
         aria-modal={drawerOpen && !isDesktop ? true : undefined}
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(318px,calc(100vw-48px))] flex-col border-r border-[#e4d8c4] bg-[#fffdf8] px-4 py-5 shadow-[10px_0_28px_rgba(20,40,66,0.12)] transition-transform duration-200 motion-reduce:transition-none lg:w-[232px] lg:translate-x-0 lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(318px,calc(100vw-48px))] flex-col border-r border-[#e4d8c4] bg-[#fffdf8] px-4 py-4 shadow-[10px_0_28px_rgba(20,40,66,0.12)] transition-transform duration-200 motion-reduce:transition-none lg:w-[232px] lg:translate-x-0 lg:shadow-none ${
           drawerOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         id="admin-navigation-drawer"
@@ -195,7 +201,7 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
           </button>
         </div>
 
-        <nav className="mt-7 min-h-0 flex-1 overflow-y-auto pr-1" aria-label="Menu utama">
+        <nav className="mt-5 min-h-0 flex-1 scroll-pb-4 overflow-y-auto pr-1" aria-label="Menu utama">
           {adminNavigationSections.map((section) => {
             const sectionItems = items.filter((item) => item.section === section);
 
@@ -204,9 +210,9 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
             }
 
             return (
-              <div className="mb-6 last:mb-0" key={section}>
+              <div className="mb-4 last:mb-0" key={section}>
                 <p className="px-2 text-[11px] font-bold tracking-[0.16em] text-[#897657]">{section}</p>
-                <div className="mt-2 grid gap-1">
+                <div className="mt-1.5 grid gap-0.5">
                   {sectionItems.map((item) => {
                     const active = activeHref === item.href;
                     const Icon = navigationIcons[item.icon];
@@ -214,7 +220,7 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
                     return (
                       <Link
                         aria-current={active ? "page" : undefined}
-                        className={`flex min-h-10 items-center gap-3 rounded-lg px-3 text-[13px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#9a7526] ${
+                        className={`flex min-h-9 items-center gap-3 rounded-lg px-3 text-[13px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#9a7526] ${
                           active
                             ? "bg-[#142842] text-[#fffdf8]"
                             : "text-[#344d68] hover:bg-[#f1eadc] hover:text-[#142842]"
@@ -234,12 +240,19 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
           })}
         </nav>
 
-        <div className="border-t border-[#e4d8c4] px-2 pt-4">
-          <p className="truncate text-sm font-semibold text-[#142842]">{profile.full_name}</p>
-          <p className="mt-1 text-xs font-medium text-[#897657]">
-            {getRoleLabel(profile.role)}
-          </p>
-          <form action={signOut} className="mt-3">
+        <div className="shrink-0 border-t border-[#e4d8c4] bg-[#fffdf8] px-2 pt-3">
+          <div className="flex items-center gap-3">
+            <span aria-hidden="true" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#142842] text-xs font-bold text-[#fffdf8]">
+              {profileInitials || "A"}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-[#142842]">{profile.full_name}</p>
+              <p className="mt-0.5 text-xs font-medium text-[#897657]">
+                {getRoleLabel(profile.role)}
+              </p>
+            </div>
+          </div>
+          <form action={signOut} className="mt-2">
             <button
               className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-semibold text-[#9a3e35] outline-none hover:bg-[#fff5f2] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
               type="submit"

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BadgeCheck, Link2, ScanLine } from "lucide-react";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -105,10 +106,25 @@ export function PairForm({ isAdmin, myStations, stations }: PairFormProps) {
           </div>
         </header>
 
-        <section
-          aria-labelledby="my-scanner-heading"
-          className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5"
-        >
+        {state.message ? (
+          <p
+            className={`mt-4 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+              state.status === "success"
+                ? "bg-[#edf7ef] text-[#267044]"
+                : "bg-[#fff5f2] text-[#9b3d31]"
+            }`}
+            role={state.status === "error" ? "alert" : "status"}
+          >
+            {state.status === "success" ? <span aria-hidden="true">✓</span> : null}
+            {state.message}
+          </p>
+        ) : null}
+
+        <div className="mt-5 grid items-start gap-4 lg:grid-cols-2">
+          <section
+            aria-labelledby="my-scanner-heading"
+            className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5"
+          >
           <h2 className="text-xl font-semibold text-[#142842]" id="my-scanner-heading">
             Scanner Saya
           </h2>
@@ -158,26 +174,12 @@ export function PairForm({ isAdmin, myStations, stations }: PairFormProps) {
               ))}
             </div>
           )}
-        </section>
+          </section>
 
-        {state.message ? (
-          <p
-            className={`mt-4 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-              state.status === "success"
-                ? "bg-[#edf7ef] text-[#267044]"
-                : "bg-[#fff5f2] text-[#9b3d31]"
-            }`}
-            role={state.status === "error" ? "alert" : "status"}
+          <section
+            aria-labelledby="pairing-station-heading"
+            className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5"
           >
-            {state.status === "success" ? <span aria-hidden="true">✓</span> : null}
-            {state.message}
-          </p>
-        ) : null}
-
-        <section
-          aria-labelledby="pairing-station-heading"
-          className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5"
-        >
           <h2 className="text-xl font-semibold text-[#142842]" id="pairing-station-heading">
             Station yang Menunggu Pairing
           </h2>
@@ -260,6 +262,30 @@ export function PairForm({ isAdmin, myStations, stations }: PairFormProps) {
               </button>
             </form>
           )}
+          </section>
+        </div>
+
+        <section aria-labelledby="pairing-guide-heading" className="mt-4 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9a7526]">Alur Pairing</p>
+          <h2 className="mt-1 text-xl font-semibold text-[#142842]" id="pairing-guide-heading">Siapkan scanner dalam tiga langkah</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {[
+              { description: "Admin membuat station untuk sesi yang sedang aktif.", Icon: ScanLine, title: "Buat station" },
+              { description: "Operator memilih station dan memasukkan kode enam digit.", Icon: Link2, title: "Hubungkan perangkat" },
+              { description: "Buka scanner dan pastikan indikator koneksi tampil aktif.", Icon: BadgeCheck, title: "Mulai check-in" },
+            ].map(({ description, Icon, title }, index) => (
+              <article className="rounded-lg bg-[#fbf7ef] p-4" key={title}>
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#142842] text-[#fffdf8]">
+                    <Icon aria-hidden="true" size={18} />
+                  </span>
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#9a7526]">Langkah {index + 1}</p>
+                </div>
+                <h3 className="mt-3 font-semibold text-[#142842]">{title}</h3>
+                <p className="mt-1 text-sm leading-6 text-[#5b6c7c]">{description}</p>
+              </article>
+            ))}
+          </div>
         </section>
       </section>
     </main>

@@ -91,7 +91,7 @@ export function SessionList({ sessions, role }: SessionListProps) {
 
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-6 sm:px-8 sm:py-8">
-      <section className="mx-auto max-w-4xl">
+      <section className="mx-auto max-w-[1128px]">
         <header className="border-b border-[#dfd3bf] pb-5">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9a7526]">
             Operasional
@@ -146,10 +146,10 @@ export function SessionList({ sessions, role }: SessionListProps) {
 
               return (
                 <article
-                  className="px-4 py-5 sm:px-6 sm:py-6"
+                  className="px-4 py-4 sm:px-5"
                   key={session.id}
                 >
-                  <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(230px,auto)] lg:items-center lg:gap-8">
+                   <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(190px,auto)] lg:items-center lg:gap-6">
                     <div className="min-w-0">
                       <h2 className="break-words text-xl font-semibold tracking-tight text-[#142842]">
                         {session.name}
@@ -176,7 +176,7 @@ export function SessionList({ sessions, role }: SessionListProps) {
                       </div>
                     </div>
 
-                    <div className="lg:min-w-[230px]">
+                    <div className="lg:min-w-[190px]">
                       {hasPermission(role, "sessions.manage") ? (
                         confirmationForSession ? (
                           <div

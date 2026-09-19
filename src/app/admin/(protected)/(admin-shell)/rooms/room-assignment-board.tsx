@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { AdminMetricCard, AdminPageHeader } from "@/components/admin/admin-ui";
 import type { RoomParticipant } from "@/lib/admin/assignment-types";
 
 type AssignmentFilter = "all" | "assigned" | "unassigned";
@@ -40,6 +41,11 @@ export function RoomAssignmentBoard({
   const [filter, setFilter] = useState<AssignmentFilter>("all");
   const [packageFilter, setPackageFilter] = useState<PackageFilter>("all");
   const [registrationFilter, setRegistrationFilter] = useState<RegistrationFilter>("all");
+  const activeParticipants = participants.filter(
+    (participant) => participant.registrationStatus === "REGISTERED",
+  );
+  const assignedCount = activeParticipants.filter(isAssigned).length;
+  const unassignedCount = activeParticipants.length - assignedCount;
   const normalizedQuery = query.trim().toLowerCase();
   const visibleParticipants = participants.filter((participant) => {
     const matchesQuery =
@@ -60,22 +66,24 @@ export function RoomAssignmentBoard({
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
       <section className="mx-auto max-w-[1200px]">
-        <header className="border-b border-[#dfd3bf] pb-5">
-          <p className="text-xs font-bold tracking-[0.18em] text-[#9a7526]">OPERASIONAL</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#142842] sm:text-3xl">
-            Room Assignment
-          </h1>
-          <p className="mt-1 text-sm text-[#5b6c7c]">
-            Pantau kebutuhan kamar peserta di Hotel Gumaya Semarang.
-          </p>
-          <a
-            className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
+        <AdminPageHeader
+          action={<a
+            className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
             download="AKKAI-2026-Room-Assignment.xlsx"
             href="/api/admin/room-assignment-export"
           >
             Download Excel
-          </a>
-        </header>
+          </a>}
+          description="Pantau kebutuhan kamar peserta di Hotel Gumaya Semarang."
+          eyebrow="Operasional"
+          title="Room Assignment"
+        />
+
+        <section aria-label="Ringkasan room assignment" className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
+          <AdminMetricCard label="Peserta Aktif" subtitle="membutuhkan kamar" value={activeParticipants.length} />
+          <AdminMetricCard label="Sudah Diatur" subtitle="assignment" value={assignedCount} />
+          <AdminMetricCard label="Belum Diatur" subtitle="assignment" value={unassignedCount} />
+        </section>
 
         <section className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_180px_180px]">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import { initialParticipantActionState } from "@/lib/participants/participant-action-state";
 import { ACTUARIAL_CONSULTANT_STATUSES, PACKAGE_TYPES, PARTICIPATION_SCOPES, POLO_MODELS, POLO_SIZES } from "@/lib/validation/registration";
@@ -51,9 +51,24 @@ function Select({ label, name, defaultValue, options }: { label: string; name: s
 
 export function ParticipantEditForm({ participant, travel }: ParticipantEditFormProps) {
   const [state, formAction, pending] = useActionState(updateParticipantData, initialParticipantActionState);
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    function openFromHash() {
+      if (window.location.hash === "#edit-participant" && detailsRef.current) {
+        detailsRef.current.open = true;
+        detailsRef.current.scrollIntoView({ block: "start" });
+      }
+    }
+
+    openFromHash();
+    window.addEventListener("hashchange", openFromHash);
+    return () => window.removeEventListener("hashchange", openFromHash);
+  }, []);
+
   return (
-    <details className="mt-5 border-t border-[#eee6d8] pt-4">
-      <summary className="cursor-pointer text-sm font-semibold text-[#344d68]">Edit Data Peserta</summary>
+    <details className="mt-5 scroll-mt-24 border-t border-[#eee6d8] pt-4" id="edit-participant" ref={detailsRef}>
+      <summary className="flex min-h-11 cursor-pointer items-center rounded-lg px-2 text-sm font-semibold text-[#344d68] outline-none hover:bg-[#fbf7ef] focus-visible:ring-2 focus-visible:ring-[#9a7526]">Edit Data Peserta</summary>
       <form action={formAction} className="mt-4 grid gap-4" noValidate>
         <input name="registrationId" type="hidden" value={participant.registration_id} />
         <input name="emailGeneration" type="hidden" value={participant.email_generation} />

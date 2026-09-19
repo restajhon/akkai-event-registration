@@ -80,13 +80,15 @@ function ParticipantCheckbox({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <input
-      aria-label={`Pilih peserta ${registrationId}`}
-      checked={checked}
-      className="mt-1 h-5 w-5 accent-[#142842]"
-      onChange={(event) => onChange(event.target.checked)}
-      type="checkbox"
-    />
+    <label className="-m-2 inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center">
+      <span className="sr-only">Pilih peserta {registrationId}</span>
+      <input
+        checked={checked}
+        className="h-5 w-5 accent-[#142842]"
+        onChange={(event) => onChange(event.target.checked)}
+        type="checkbox"
+      />
+    </label>
   );
 }
 
@@ -320,15 +322,17 @@ export function ParticipantList({
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
       <section className="mx-auto max-w-[1380px]">
-        <header className="border-b border-[#dfd3bf] pb-4">
-          <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">DATA OPERASIONAL</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#142842] sm:text-3xl">
-            Peserta
-          </h1>
-          <p className="mt-1 text-sm text-[#5b6c7c]">
-            Kelola data dan status kehadiran peserta AKKAI 2026.
-          </p>
-          <div className="mt-4 flex flex-wrap items-start gap-2">
+        <header className="flex flex-col gap-4 border-b border-[#dfd3bf] pb-5 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">DATA OPERASIONAL</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#142842] sm:text-3xl">
+              Peserta
+            </h1>
+            <p className="mt-1 text-sm text-[#5b6c7c]">
+              Kelola data dan status kehadiran peserta AKKAI 2026.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-start gap-2 xl:justify-end">
             {actionVisibility.canExport ? <a
               className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8]"
               download="AKKAI-2026-Peserta.xlsx"
@@ -426,7 +430,7 @@ export function ParticipantList({
           ) : null}
         </section>
 
-        <section aria-label="Ringkasan peserta" className="mt-4 grid gap-2 sm:grid-cols-3">
+        <section aria-label="Ringkasan peserta" className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
           <SummaryCard label="Terdaftar" value={summary.registered} />
           <SummaryCard label="Dibatalkan" value={summary.cancelled} />
           <SummaryCard label="Email Gagal Sebelum Diterima" value={summary.emailFailed} />
@@ -470,22 +474,18 @@ export function ParticipantList({
               <table aria-label="Daftar peserta" className="w-full table-fixed text-left text-sm">
                 <thead className="border-b border-[#e4d8c4] bg-[#f1eadc] text-xs uppercase tracking-wide text-[#897657]">
                   <tr>
-                     <th className="w-[23%] px-3 py-3" scope="col">
+                      <th className="w-[18%] px-3 py-3" scope="col">
                        <label className="flex items-start gap-2">
                          <input aria-label="Pilih semua peserta di halaman ini" checked={allCurrentPageSelected} className="mt-0.5 h-4 w-4 accent-[#142842]" onChange={(event) => setCurrentPageSelected(event.target.checked)} type="checkbox" />
                          <span>Peserta</span>
                        </label>
                      </th>
-                    <th className="w-[14%] px-3 py-3" scope="col">Kontak</th>
-                    <th className="w-[14%] px-3 py-3" scope="col">Paket</th>
-                    <th className="w-[16%] px-3 py-3" scope="col">Konsultan Aktuaria</th>
-                    <th className="w-[10%] px-3 py-3" scope="col">Hadir Kongres PAI</th>
-                     <th className="w-[12%] px-3 py-3" scope="col">Status Registrasi</th>
-                     <th className="w-[12%] px-3 py-3" scope="col">Billing</th>
-                    <th className="w-[15%] px-3 py-3" scope="col">Registrasi Kedatangan</th>
-                     <th className="w-[12%] px-3 py-3" scope="col">Seminar</th>
-                     <th className="w-[12%] px-3 py-3" scope="col">Registrasi Kepulangan</th>
-                     <th className="w-[11%] px-3 py-3" scope="col">Aksi</th>
+                     <th className="w-[15%] px-3 py-3" scope="col">Kontak</th>
+                     <th className="w-[17%] px-3 py-3" scope="col">Paket &amp; CIAC</th>
+                     <th className="w-[8%] px-3 py-3" scope="col">Kongres</th>
+                      <th className="w-[12%] px-3 py-3" scope="col">Status</th>
+                     <th className="w-[15%] px-3 py-3" scope="col">Kehadiran</th>
+                      <th className="w-[15%] px-3 py-3" scope="col">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#eee6d8]">
@@ -574,7 +574,7 @@ function ParticipantCard({ actionVisibility, participant, checked, onCheckedChan
         <ParticipantStatus status={participant.registrationStatus} />
       </div>
 
-      <dl className="mt-4 grid gap-3 text-sm text-[#5b6c7c] sm:grid-cols-2">
+      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm text-[#5b6c7c]">
          <div>
            <dt className="text-xs uppercase tracking-wide text-[#897657]">Email</dt>
            <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.email}</dd>
@@ -583,33 +583,27 @@ function ParticipantCard({ actionVisibility, participant, checked, onCheckedChan
            <dt className="text-xs uppercase tracking-wide text-[#897657]">Paket</dt>
            <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.packageType ?? "-"}</dd>
          </div>
-         <div>
-           <dt className="text-xs uppercase tracking-wide text-[#897657]">Konsultan Aktuaria</dt>
-           <dd className="mt-1 break-words font-medium text-[#344d68]">{participant.actuarialConsultantStatus ?? "-"}</dd>
-         </div>
-         <div>
-           <dt className="text-xs uppercase tracking-wide text-[#897657]">Hadir Kongres PAI</dt>
-           <dd className="mt-1 break-words font-medium text-[#344d68]">{booleanLabel(participant.attendsPaiCongress)}</dd>
-         </div>
-         <div>
+          <div>
            <dt className="text-xs uppercase tracking-wide text-[#897657]">Status Billing</dt>
            <dd className="mt-1"><BillingStatus status={participant.billingStatus} /></dd>
          </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-[#897657]">Registrasi Kedatangan</dt>
-          <dd className="mt-1"><AttendanceCell attendance={participant.arrival} /></dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-[#897657]">Seminar</dt>
-          <dd className="mt-1"><AttendanceCell attendance={participant.seminar} /></dd>
-        </div>
-        <div>
-            <dt className="text-xs uppercase tracking-wide text-[#897657]">Registrasi Kepulangan</dt>
-           <dd className="mt-1"><AttendanceCell attendance={participant.day3} /></dd>
-        </div>
+         <div className="col-span-2 grid grid-cols-3 gap-2 rounded-lg bg-[#fbf7ef] p-3">
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-[#897657]">Datang</dt>
+           <dd className="mt-1"><AttendanceCell attendance={participant.arrival} /></dd>
+          </div>
+          <div>
+           <dt className="text-xs uppercase tracking-wide text-[#897657]">Seminar</dt>
+           <dd className="mt-1"><AttendanceCell attendance={participant.seminar} /></dd>
+          </div>
+          <div>
+             <dt className="text-xs uppercase tracking-wide text-[#897657]">Pulang</dt>
+            <dd className="mt-1"><AttendanceCell attendance={participant.day3} /></dd>
+          </div>
+         </div>
       </dl>
 
-      <div className="mt-4 grid gap-2 border-t border-[#eee6d8] pt-4 sm:flex sm:flex-wrap sm:items-start">
+      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[#eee6d8] pt-4 sm:flex sm:flex-wrap sm:items-start">
         <Link
           className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-3.5 text-xs font-semibold text-white outline-none hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
           href={`/admin/participants/${participant.registrationId}`}
@@ -676,25 +670,19 @@ function ParticipantTableRow({
       <td className="px-3 py-3.5">
         <p className="break-words font-medium">{participant.packageType ?? "-"}</p>
         <p className="mt-1 break-words text-xs text-[#897657]">{participant.participationScope ?? "-"}</p>
-      </td>
-      <td className="px-3 py-3.5">
-        <p className="break-words font-medium">{participant.actuarialConsultantStatus ?? "-"}</p>
+        <p className="mt-2 break-words text-xs font-semibold text-[#344d68]">{participant.actuarialConsultantStatus ?? "-"}</p>
       </td>
       <td className="px-3 py-3.5">{booleanLabel(participant.attendsPaiCongress)}</td>
        <td className="px-3 py-3.5">
          <ParticipantStatus status={participant.registrationStatus} />
-       </td>
-       <td className="px-3 py-3.5">
-         <BillingStatus status={participant.billingStatus} />
+         <div className="mt-2"><BillingStatus status={participant.billingStatus} /></div>
        </td>
       <td className="px-3 py-3.5">
-        <AttendanceCell attendance={participant.arrival} />
-      </td>
-      <td className="px-3 py-3.5">
-        <AttendanceCell attendance={participant.seminar} />
-      </td>
-      <td className="px-3 py-3.5">
-        <AttendanceCell attendance={participant.day3} />
+        <div className="grid gap-2 text-xs">
+          <div><p className="font-bold uppercase tracking-wide text-[#897657]">Datang</p><AttendanceCell attendance={participant.arrival} /></div>
+          <div><p className="font-bold uppercase tracking-wide text-[#897657]">Seminar</p><AttendanceCell attendance={participant.seminar} /></div>
+          <div><p className="font-bold uppercase tracking-wide text-[#897657]">Pulang</p><AttendanceCell attendance={participant.day3} /></div>
+        </div>
       </td>
       <td className="px-3 py-3.5">
         <div className="grid justify-items-start gap-2">
