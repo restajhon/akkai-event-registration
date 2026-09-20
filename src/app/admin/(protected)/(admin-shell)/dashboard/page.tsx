@@ -306,20 +306,20 @@ function ParticipantInsights({ kpis }: { kpis: ReturnType<typeof calculateDashbo
   return (
     <section className="flex flex-col gap-3.5" aria-labelledby="participant-profile-heading">
       <DashboardSectionHeading eyebrow="KPI DETAIL PESERTA" id="participant-profile-heading" title="Profil Kebutuhan Peserta" />
-      <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_382px]">
-        <article className="rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-5">
+      <div className="grid gap-3.5 lg:min-h-[374px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_382px]">
+        <article className="rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-5 lg:min-h-[374px]">
           <InsightList icon={Package} title="Distribusi Paket" values={kpis.packageDistribution} />
           <div className="my-3 border-t border-[#eee6d8]" />
           <InsightList icon={Award} title="Kategori CIAC" values={kpis.ciacDistribution} />
         </article>
-        <article className="rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-5">
+        <article className="rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-5 lg:min-h-[374px]">
           <InsightList icon={ListChecks} title="Pilihan Mengikuti Acara" values={kpis.participationDistribution} />
           <div className="mt-3 flex gap-2.5 rounded-lg bg-[#f7f3ea] p-3 text-[11px] leading-4 text-[#5b6c7c]">
             <Info aria-hidden="true" className="mt-0.5 shrink-0 text-[#9a7526]" size={16} strokeWidth={1.8} />
             <span>Pilihan peserta digunakan untuk kesiapan sesi dan kehadiran.</span>
           </div>
         </article>
-        <article className="rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-5">
+        <article className="rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-5 lg:min-h-[374px]">
           <div className="flex items-center gap-2">
             <Shirt aria-hidden="true" className="shrink-0 text-[#9a7526]" size={17} strokeWidth={1.8} />
             <h3 className="text-[14px] font-normal text-[#142842]">Model / Ukuran Poloshirt</h3>
