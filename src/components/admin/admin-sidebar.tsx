@@ -178,7 +178,7 @@ export function AdminSidebar({ profile }: { profile: AdminSidebarProfile }) {
         aria-label="Navigasi admin"
         aria-hidden={!drawerInteractive}
         aria-modal={drawerOpen && !isDesktop ? true : undefined}
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(318px,calc(100vw-48px))] flex-col border-r border-[#e4d8c4] bg-[#fffdf8] px-4 py-4 shadow-[10px_0_28px_rgba(20,40,66,0.12)] transition-transform duration-200 motion-reduce:transition-none lg:box-content lg:w-[231.5px] lg:px-5 lg:pt-8 lg:pb-6 lg:translate-x-0 lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(318px,calc(100vw-48px))] flex-col border-r border-[#e4d8c4] bg-[#fffdf8] px-4 py-4 shadow-[10px_0_28px_rgba(20,40,66,0.12)] transition-transform duration-200 motion-reduce:transition-none lg:w-[272.5px] lg:px-5 lg:pt-8 lg:pb-6 lg:translate-x-0 lg:shadow-none ${
           drawerOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         id="admin-navigation-drawer"
