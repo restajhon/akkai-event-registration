@@ -717,7 +717,7 @@ function QuickActionCard({
 }) {
   const content = (
     <div
-      className={`flex h-full min-h-[126px] flex-col justify-between rounded-[10px] border p-[18px] transition-colors max-sm:grid max-sm:min-h-[96px] max-sm:grid-cols-[40px_minmax(0,1fr)_16px] max-sm:items-center max-sm:gap-[14px] max-sm:p-4 ${
+      className={`flex h-full min-h-[126px] flex-col justify-between rounded-[10px] border p-[18px] transition-colors max-sm:grid max-sm:min-h-[96px] max-sm:grid-cols-[40px_minmax(0,1fr)_16px] max-sm:items-center max-sm:gap-[14px] max-sm:p-4 ${primary ? "lg:min-h-[150px]" : ""} ${
         disabled
           ? "border-[#dedbd3] bg-[#f2f0eb] text-[#77756e]"
           : primary
