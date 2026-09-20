@@ -1,11 +1,26 @@
 import Link from "next/link";
-
 import {
-  AdminEmptyState,
-  AdminMetricCard,
-  AdminPageHeader,
-  AdminStatusBadge,
-} from "@/components/admin/admin-ui";
+  ArrowUpRight,
+  Award,
+  CalendarClock,
+  ChartNoAxesColumn,
+  CircleCheck,
+  ClipboardCheck,
+  Clock3,
+  FileText,
+  Info,
+  ListChecks,
+  MonitorPlay,
+  Package,
+  Plane,
+  Plus,
+  RadioTower,
+  ScanLine,
+  Shirt,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+
 import { hasPermission } from "@/lib/auth/permissions";
 import {
   requirePermission,
@@ -192,51 +207,244 @@ function compareStationRows(left: StationRow, right: StationRow) {
   return left.station_name.localeCompare(right.station_name, "id");
 }
 
-function DistributionCard({
+function DashboardSectionHeading({
+  action,
+  eyebrow,
+  id,
+  title,
+}: {
+  action?: React.ReactNode;
+  eyebrow?: string;
+  id?: string;
+  title: string;
+}) {
+  return (
+    <div className="flex w-full items-end justify-between gap-4">
+      <div className="min-w-0">
+        {eyebrow ? (
+          <p className="text-[10px] font-bold tracking-[0.17em] text-[#9a7526]">{eyebrow}</p>
+        ) : null}
+        <h2 className="mt-1 break-words text-[20px] font-normal leading-tight text-[#142842]" id={id}>{title}</h2>
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </div>
+  );
+}
+
+function DashboardMetricCard({
+  icon: Icon,
+  label,
+  progress,
+  subtitle,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  progress?: number;
+  subtitle: string;
+  value: React.ReactNode;
+}) {
+  const safeProgress = progress === undefined ? undefined : Math.max(0, Math.min(100, progress));
+
+  return (
+    <article className="flex min-w-0 flex-col justify-between rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-[17px] shadow-none max-sm:min-h-[118px] max-sm:p-[14px] lg:h-36">
+      <div className="flex items-center justify-between gap-2">
+        <p className="truncate text-[11px] font-semibold text-[#5b6c7c] max-sm:text-[10px]">{label}</p>
+        <Icon aria-hidden="true" className="shrink-0 text-[#142842] max-sm:h-[15px] max-sm:w-[15px]" size={17} strokeWidth={1.8} />
+      </div>
+      <div>
+        <p className="mt-3 break-words text-[28px] font-normal leading-none tracking-tight text-[#142842] max-sm:mt-0 max-sm:text-[25px]">{value}</p>
+        {safeProgress !== undefined ? (
+          <div aria-label={`${safeProgress}%`} aria-valuemax={100} aria-valuemin={0} aria-valuenow={safeProgress} className="mt-3 h-1 overflow-hidden rounded-full bg-[#e9e3d8]" role="progressbar">
+            <div className="h-full rounded-full bg-[#9a7526]" style={{ width: `${safeProgress}%` }} />
+          </div>
+        ) : null}
+        <p className="mt-2 truncate text-[10px] leading-4 text-[#8793a0]">{subtitle}</p>
+      </div>
+    </article>
+  );
+}
+
+function InsightList({
+  icon: Icon,
   title,
   values,
 }: {
+  icon: LucideIcon;
   title: string;
   values: Record<string, number>;
 }) {
   const entries = Object.entries(values);
 
   return (
-    <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
-      <h2 className="text-lg font-semibold text-[#142842]">{title}</h2>
-      {entries.length === 0 ? (
-        <p className="mt-3 text-sm text-[#897657]">Belum ada data.</p>
-      ) : (
-        <dl className="mt-3 divide-y divide-[#eee6d8] text-sm">
-          {entries.map(([label, value]) => (
-            <div className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0" key={label}>
-              <dt className="break-words text-[#5b6c7c]">{label}</dt>
-              <dd className="font-bold text-[#142842]">{value}</dd>
+    <div>
+      <div className="flex items-center gap-2">
+        <Icon aria-hidden="true" className="shrink-0 text-[#9a7526]" size={17} strokeWidth={1.8} />
+        <h3 className="text-[14px] font-normal text-[#142842]">{title}</h3>
+      </div>
+      <dl className="mt-2 divide-y divide-[#eee6d8]">
+        {entries.length === 0 ? (
+          <div className="py-2 text-xs text-[#897657]">Belum ada data.</div>
+        ) : (
+          entries.map(([label, value]) => (
+            <div className="flex min-h-[32px] items-center justify-between gap-3 py-2" key={label}>
+              <dt className="break-words text-xs text-[#344d68]">{label}</dt>
+              <dd className="shrink-0 text-xs font-bold text-[#142842]">{value}</dd>
             </div>
-          ))}
-        </dl>
-      )}
+          ))
+        )}
+      </dl>
+    </div>
+  );
+}
+
+function ParticipantInsights({ kpis }: { kpis: ReturnType<typeof calculateDashboardKpis> }) {
+  const poloEntries = Object.entries(kpis.poloDistribution);
+  const longSleeve = poloEntries.filter(([label]) => /panjang/i.test(label));
+  const shortSleeve = poloEntries.filter(([label]) => !/panjang/i.test(label));
+
+  return (
+    <section className="flex flex-col gap-3.5" aria-labelledby="participant-profile-heading">
+      <DashboardSectionHeading eyebrow="KPI DETAIL PESERTA" id="participant-profile-heading" title="Profil Kebutuhan Peserta" />
+      <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_382px]">
+        <article className="rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-5">
+          <InsightList icon={Package} title="Distribusi Paket" values={kpis.packageDistribution} />
+          <div className="my-3 border-t border-[#eee6d8]" />
+          <InsightList icon={Award} title="Kategori CIAC" values={kpis.ciacDistribution} />
+        </article>
+        <article className="rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-5">
+          <InsightList icon={ListChecks} title="Pilihan Mengikuti Acara" values={kpis.participationDistribution} />
+          <div className="mt-3 flex gap-2.5 rounded-lg bg-[#f7f3ea] p-3 text-[11px] leading-4 text-[#5b6c7c]">
+            <Info aria-hidden="true" className="mt-0.5 shrink-0 text-[#9a7526]" size={16} strokeWidth={1.8} />
+            <span>Pilihan peserta digunakan untuk kesiapan sesi dan kehadiran.</span>
+          </div>
+        </article>
+        <article className="rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-5">
+          <div className="flex items-center gap-2">
+            <Shirt aria-hidden="true" className="shrink-0 text-[#9a7526]" size={17} strokeWidth={1.8} />
+            <h3 className="text-[14px] font-normal text-[#142842]">Model / Ukuran Poloshirt</h3>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-5">
+            <PoloColumn label="LENGAN PANJANG" entries={longSleeve} />
+            <PoloColumn label="LENGAN PENDEK" entries={shortSleeve} />
+          </div>
+        </article>
+      </div>
     </section>
   );
 }
 
-function TravelSummary({ kpis }: { kpis: ReturnType<typeof calculateDashboardKpis> }) {
+function PoloColumn({
+  entries,
+  label,
+}: {
+  entries: Array<[string, number]>;
+  label: string;
+}) {
   return (
-    <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
-      <h2 className="text-lg font-semibold text-[#142842]">Kelengkapan Travel</h2>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-lg bg-[#fbf5e8] p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#897657]">Arrival</p>
-          <p className="mt-1 text-xl font-bold text-[#267044]">{kpis.travel.arrivalComplete} lengkap</p>
-          <p className="text-sm text-[#5b6c7c]">{kpis.travel.arrivalIncomplete} belum lengkap</p>
-        </div>
-        <div className="rounded-lg bg-[#fbf5e8] p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#897657]">Departure</p>
-          <p className="mt-1 text-xl font-bold text-[#267044]">{kpis.travel.departureComplete} lengkap</p>
-          <p className="text-sm text-[#5b6c7c]">{kpis.travel.departureIncomplete} belum lengkap</p>
-        </div>
+    <div className="min-w-0">
+      <p className="text-[9px] font-bold tracking-[0.12em] text-[#9a7526]">{label}</p>
+      <dl className="mt-1 divide-y divide-[#eee6d8]">
+        {entries.length === 0 ? (
+          <div className="py-2 text-xs text-[#897657]">Belum ada</div>
+        ) : (
+          entries.map(([key, value]) => (
+            <div className="flex min-h-[32px] items-center justify-between gap-2 py-2" key={key}>
+              <dt className="truncate text-xs text-[#344d68]">{key.replace(/^(Lengan Panjang|Lengan Pendek)\s*\/\s*/i, "")}</dt>
+              <dd className="text-xs font-bold text-[#142842]">{value}</dd>
+            </div>
+          ))
+        )}
+      </dl>
+    </div>
+  );
+}
+
+function ReadinessCard({
+  children,
+  icon: Icon,
+  title,
+}: {
+  children: React.ReactNode;
+  icon: LucideIcon;
+  title: string;
+}) {
+  return (
+    <article className="min-w-0 rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-5 lg:h-[266px]">
+      <div className="flex items-center gap-2">
+        <Icon aria-hidden="true" className="shrink-0 text-[#9a7526]" size={17} strokeWidth={1.8} />
+        <h3 className="text-[14px] font-normal text-[#142842]">{title}</h3>
       </div>
-    </section>
+      {children}
+    </article>
+  );
+}
+
+function ReadinessRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex min-h-[32px] items-center justify-between gap-3 border-b border-[#eee6d8] py-2 last:border-b-0">
+      <span className="break-words text-xs text-[#344d68]">{label}</span>
+      <span className="shrink-0 text-xs font-bold text-[#142842]">{value}</span>
+    </div>
+  );
+}
+
+function TravelReadiness({ kpis }: { kpis: ReturnType<typeof calculateDashboardKpis> }) {
+  const rows = [
+    ["ARRIVAL", kpis.travel.arrivalComplete, kpis.travel.arrivalIncomplete],
+    ["DEPARTURE", kpis.travel.departureComplete, kpis.travel.departureIncomplete],
+  ] as const;
+
+  return (
+    <ReadinessCard icon={Plane} title="Kelengkapan Travel">
+      <div className="mt-4 grid gap-5">
+        {rows.map(([label, complete, incomplete]) => {
+          const percentage = kpis.totalParticipants === 0 ? 0 : Math.round((complete / kpis.totalParticipants) * 100);
+          return (
+            <div className="grid gap-2" key={label}>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] font-bold tracking-[0.11em] text-[#9a7526]">{label}</p>
+                <p className="text-[10px] text-[#5b6c7c]">{complete} lengkap · {incomplete} belum lengkap</p>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-[#e9e3d8]">
+                <div className="h-full rounded-full bg-[#9a7526]" style={{ width: `${percentage}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </ReadinessCard>
+  );
+}
+
+function AttendanceReadiness({ kpis }: { kpis: ReturnType<typeof calculateDashboardKpis> }) {
+  return (
+    <ReadinessCard icon={ClipboardCheck} title="Kehadiran dan Dokumen">
+      <dl className="mt-3">
+        <ReadinessRow label="ARRIVAL" value={`${kpis.attendanceBySession.ARRIVAL} peserta`} />
+        <ReadinessRow label="SEMINAR" value={`${kpis.attendanceBySession.SEMINAR} peserta`} />
+        <ReadinessRow label="DAY3" value={`${kpis.attendanceBySession.DAY3} peserta`} />
+        <ReadinessRow label="Surat Keterangan Kerja" value={`${kpis.certificateCount} dokumen`} />
+      </dl>
+    </ReadinessCard>
+  );
+}
+
+function MemberMeetingReadiness({
+  memberMeeting,
+}: {
+  memberMeeting: DashboardData["memberMeeting"];
+}) {
+  return (
+    <ReadinessCard icon={FileText} title="Rapat Anggota">
+      <div className="mt-5 flex items-end gap-2">
+        <p className="text-[44px] font-normal leading-none text-[#142842]">{memberMeeting.total}</p>
+        <p className="pb-1 text-xs font-semibold text-[#5b6c7c]">submission</p>
+      </div>
+      <p className="mt-4 text-[13px] leading-5 text-[#344d68]">
+        {memberMeeting.self} hadir sendiri dan {memberMeeting.proxy} dikuasakan.
+      </p>
+    </ReadinessCard>
   );
 }
 
@@ -457,24 +665,29 @@ export async function loadDashboardData(
 
 function DashboardHeader({ ready = true }: { ready?: boolean }) {
   return (
-    <AdminPageHeader
-      description="Ringkasan operasional AKKAI 2026."
-      status={
-        <AdminStatusBadge tone={ready ? "success" : "error"}>
-          {ready ? "Database terhubung" : "Database bermasalah"}
-        </AdminStatusBadge>
-      }
-      title="Dashboard Operasional"
-    />
+    <header className="flex h-[82px] flex-col justify-end gap-1.5 border-b border-[#e4d8c4] pb-[18px] lg:h-[125px] lg:flex-row lg:items-end lg:justify-between lg:gap-4 lg:pb-6">
+      <div className="min-w-0">
+        <h1 className="font-[var(--font-admin-display)] text-[30px] font-normal leading-none tracking-[-0.015em] text-[#142842] lg:text-[38px]">
+          Dashboard Operasional
+        </h1>
+        <p className="mt-2 truncate text-[13px] text-[#5b6c7c] lg:mt-1.5 lg:text-sm">
+          Ringkasan operasional AKKAI 2026.
+        </p>
+      </div>
+      <div className={`inline-flex w-fit items-center gap-2 rounded-lg border border-[#e4d8c4] bg-[#fffdf8] px-3 py-[9px] text-xs font-semibold ${ready ? "text-[#2f6b4f]" : "text-[#9a3e35]"}`}>
+        <span aria-hidden="true" className={`h-[7px] w-[7px] rounded-full ${ready ? "bg-[#2f6b4f]" : "bg-[#9a3e35]"}`} />
+        {ready ? "Sistem operasional siap" : "Sistem operasional bermasalah"}
+      </div>
+    </header>
   );
 }
 
 function DashboardError() {
   return (
-    <main className="min-h-screen bg-[#f7f3ea] px-4 py-6 sm:px-8 sm:py-8">
-      <section className="mx-auto max-w-[1380px]">
+    <main className="min-h-screen bg-[#f7f3ea] px-[18px] py-[26px] sm:px-8 lg:px-10 lg:py-[38px]">
+      <section className="w-full">
         <DashboardHeader ready={false} />
-        <div className="mt-6 rounded-2xl border border-[#ead3cc] bg-[#fff5f2] p-6 text-sm text-[#9b3d31]" role="alert">
+        <div className="mt-7 rounded-[10px] border border-[#ead3cc] bg-[#fff5f2] p-6 text-sm text-[#9b3d31]" role="alert">
           <p className="font-semibold">Dashboard belum dapat dimuat.</p>
           <p className="mt-1">
             Silakan muat ulang halaman atau coba beberapa saat lagi.
@@ -487,6 +700,7 @@ function DashboardError() {
 
 function QuickActionCard({
   href,
+  icon: Icon,
   label,
   description,
   disabled = false,
@@ -494,6 +708,7 @@ function QuickActionCard({
   supporting = false,
 }: {
   href?: string;
+  icon: LucideIcon;
   label: string;
   description: string;
   disabled?: boolean;
@@ -502,33 +717,56 @@ function QuickActionCard({
 }) {
   const content = (
     <div
-      className={`min-h-12 rounded-lg border px-3.5 py-3 transition-colors ${
+      className={`flex h-full min-h-[126px] flex-col justify-between rounded-[10px] border p-[18px] transition-colors max-sm:grid max-sm:min-h-[96px] max-sm:grid-cols-[40px_minmax(0,1fr)_16px] max-sm:items-center max-sm:gap-[14px] max-sm:p-4 ${
         disabled
           ? "border-[#dedbd3] bg-[#f2f0eb] text-[#77756e]"
           : primary
             ? "border-[#142842] bg-[#142842] text-white hover:bg-[#203d5d]"
             : supporting
-              ? "border-[#e4d8c4] bg-transparent text-[#344d68] hover:border-[#b99a5a] hover:bg-[#fbf5e8]"
+              ? "border-[#e4d8c4] bg-[#fffdf8] text-[#344d68] hover:border-[#b99a5a] hover:bg-[#fbf5e8]"
               : "border-[#e4d8c4] bg-[#fffdf8] text-[#142842] hover:border-[#b99a5a] hover:bg-[#fbf5e8]"
       }`}
     >
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold">{label}</h3>
+      <div className="flex items-center justify-between gap-3 max-sm:contents">
+        <Icon aria-hidden="true" className={`${primary ? "text-[#ead9ac]" : "text-[#9a7526]"} max-sm:order-1 max-sm:flex max-sm:h-10 max-sm:w-10 max-sm:items-center max-sm:justify-center max-sm:rounded-lg max-sm:p-[10px] ${primary ? "max-sm:bg-white/10" : "max-sm:bg-[#f7f3ea]"}`} size={21} strokeWidth={1.8} />
         {disabled ? (
           <span className="rounded-full bg-[#dedbd3] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide">
             Segera hadir
           </span>
         ) : (
-          <span aria-hidden="true" className={`text-lg ${primary ? "text-[#d9ad45]" : "text-[#9a7526]"}`}>
-            →
-          </span>
+          <ArrowUpRight aria-hidden="true" className={`${primary ? "text-[#fffdf8]" : "text-[#5b6c7c]"} max-sm:order-3`} size={16} strokeWidth={1.8} />
         )}
       </div>
-      <p className={`mt-1 text-xs leading-4 ${primary ? "text-white/70" : "text-[#5b6c7c]"}`}>{description}</p>
+      <div className="max-sm:order-2">
+        <h3 className={`text-[14px] font-normal ${primary ? "text-[#fffdf8]" : "text-[#142842]"}`}>{label}</h3>
+        <p className={`mt-1 text-[11px] leading-4 ${primary ? "text-[#d9e0e7]" : "text-[#5b6c7c]"}`}>{description}</p>
+      </div>
     </div>
   );
 
-  return href && !disabled ? <Link href={href}>{content}</Link> : content;
+  return href && !disabled ? <Link className="block h-full" href={href}>{content}</Link> : content;
+}
+
+function SessionEmptyState({ canManage }: { canManage: boolean }) {
+  return (
+    <div className="flex flex-col gap-4 rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-[18px] lg:h-[126px] lg:flex-row lg:items-center lg:justify-between lg:p-6">
+      <div className="flex items-center gap-3 lg:gap-4">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#f7ecd4] lg:h-11 lg:w-11">
+          <CalendarClock aria-hidden="true" className="text-[#98651d]" size={21} strokeWidth={1.8} />
+        </span>
+        <div>
+          <p className="text-[14px] text-[#142842] lg:text-base">Belum ada sesi aktif</p>
+          <p className="mt-1 text-[11px] text-[#5b6c7c] lg:text-[13px]">Buka sesi untuk mulai menerima check-in peserta.</p>
+        </div>
+      </div>
+      {canManage ? (
+        <Link className="inline-flex h-[42px] w-full items-center justify-center gap-2 rounded-lg bg-[#142842] px-[17px] text-[12px] text-[#fffdf8] outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] lg:w-auto lg:text-[13px]" href="/admin/sessions">
+          <ArrowUpRight aria-hidden="true" size={15} strokeWidth={1.8} />
+          Kelola Sesi
+        </Link>
+      ) : null}
+    </div>
+  );
 }
 
 function SessionCard({
@@ -611,24 +849,28 @@ function getQuickActions(profile: UserProfile) {
   const actions = [
     {
       href: "/admin/scanner/pair",
+      icon: ScanLine,
       label: "Pasangkan Scanner",
       description: "Hubungkan scanner dengan station.",
       visible: hasPermission(profile.role, "scanner.pair"),
     },
     {
       href: "/admin/participants",
+      icon: Users,
       label: "Kelola Peserta",
       description: "Cari dan kelola data peserta.",
       visible: hasPermission(profile.role, "participants.view"),
     },
     {
       href: "/admin/display",
+      icon: MonitorPlay,
       label: "Buka Live Display",
       description: "Tampilkan check-in peserta secara real-time.",
       visible: hasPermission(profile.role, "display.view"),
     },
     {
       href: "/admin/sessions",
+      icon: CalendarClock,
       label: "Kelola Sesi",
       description: "Atur status sesi operasional.",
       visible: hasPermission(profile.role, "sessions.view"),
@@ -636,6 +878,7 @@ function getQuickActions(profile: UserProfile) {
     },
     {
       href: "/admin/display/setup",
+      icon: RadioTower,
       label: "Siapkan Station",
       description: "Siapkan dan kelola scanner station.",
       visible: hasPermission(profile.role, "display.manage"),
@@ -680,46 +923,30 @@ export default async function AdminDashboardPage() {
       : null;
 
   return (
-    <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
-      <section className="mx-auto max-w-[1380px]">
+    <main className="min-h-screen bg-[#f7f3ea] px-[18px] py-[26px] pb-[38px] sm:px-8 lg:px-10 lg:py-[38px] lg:pb-12">
+      <section className="flex w-full flex-col gap-7">
         {canViewDashboardRealtime ? (
           <DashboardRealtimeClient sessionIds={dashboardData.activeSessionIds} />
         ) : null}
         <DashboardHeader />
 
-        <section className="mt-4" aria-labelledby="active-session-heading">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">STATUS OPERASIONAL</p>
-              <h2 className="mt-1 text-xl font-semibold text-[#142842]" id="active-session-heading">Sesi Aktif</h2>
-            </div>
-            {hasPermission(profile.role, "sessions.view") ? (
-              <Link
-                className="hidden min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:inline-flex"
-                href="/admin/sessions"
-              >
-                Lihat semua sesi
+        <section className="flex flex-col gap-3" aria-labelledby="active-session-heading">
+          <DashboardSectionHeading
+            action={hasPermission(profile.role, "sessions.view") ? (
+              <Link className="text-[11px] font-semibold text-[#9a7526] outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526]" href="/admin/sessions">
+                <span className="hidden sm:inline">Lihat semua sesi →</span>
+                <span className="sm:hidden">Lihat semua</span>
               </Link>
             ) : null}
-          </div>
+            eyebrow="STATUS OPERASIONAL"
+            id="active-session-heading"
+            title="Sesi Aktif"
+          />
 
           {dashboardData.activeSessions.length === 0 ? (
-            <div className="mt-3">
-              <AdminEmptyState
-                action={hasPermission(profile.role, "sessions.manage") ? (
-                 <Link
-                    className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#142842] px-4 py-2.5 text-sm font-semibold text-white outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:w-auto"
-                    href="/admin/sessions"
-                  >
-                    Kelola Sesi
-                  </Link>
-                ) : null}
-                description={hasPermission(profile.role, "sessions.manage") ? "Buka sesi untuk mulai menerima check-in peserta." : "Tunggu admin membuka sesi."}
-                title="Belum ada sesi aktif"
-              />
-            </div>
+            <SessionEmptyState canManage={hasPermission(profile.role, "sessions.manage")} />
           ) : (
-            <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            <div className="grid gap-3 lg:grid-cols-2">
               {dashboardData.activeSessions.map((session) => (
                 <SessionCard key={session.id} session={session} />
               ))}
@@ -727,32 +954,39 @@ export default async function AdminDashboardPage() {
           )}
         </section>
 
-        <section
-          aria-label="Ringkasan operasional"
-          className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6"
-        >
-          <AdminMetricCard
+        <section aria-labelledby="core-kpi-heading" className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <p className="text-[10px] font-bold tracking-[0.17em] text-[#9a7526]">RINGKASAN UTAMA</p>
+            <h2 className="text-[19px] font-normal leading-tight text-[#142842] sm:hidden" id="core-kpi-heading">Ringkasan Peserta</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-6 lg:gap-3" aria-label="Ringkasan operasional">
+          <DashboardMetricCard
+            icon={Users}
             label="Total Peserta"
             subtitle="Registrasi tercatat"
             value={dashboardData.kpis.totalParticipants}
           />
-          <AdminMetricCard
+          <DashboardMetricCard
+            icon={CircleCheck}
             label="Total Lunas"
             subtitle="Pembayaran terverifikasi"
             value={dashboardData.kpis.paidCount}
           />
-          <AdminMetricCard
+          <DashboardMetricCard
+            icon={Clock3}
             label="Belum Dibayar"
             subtitle="Menunggu pembayaran"
             value={dashboardData.kpis.unpaidCount}
           />
-          <AdminMetricCard
+          <DashboardMetricCard
+            icon={ChartNoAxesColumn}
             label="Pembayaran"
             progress={dashboardData.kpis.paymentPercentage}
             subtitle="Dari billing tersedia"
             value={`${dashboardData.kpis.paymentPercentage}%`}
           />
-          <AdminMetricCard
+          <DashboardMetricCard
+            icon={ClipboardCheck}
             label={checkInLabel}
             subtitle={checkInSubtitle}
             value={
@@ -764,151 +998,153 @@ export default async function AdminDashboardPage() {
             }
           />
           {canViewScanner ? (
-            <AdminMetricCard
+            <DashboardMetricCard
+              icon={ScanLine}
               label="Scanner Aktif"
-              subtitle="Station siap digunakan"
+              subtitle={dashboardData.activeScannerCount === 0 ? "Tidak ada perangkat" : "Station siap digunakan"}
               value={dashboardData.activeScannerCount}
             />
           ) : null}
-        </section>
-
-        <section aria-labelledby="participant-profile-heading" className="mt-7">
-          <h2 className="text-xl font-semibold text-[#142842]" id="participant-profile-heading">Profil Kebutuhan Peserta</h2>
-          <div className="mt-3 grid gap-4 lg:grid-cols-2">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <DistributionCard title="Distribusi Paket" values={dashboardData.kpis.packageDistribution} />
-            <DistributionCard title="Pilihan Mengikuti Acara" values={dashboardData.kpis.participationDistribution} />
-            <DistributionCard title="Kategori CIAC" values={dashboardData.kpis.ciacDistribution} />
-            <DistributionCard title="Model / Ukuran Poloshirt" values={dashboardData.kpis.poloDistribution} />
-          </div>
-          <div className="grid gap-4">
-            <TravelSummary kpis={dashboardData.kpis} />
-            <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
-              <h2 className="text-lg font-semibold text-[#142842]">Kehadiran dan Dokumen</h2>
-              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                <div><dt className="text-[#897657]">ARRIVAL</dt><dd className="font-bold text-[#142842]">{dashboardData.kpis.attendanceBySession.ARRIVAL} peserta</dd></div>
-                <div><dt className="text-[#897657]">SEMINAR</dt><dd className="font-bold text-[#142842]">{dashboardData.kpis.attendanceBySession.SEMINAR} peserta</dd></div>
-                <div><dt className="text-[#897657]">DAY3</dt><dd className="font-bold text-[#142842]">{dashboardData.kpis.attendanceBySession.DAY3} peserta</dd></div>
-                <div><dt className="text-[#897657]">Surat Keterangan Kerja</dt><dd className="font-bold text-[#142842]">{dashboardData.kpis.certificateCount} dokumen</dd></div>
-              </dl>
-            </section>
-            {canViewMemberMeeting ? <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
-              <h2 className="text-lg font-semibold text-[#142842]">Rapat Anggota</h2>
-              {dashboardData.memberMeeting.total === 0 ? (
-                <p className="mt-3 text-sm text-[#897657]">Belum ada data rapat anggota.</p>
-              ) : (
-                <p className="mt-3 text-sm text-[#5b6c7c]">
-                  {dashboardData.memberMeeting.total} submission: {dashboardData.memberMeeting.self} hadir sendiri dan {dashboardData.memberMeeting.proxy} dikuasakan.
-                </p>
-              )}
-            </section> : null}
-          </div>
           </div>
         </section>
 
-        <section className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5" aria-labelledby="recent-registrations-heading">
-          <h2 className="text-xl font-semibold text-[#142842]" id="recent-registrations-heading">Registrasi Terbaru</h2>
+        <ParticipantInsights kpis={dashboardData.kpis} />
+
+        <section className="flex flex-col gap-3.5" aria-labelledby="readiness-heading">
+          <DashboardSectionHeading eyebrow="KESIAPAN ACARA" id="readiness-heading" title="Kesiapan Operasional" />
+          <div className="grid gap-3 lg:grid-cols-3">
+            <TravelReadiness kpis={dashboardData.kpis} />
+            <AttendanceReadiness kpis={dashboardData.kpis} />
+            {canViewMemberMeeting ? (
+              <MemberMeetingReadiness memberMeeting={dashboardData.memberMeeting} />
+            ) : null}
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-3.5" aria-labelledby="recent-registrations-heading">
+          <DashboardSectionHeading
+            action={hasPermission(profile.role, "participants.view") ? (
+              <Link className="text-[11px] font-semibold text-[#9a7526] outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526]" href="/admin/participants">
+                <span className="hidden sm:inline">Lihat semua peserta →</span>
+                <span className="sm:hidden">Lihat semua</span>
+              </Link>
+            ) : null}
+            eyebrow="PESERTA TERBARU"
+            id="recent-registrations-heading"
+            title="Registrasi Terbaru"
+          />
           {dashboardData.recentRegistrations.length === 0 ? (
-            <p className="mt-3 text-sm text-[#897657]">Belum ada registrasi terbaru.</p>
+            <div className="rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-5 text-sm text-[#897657]">Belum ada registrasi terbaru.</div>
           ) : (
-            <div className="mt-3 divide-y divide-[#eee6d8]">
-              {dashboardData.recentRegistrations.map((participant) => (
-                <div className="flex flex-col gap-1 py-3 first:pt-0 sm:flex-row sm:items-center sm:justify-between" key={participant.id}>
-                  <div>
-                    <p className="font-semibold text-[#142842]">{participant.fullName}</p>
-                    <p className="text-xs text-[#9a7526]">{participant.registrationId}</p>
-                  </div>
-                  <p className="text-sm text-[#5b6c7c]">{participant.packageType ?? "Paket belum diisi"} · {formatActivityTime(participant.createdAt)}</p>
+            <>
+              <div className="hidden overflow-hidden rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] sm:block">
+                <div className="grid h-[42px] grid-cols-[360px_220px_220px_minmax(0,1fr)] items-center gap-4 bg-[#f3eee4] px-[18px] text-[9px] font-bold tracking-[0.115em] text-[#9a7526]">
+                  <span>NAMA PESERTA</span>
+                  <span>ID REGISTRASI</span>
+                  <span>PAKET</span>
+                  <span>WAKTU REGISTRASI</span>
                 </div>
-              ))}
-            </div>
+                {dashboardData.recentRegistrations.map((participant, index) => (
+                  <div className={`grid min-h-[58px] grid-cols-[360px_220px_220px_minmax(0,1fr)] items-center gap-4 px-[18px] text-xs ${index < dashboardData.recentRegistrations.length - 1 ? "border-b border-[#eee6d8]" : ""}`} key={participant.id}>
+                    <span className="font-semibold text-[#142842]">{participant.fullName}</span>
+                    <span className="text-[#5b6c7c]">{participant.registrationId}</span>
+                    <span className="text-[#5b6c7c]">{participant.packageType ?? "Paket belum diisi"}</span>
+                    <span className="text-[#5b6c7c]">{formatActivityTime(participant.createdAt)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="grid gap-3 sm:hidden">
+                {dashboardData.recentRegistrations.map((participant) => (
+                  <article className="rounded-[9px] border border-[#e4d8c4] bg-[#fffdf8] p-[15px]" key={participant.id}>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="truncate text-[13px] text-[#142842]">{participant.fullName}</p>
+                      <p className="shrink-0 text-[10px] font-semibold text-[#9a7526]">{participant.packageType ?? "Belum diisi"}</p>
+                    </div>
+                    <div className="mt-2 flex items-start justify-between gap-3 text-[10px] text-[#5b6c7c]">
+                      <span>{participant.registrationId}</span>
+                      <span>{formatActivityTime(participant.createdAt)}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
           )}
         </section>
 
-        <section
-          className={`mt-5 ${canViewScanner ? "grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]" : ""}`}
-        >
-          {canViewScanner ? (
-            <section
-              aria-labelledby="station-heading"
-              className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] px-4 sm:px-5"
-            >
-              <div className="flex items-end justify-between gap-4 border-b border-[#eee6d8] py-3.5">
-                <div>
-                  <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">STATION MONITORING</p>
-                  <h2 className="mt-1 text-xl font-semibold text-[#142842]" id="station-heading">
-                    Scanner Station
-                  </h2>
+        {canViewScanner ? (
+          <section className="flex flex-col gap-3.5" aria-labelledby="station-heading">
+            <DashboardSectionHeading
+              action={stationManagementHref ? (
+                <Link className="text-[11px] font-semibold text-[#9a7526] outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526]" href={stationManagementHref}>
+                  <span className="hidden sm:inline">{hasPermission(profile.role, "display.manage") ? "Siapkan Station →" : "Pasangkan Scanner →"}</span>
+                  <span className="sm:hidden">Siapkan</span>
+                </Link>
+              ) : null}
+              eyebrow="STATION MONITORING"
+              id="station-heading"
+              title="Scanner Station"
+            />
+            {dashboardData.stations.length === 0 ? (
+              <div className="flex flex-col gap-3 rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] p-4 lg:h-[132px] lg:flex-row lg:items-center lg:justify-between lg:px-[26px] lg:py-6">
+                <div className="flex items-center gap-3 lg:gap-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eff1f2] lg:h-11 lg:w-11">
+                    <RadioTower aria-hidden="true" className="text-[#5b6c7c]" size={21} strokeWidth={1.8} />
+                  </span>
+                  <div>
+                    <p className="text-[14px] text-[#142842] lg:text-base">Belum ada scanner station</p>
+                    <p className="mt-1 text-[11px] text-[#5b6c7c] lg:text-[13px]">Siapkan station untuk mulai memantau perangkat scanner.</p>
+                  </div>
                 </div>
                 {stationManagementHref ? (
-                  <Link
-                    className="hidden min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold text-[#344d68] underline underline-offset-4 outline-none hover:text-[#142842] focus-visible:ring-2 focus-visible:ring-[#9a7526] sm:inline-flex"
-                    href={stationManagementHref}
-                  >
+                  <Link className="inline-flex h-[42px] w-full items-center justify-center gap-2 rounded-lg bg-[#142842] px-[17px] text-[12px] text-[#fffdf8] outline-none transition hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526] lg:w-auto lg:text-[13px]" href={stationManagementHref}>
+                    <Plus aria-hidden="true" size={15} strokeWidth={1.8} />
                     {hasPermission(profile.role, "display.manage") ? "Siapkan Station" : "Pasangkan Scanner"}
                   </Link>
                 ) : null}
               </div>
-
-              {dashboardData.stations.length === 0 ? (
-                <div className="py-6">
-                  <p className="font-semibold text-[#142842]">Belum ada scanner station</p>
-                  <p className="mt-1 text-sm text-[#5b6c7c]">Siapkan station untuk mulai memantau perangkat scanner.</p>
-                  {stationManagementHref ? (
-                    <Link
-                      className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 py-2.5 text-sm font-semibold text-[#6d531e] outline-none transition hover:bg-[#fbf5e8] focus-visible:ring-2 focus-visible:ring-[#9a7526]"
-                      href={stationManagementHref}
-                    >
-                      {hasPermission(profile.role, "display.manage") ? "Siapkan Station" : "Pasangkan Scanner"}
-                    </Link>
-                  ) : null}
-                </div>
-              ) : (
-                <div>
-                  {dashboardData.stations.map((station) => (
-                    <StationCard key={station.id} station={station} />
-                  ))}
-                </div>
-              )}
-            </section>
-          ) : null}
-
-          <section className="rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5" aria-labelledby="actions-heading">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold tracking-[0.16em] text-[#9a7526]">AKSI HARI ACARA</p>
-                <h2 className="mt-1 text-xl font-semibold text-[#142842]" id="actions-heading">Aksi Hari Acara</h2>
+            ) : (
+              <div className="rounded-[10px] border border-[#e4d8c4] bg-[#fffdf8] px-4 sm:px-5">
+                {dashboardData.stations.map((station) => (
+                  <StationCard key={station.id} station={station} />
+                ))}
               </div>
-            </div>
-            <div className="mt-3 grid gap-3">
+            )}
+          </section>
+        ) : null}
+
+        <section className="flex flex-col gap-3.5" aria-labelledby="actions-heading">
+          <h2 className="text-[19px] font-normal leading-tight text-[#142842]" id="actions-heading">Aksi Hari Acara</h2>
+          {primaryActions.length > 0 ? (
+            <div className="grid gap-3.5 lg:grid-cols-3">
               {primaryActions.map((action, index) => (
-                <div key={action.label} className={index === 0 ? "rounded-xl bg-[#142842] p-1" : ""}>
+                <QuickActionCard
+                  description={action.description}
+                  href={action.href}
+                  icon={action.icon}
+                  key={action.label}
+                  label={action.label}
+                  primary={index === 0}
+                />
+              ))}
+            </div>
+          ) : null}
+          {supportingActions.length > 0 ? (
+            <div className="flex flex-col gap-2.5">
+              <p className="text-[10px] font-bold tracking-[0.17em] text-[#9a7526]">ADMINISTRASI</p>
+              <div className="grid gap-3.5 lg:grid-cols-2">
+                {supportingActions.map((action) => (
                   <QuickActionCard
                     description={action.description}
                     href={action.href}
+                    icon={action.icon}
+                    key={action.label}
                     label={action.label}
-                    primary={index === 0}
+                    supporting
                   />
-                </div>
-              ))}
-            </div>
-            {supportingActions.length > 0 ? (
-              <div className="mt-5 border-t border-[#dfd3bf] pt-4">
-                <p className="text-xs font-bold tracking-[0.14em] text-[#897657]">ADMINISTRASI</p>
-                <div className="mt-2 grid gap-2">
-                  {supportingActions.map((action) => (
-                    <QuickActionCard
-                      description={action.description}
-                      href={action.href}
-                      key={action.label}
-                      label={action.label}
-                      supporting
-                    />
-                  ))}
-                </div>
+                ))}
               </div>
-            ) : null}
-          </section>
+            </div>
+          ) : null}
         </section>
       </section>
     </main>

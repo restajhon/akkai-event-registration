@@ -14,7 +14,7 @@ export function AdminShell({
   return (
     <div className="admin-shell min-h-screen bg-[#f7f3ea] lg:flex">
       <AdminSidebar profile={profile} />
-      <div className="min-w-0 flex-1 lg:pl-[232px]">
+      <div className="min-w-0 flex-1 lg:pl-[272px]">
         <div className="min-h-screen">{children}</div>
       </div>
     </div>
