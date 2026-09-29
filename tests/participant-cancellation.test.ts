@@ -26,7 +26,7 @@ const registeredId = "AKKAI26-000001";
 const cancellationPermissionMigration = readFileSync(
   resolve(
     process.cwd(),
-    "supabase/migrations/20260929100000_allow_operator_participant_cancellation.sql",
+    "supabase/migrations/20260929110000_allow_operational_participant_cancellation.sql",
   ),
   "utf8",
 );
@@ -43,21 +43,21 @@ beforeEach(() => {
 });
 
 describe("participant cancellation", () => {
-  it("shows cancellation for SUPER_ADMIN, ADMIN, and OPERATOR; restore only for SUPER_ADMIN", () => {
+  it("shows cancellation for SUPER_ADMIN, ADMIN, and OPERATIONAL; restore only for SUPER_ADMIN", () => {
     expect(canChangeRegistrationStatus("ADMIN")).toBe(true);
     expect(canChangeRegistrationStatus("SUPER_ADMIN")).toBe(true);
-    expect(canChangeRegistrationStatus("OPERATOR")).toBe(true);
-    expect(canChangeRegistrationStatus("OPERATIONAL")).toBe(false);
+    expect(canChangeRegistrationStatus("OPERATIONAL")).toBe(true);
+    expect(canChangeRegistrationStatus("OPERATOR")).toBe(false);
     expect(canRestoreParticipantRegistration("SUPER_ADMIN")).toBe(true);
     expect(canRestoreParticipantRegistration("ADMIN")).toBe(false);
-    expect(canRestoreParticipantRegistration("OPERATOR")).toBe(false);
     expect(canRestoreParticipantRegistration("OPERATIONAL")).toBe(false);
+    expect(canRestoreParticipantRegistration("OPERATOR")).toBe(false);
   });
 
   it.each([
     { id: "super-admin-1", role: "SUPER_ADMIN" as const },
     { id: "admin-1", role: "ADMIN" as const },
-    { id: "operator-1", role: "OPERATOR" as const },
+    { id: "gita-1", role: "OPERATIONAL" as const },
   ])("allows $role to cancel with an exact ID confirmation and required reason", async ({ id, role }) => {
     mocks.getAuthorizedProfile.mockResolvedValue({ id, role, is_active: true });
     const rpc = vi.fn().mockResolvedValue({ data: [{ result_code: "UPDATED" }], error: null });
@@ -73,6 +73,7 @@ describe("participant cancellation", () => {
     );
 
     expect(result.status).toBe("success");
+    expect(mocks.getAuthorizedProfile).toHaveBeenCalledWith("participants.cancel");
     expect(rpc).toHaveBeenCalledWith("set_participant_registration_status", {
       p_registration_id: registeredId,
       p_target_status: "CANCELLED",
@@ -100,9 +101,9 @@ describe("participant cancellation", () => {
     });
   });
 
-  it("rejects OPERATIONAL cancellation", async () => {
-    const id = "operational-1";
-    mocks.getAuthorizedProfile.mockResolvedValue({ id, role: "OPERATIONAL", is_active: true });
+  it("rejects OPERATOR cancellation", async () => {
+    const id = "operator-1";
+    mocks.getAuthorizedProfile.mockResolvedValue({ id, role: "OPERATOR", is_active: true });
 
     const result = await cancelParticipantRegistration(
       { status: "idle", message: null },
@@ -134,7 +135,8 @@ describe("participant cancellation", () => {
   });
 
   it("enforces cancellation and restore roles and keeps the audit log in the RPC", () => {
-    expect(cancellationPermissionMigration).toContain("'OPERATOR'::public.user_role");
+    expect(cancellationPermissionMigration).toContain("'OPERATIONAL'::public.user_role");
+    expect(cancellationPermissionMigration).not.toContain("'OPERATOR'::public.user_role");
     expect(cancellationPermissionMigration).toContain("v_actor_role <> 'SUPER_ADMIN'::public.user_role");
     expect(cancellationPermissionMigration).toContain(
       "INSERT INTO public.participant_registration_status_changes",

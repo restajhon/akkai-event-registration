@@ -61,6 +61,7 @@ const expectedPermissions: Record<UserRole, readonly string[]> = {
     "participants.manage",
     "participants.email",
     "participants.export",
+    "participants.cancel",
     "rooms.view",
     "rooms.manage",
     "rooms.export",
@@ -72,7 +73,7 @@ const expectedPermissions: Record<UserRole, readonly string[]> = {
     "member_meetings.view",
   ],
   SCANNER: ["scanner.pair", "scanner.checkin", "display.view"],
-  OPERATOR: ["scanner.pair", "scanner.checkin", "display.view", "participants.cancel"],
+  OPERATOR: ["scanner.pair", "scanner.checkin", "display.view"],
 };
 
 const participant = {
@@ -140,12 +141,12 @@ describe("RBAC parity", () => {
     expect(hasPermission("OPERATOR", "access.manage")).toBe(false);
   });
 
-  it("allows cancellation to ADMIN, SUPER_ADMIN, and OPERATOR, but restore only to SUPER_ADMIN", () => {
-    for (const role of ["SUPER_ADMIN", "ADMIN", "OPERATOR"] as const) {
+  it("allows cancellation to ADMIN, SUPER_ADMIN, and OPERATIONAL, but restore only to SUPER_ADMIN", () => {
+    for (const role of ["SUPER_ADMIN", "ADMIN", "OPERATIONAL"] as const) {
       expect(hasPermission(role, "participants.cancel")).toBe(true);
     }
+    expect(hasPermission("OPERATOR", "participants.cancel")).toBe(false);
     expect(hasPermission("REGISTRATION", "participants.cancel")).toBe(false);
-    expect(hasPermission("OPERATIONAL", "participants.cancel")).toBe(false);
 
     expect(hasPermission("SUPER_ADMIN", "participants.restore")).toBe(true);
     for (const role of ["ADMIN", "OPERATOR", "OPERATIONAL", "REGISTRATION", "SCANNER"] as const) {

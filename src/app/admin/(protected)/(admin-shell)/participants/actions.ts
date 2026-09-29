@@ -115,7 +115,7 @@ function isActiveCancellationActor(
 ): profile is NonNullable<Awaited<ReturnType<typeof getAuthorizedProfile>>> {
   return Boolean(
     profile?.is_active === true &&
-      (profile.role === "SUPER_ADMIN" || profile.role === "ADMIN" || profile.role === "OPERATOR"),
+      (profile.role === "SUPER_ADMIN" || profile.role === "ADMIN" || profile.role === "OPERATIONAL"),
   );
 }
 
@@ -172,7 +172,7 @@ export async function cancelParticipantRegistration(
 
   const profile = await getAuthorizedProfile("participants.cancel");
   if (!isActiveCancellationActor(profile)) {
-    return errorState("Hanya Super Admin, Admin, atau Operator aktif yang dapat membatalkan pendaftaran.");
+    return errorState("Hanya Super Admin, Admin, atau Operational aktif yang dapat membatalkan pendaftaran.");
   }
 
   const registrationId = readRegistrationId(formData);
