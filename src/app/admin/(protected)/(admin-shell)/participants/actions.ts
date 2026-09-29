@@ -110,6 +110,15 @@ function isActiveSuperAdminProfile(
   return Boolean(profile?.is_active === true && profile.role === "SUPER_ADMIN");
 }
 
+function isActiveCancellationActor(
+  profile: Awaited<ReturnType<typeof getAuthorizedProfile>>,
+): profile is NonNullable<Awaited<ReturnType<typeof getAuthorizedProfile>>> {
+  return Boolean(
+    profile?.is_active === true &&
+      (profile.role === "SUPER_ADMIN" || profile.role === "ADMIN" || profile.role === "OPERATOR"),
+  );
+}
+
 async function setParticipantRegistrationStatus(
   registrationId: string,
   targetStatus: "REGISTERED" | "CANCELLED",
@@ -149,7 +158,7 @@ async function setParticipantRegistrationStatus(
     case "NOT_FOUND":
       return errorState("Peserta tidak ditemukan.");
     case "UNAUTHORIZED_ACTOR":
-      return errorState("Hanya Super Admin aktif yang dapat mengubah status pendaftaran.");
+      return errorState("Anda tidak memiliki izin untuk mengubah status pendaftaran ini.");
     default:
       return errorState("Status pendaftaran belum dapat diperbarui. Silakan coba kembali.");
   }
@@ -161,9 +170,9 @@ export async function cancelParticipantRegistration(
 ): Promise<ParticipantActionState> {
   void previousState;
 
-  const profile = await getAuthorizedProfile("participants.manage");
-  if (!isActiveSuperAdminProfile(profile)) {
-    return errorState("Hanya Super Admin aktif yang dapat membatalkan pendaftaran.");
+  const profile = await getAuthorizedProfile("participants.cancel");
+  if (!isActiveCancellationActor(profile)) {
+    return errorState("Hanya Super Admin, Admin, atau Operator aktif yang dapat membatalkan pendaftaran.");
   }
 
   const registrationId = readRegistrationId(formData);
@@ -200,7 +209,7 @@ export async function restoreParticipantRegistration(
 ): Promise<ParticipantActionState> {
   void previousState;
 
-  const profile = await getAuthorizedProfile("participants.manage");
+  const profile = await getAuthorizedProfile("participants.restore");
   if (!isActiveSuperAdminProfile(profile)) {
     return errorState("Hanya Super Admin aktif yang dapat memulihkan pendaftaran.");
   }

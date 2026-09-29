@@ -6,6 +6,8 @@ export type Permission =
   | "participants.manage"
   | "participants.email"
   | "participants.export"
+  | "participants.cancel"
+  | "participants.restore"
   | "rooms.view"
   | "rooms.manage"
   | "rooms.export"
@@ -30,6 +32,7 @@ const rolePermissions: Record<UserRole, readonly Permission[]> = {
     "participants.manage",
     "participants.email",
     "participants.export",
+    "participants.cancel",
     "rooms.view",
     "rooms.manage",
     "rooms.export",
@@ -50,6 +53,7 @@ const rolePermissions: Record<UserRole, readonly Permission[]> = {
     "scanner.pair",
     "scanner.checkin",
     "display.view",
+    "participants.cancel",
   ],
   SUPER_ADMIN: [
     "dashboard.view",
@@ -57,6 +61,8 @@ const rolePermissions: Record<UserRole, readonly Permission[]> = {
     "participants.manage",
     "participants.email",
     "participants.export",
+    "participants.cancel",
+    "participants.restore",
     "rooms.view",
     "rooms.manage",
     "rooms.export",

@@ -36,6 +36,7 @@ export const adminNavigationItems: AdminNavigationItem[] = [
   { href: "/admin/sessions", icon: "sessions", label: "Sesi", permission: "sessions.view", section: "OPERASIONAL" },
   { href: "/admin/scanner/pair", icon: "scanner", label: "Scanner", permission: "scanner.pair", section: "OPERASIONAL" },
   { href: "/admin/participants", icon: "participants", label: "Peserta", permission: "participants.view", section: "OPERASIONAL" },
+  { href: "/admin/participants/cancel", icon: "participants", label: "Batalkan Pendaftaran", permission: "participants.cancel", section: "OPERASIONAL" },
   { href: "/admin/member-meetings", icon: "meeting", label: "Rapat Anggota", permission: "member_meetings.view", section: "OPERASIONAL" },
   { href: "/admin/rooms", icon: "rooms", label: "Room Assignment", permission: "rooms.view", section: "OPERASIONAL" },
   { href: "/admin/pickup", icon: "pickup", label: "Pickup Assignment", permission: "pickup.view", section: "OPERASIONAL" },

@@ -17,13 +17,16 @@ import {
   restoreParticipantRegistration,
 } from "@/app/admin/(protected)/(admin-shell)/participants/actions";
 import { loadParticipantTicketData } from "@/lib/registration/participant-ticket-data";
-import { canChangeRegistrationStatus } from "@/lib/admin/participant-ui";
+import {
+  canChangeRegistrationStatus,
+  canRestoreParticipantRegistration,
+} from "@/lib/admin/participant-ui";
 
 const registeredId = "AKKAI26-000001";
-const restorePermissionMigration = readFileSync(
+const cancellationPermissionMigration = readFileSync(
   resolve(
     process.cwd(),
-    "supabase/migrations/20260923090000_restrict_participant_registration_restore.sql",
+    "supabase/migrations/20260929100000_allow_operator_participant_cancellation.sql",
   ),
   "utf8",
 );
@@ -40,14 +43,23 @@ beforeEach(() => {
 });
 
 describe("participant cancellation", () => {
-  it("shows cancellation and restore actions only to SUPER_ADMIN", () => {
-    expect(canChangeRegistrationStatus("ADMIN")).toBe(false);
+  it("shows cancellation for SUPER_ADMIN, ADMIN, and OPERATOR; restore only for SUPER_ADMIN", () => {
+    expect(canChangeRegistrationStatus("ADMIN")).toBe(true);
     expect(canChangeRegistrationStatus("SUPER_ADMIN")).toBe(true);
-    expect(canChangeRegistrationStatus("OPERATOR")).toBe(false);
+    expect(canChangeRegistrationStatus("OPERATOR")).toBe(true);
+    expect(canChangeRegistrationStatus("OPERATIONAL")).toBe(false);
+    expect(canRestoreParticipantRegistration("SUPER_ADMIN")).toBe(true);
+    expect(canRestoreParticipantRegistration("ADMIN")).toBe(false);
+    expect(canRestoreParticipantRegistration("OPERATOR")).toBe(false);
+    expect(canRestoreParticipantRegistration("OPERATIONAL")).toBe(false);
   });
 
-  it("allows SUPER_ADMIN to cancel one participant with an exact ID confirmation and reason", async () => {
-    mocks.getAuthorizedProfile.mockResolvedValue({ id: "super-admin-1", role: "SUPER_ADMIN", is_active: true });
+  it.each([
+    { id: "super-admin-1", role: "SUPER_ADMIN" as const },
+    { id: "admin-1", role: "ADMIN" as const },
+    { id: "operator-1", role: "OPERATOR" as const },
+  ])("allows $role to cancel with an exact ID confirmation and required reason", async ({ id, role }) => {
+    mocks.getAuthorizedProfile.mockResolvedValue({ id, role, is_active: true });
     const rpc = vi.fn().mockResolvedValue({ data: [{ result_code: "UPDATED" }], error: null });
     mocks.createAdminClient.mockReturnValue({ rpc });
 
@@ -64,7 +76,7 @@ describe("participant cancellation", () => {
     expect(rpc).toHaveBeenCalledWith("set_participant_registration_status", {
       p_registration_id: registeredId,
       p_target_status: "CANCELLED",
-      p_changed_by: "super-admin-1",
+      p_changed_by: id,
       p_cancellation_reason: "Peserta mengajukan pembatalan.",
     });
   });
@@ -88,11 +100,9 @@ describe("participant cancellation", () => {
     });
   });
 
-  it.each([
-    { id: "admin-1", role: "ADMIN" as const },
-    { id: "operator-1", role: "OPERATOR" as const },
-  ])("rejects $role cancellation", async ({ id, role }) => {
-    mocks.getAuthorizedProfile.mockResolvedValue({ id, role, is_active: true });
+  it("rejects OPERATIONAL cancellation", async () => {
+    const id = "operational-1";
+    mocks.getAuthorizedProfile.mockResolvedValue({ id, role: "OPERATIONAL", is_active: true });
 
     const result = await cancelParticipantRegistration(
       { status: "idle", message: null },
@@ -107,8 +117,12 @@ describe("participant cancellation", () => {
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
   });
 
-  it("rejects ADMIN restore before calling the status RPC", async () => {
-    mocks.getAuthorizedProfile.mockResolvedValue({ id: "admin-1", role: "ADMIN", is_active: true });
+  it.each([
+    { id: "admin-1", role: "ADMIN" as const },
+    { id: "operator-1", role: "OPERATOR" as const },
+    { id: "operational-1", role: "OPERATIONAL" as const },
+  ])("rejects $role restore before calling the status RPC", async ({ id, role }) => {
+    mocks.getAuthorizedProfile.mockResolvedValue({ id, role, is_active: true });
 
     const result = await restoreParticipantRegistration(
       { status: "idle", message: null },
@@ -119,15 +133,14 @@ describe("participant cancellation", () => {
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
   });
 
-  it("enforces restore authorization and keeps the audit log in the database RPC", () => {
-    expect(restorePermissionMigration).toContain(
-      "OR v_actor_role <> 'SUPER_ADMIN'::public.user_role",
-    );
-    expect(restorePermissionMigration).toContain(
+  it("enforces cancellation and restore roles and keeps the audit log in the RPC", () => {
+    expect(cancellationPermissionMigration).toContain("'OPERATOR'::public.user_role");
+    expect(cancellationPermissionMigration).toContain("v_actor_role <> 'SUPER_ADMIN'::public.user_role");
+    expect(cancellationPermissionMigration).toContain(
       "INSERT INTO public.participant_registration_status_changes",
     );
-    expect(restorePermissionMigration).toContain("TO service_role;");
-    expect(restorePermissionMigration).toContain("FROM PUBLIC, anon, authenticated;");
+    expect(cancellationPermissionMigration).toContain("TO service_role;");
+    expect(cancellationPermissionMigration).toContain("FROM PUBLIC, anon, authenticated;");
   });
 
   it("rejects cancelled ticket data before reading billing history", async () => {

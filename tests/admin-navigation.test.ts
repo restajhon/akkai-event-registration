@@ -24,6 +24,13 @@ describe("admin navigation", () => {
     ]);
   });
 
+  it("gives OPERATOR the scoped cancellation lookup, not the general participant list", () => {
+    const operatorRoutes = getVisibleAdminNavigationItems("OPERATOR").map((item) => item.href);
+
+    expect(operatorRoutes).toContain("/admin/participants/cancel");
+    expect(operatorRoutes).not.toContain("/admin/participants");
+  });
+
   it("closes the mobile drawer only for Escape", () => {
     expect(shouldCloseAdminDrawer("Escape")).toBe(true);
     expect(shouldCloseAdminDrawer("Enter")).toBe(false);

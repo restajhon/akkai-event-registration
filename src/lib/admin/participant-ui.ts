@@ -18,5 +18,9 @@ export function getParticipantActionVisibility(role: UserRole): ParticipantActio
 }
 
 export function canChangeRegistrationStatus(role: UserRole) {
-  return role === "SUPER_ADMIN";
+  return hasPermission(role, "participants.cancel");
+}
+
+export function canRestoreParticipantRegistration(role: UserRole) {
+  return hasPermission(role, "participants.restore");
 }

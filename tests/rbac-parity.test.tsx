@@ -24,6 +24,8 @@ const allPermissions = [
   "participants.manage",
   "participants.email",
   "participants.export",
+  "participants.cancel",
+  "participants.restore",
   "rooms.view",
   "rooms.manage",
   "rooms.export",
@@ -44,7 +46,7 @@ const allPermissions = [
 
 const expectedPermissions: Record<UserRole, readonly string[]> = {
   SUPER_ADMIN: allPermissions,
-  ADMIN: allPermissions.filter((permission) => permission !== "access.manage"),
+  ADMIN: allPermissions.filter((permission) => permission !== "access.manage" && permission !== "participants.restore"),
   REGISTRATION: [
     "dashboard.view",
     "participants.view",
@@ -70,7 +72,7 @@ const expectedPermissions: Record<UserRole, readonly string[]> = {
     "member_meetings.view",
   ],
   SCANNER: ["scanner.pair", "scanner.checkin", "display.view"],
-  OPERATOR: ["scanner.pair", "scanner.checkin", "display.view"],
+  OPERATOR: ["scanner.pair", "scanner.checkin", "display.view", "participants.cancel"],
 };
 
 const participant = {
@@ -136,6 +138,19 @@ describe("RBAC parity", () => {
     expect(hasPermission("OPERATIONAL", "access.manage")).toBe(false);
     expect(hasPermission("SCANNER", "access.manage")).toBe(false);
     expect(hasPermission("OPERATOR", "access.manage")).toBe(false);
+  });
+
+  it("allows cancellation to ADMIN, SUPER_ADMIN, and OPERATOR, but restore only to SUPER_ADMIN", () => {
+    for (const role of ["SUPER_ADMIN", "ADMIN", "OPERATOR"] as const) {
+      expect(hasPermission(role, "participants.cancel")).toBe(true);
+    }
+    expect(hasPermission("REGISTRATION", "participants.cancel")).toBe(false);
+    expect(hasPermission("OPERATIONAL", "participants.cancel")).toBe(false);
+
+    expect(hasPermission("SUPER_ADMIN", "participants.restore")).toBe(true);
+    for (const role of ["ADMIN", "OPERATOR", "OPERATIONAL", "REGISTRATION", "SCANNER"] as const) {
+      expect(hasPermission(role, "participants.restore")).toBe(false);
+    }
   });
 
   it("restricts operational users to participant and operational areas", () => {
