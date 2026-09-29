@@ -7,10 +7,11 @@ export async function loadParticipantTicketData(registrationId: string): Promise
   const supabase = createAdminClient();
   const { data: participant, error: participantError } = await supabase
     .from("participants")
-    .select("id, registration_id, full_name, email, phone_number, kka_name, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, qr_token")
+    .select("id, registration_id, full_name, email, phone_number, kka_name, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, qr_token, registration_status")
     .eq("registration_id", registrationId)
     .maybeSingle();
   if (participantError || !participant) return null;
+  if (participant.registration_status !== "REGISTERED") return null;
 
   const { data: billing, error: billingError } = await supabase
     .from("registration_billings")

@@ -6,7 +6,10 @@ import { formatIndonesianRupiah, PAYMENT_INSTRUCTIONS } from "@/lib/billing/pric
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadPickupAssignmentDetail } from "@/lib/admin/assignment-data";
 import { getEffectivePickupPoint } from "@/lib/admin/pickup-mapping";
-import { getParticipantActionVisibility } from "@/lib/admin/participant-ui";
+import {
+  canChangeRegistrationStatus,
+  getParticipantActionVisibility,
+} from "@/lib/admin/participant-ui";
 import type { PickupParticipant } from "@/lib/admin/assignment-types";
 import { billingStatusLabel } from "@/lib/billing/status";
 import { hasPermission } from "@/lib/auth/permissions";
@@ -15,6 +18,7 @@ import {
   ResendQrButton,
   type AttendanceSummary,
 } from "../participant-list";
+import { RegistrationStatusActions } from "../registration-status-actions";
 import { EmailCorrectionForm } from "../email-correction-form";
 import { BillingPaymentForm } from "../billing-payment-form";
 import { ParticipantEditForm } from "../participant-edit-form";
@@ -437,6 +441,13 @@ export default async function ParticipantDetailPage({
         </header>
 
         <section aria-label="Aksi peserta" className="mt-4 flex flex-col gap-2 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-3 sm:flex-row sm:flex-wrap sm:items-start">
+          {canChangeRegistrationStatus(profile.role) ? (
+            <RegistrationStatusActions
+              canRestore={profile.role === "SUPER_ADMIN"}
+              isCancelled={isCancelled}
+              registrationId={participant.registration_id}
+            />
+          ) : null}
           {actionVisibility.canEdit ? (
             <a
               className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-white outline-none hover:bg-[#203d5d] focus-visible:ring-2 focus-visible:ring-[#9a7526]"

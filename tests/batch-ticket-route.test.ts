@@ -30,12 +30,13 @@ describe("batch ticket route authorization", () => {
 
   it("puts actual QR PNG files in a batch archive", async () => {
     mocks.authorizePermission.mockResolvedValue({ authorized: true, status: 200, profile: { role: "ADMIN" } });
+    const participantEq = vi.fn().mockReturnThis();
     mocks.createAdminClient.mockReturnValue({
       from: vi.fn((table: string) => {
         if (table === "registration_batches") {
           return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: { id: "batch-1" }, error: null }) };
         }
-        return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockResolvedValue({ data: [{ registration_id: "AKKAI26-000001" }], error: null }) };
+        return { select: vi.fn().mockReturnThis(), eq: participantEq, order: vi.fn().mockResolvedValue({ data: [{ registration_id: "AKKAI26-000001" }], error: null }) };
       }),
     });
     mocks.loadParticipantTicketData.mockResolvedValue({ registrationId: "AKKAI26-000001", fullName: "Peserta Satu", qrToken: "qr-token" });
@@ -51,5 +52,6 @@ describe("batch ticket route authorization", () => {
     expect(response.headers.get("content-type")).toBe("application/zip");
     expect(archive.includes(Buffer.from("AKKAI26-000001_Peserta_Satu_QR.png"))).toBe(true);
     expect(mocks.generateParticipantQrPng).toHaveBeenCalledWith("qr-token");
+    expect(participantEq).toHaveBeenCalledWith("registration_status", "REGISTERED");
   });
 });

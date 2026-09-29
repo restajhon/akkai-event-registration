@@ -132,7 +132,10 @@ function assignmentStatus(value: PickupRow | undefined) {
   return value.status === "COMPLETED" ? "Selesai" : "Terjadwal";
 }
 
-export async function loadParticipantExportRows(batchCode = "all"): Promise<ParticipantExportRow[] | null> {
+export async function loadParticipantExportRows(
+  batchCode = "all",
+  registrationStatus: "REGISTERED" | "CANCELLED" | "all" = "REGISTERED",
+): Promise<ParticipantExportRow[] | null> {
   try {
     const supabase = createAdminClient();
     let batchId: string | null = null;
@@ -147,6 +150,7 @@ export async function loadParticipantExportRows(batchCode = "all"): Promise<Part
     const batchCodeById = new Map((batchResult.data ?? []).map((row) => [row.id as string, row.batch_code as string]));
     let participantQuery = supabase.from("participants").select("id, registration_id, batch_id, full_name, member_number, email, phone_number, institution, participant_category, position, kka_name, polo_size, polo_model, package_type, participation_scope, actuarial_consultant_status, attends_pai_congress, registration_status, email_status, last_email_sent_at, privacy_consent_at, created_at, updated_at").order("created_at", { ascending: false });
     if (batchId) participantQuery = participantQuery.eq("batch_id", batchId);
+    if (registrationStatus !== "all") participantQuery = participantQuery.eq("registration_status", registrationStatus);
     const [participantsResult, billingsResult, documentsResult, travelResult, pickupResult, sessionsResult, attendanceResult, emailLogsResult] = await Promise.all([
       participantQuery,
       supabase.from("registration_billings").select("participant_id, billing_number, amount, currency, payment_status, paid_at, paid_by, billing_email_status, billing_email_sent_at"),

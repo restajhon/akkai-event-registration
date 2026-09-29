@@ -16,7 +16,9 @@ export async function GET(request: Request) {
     );
   }
   const batchCode = new URL(request.url).searchParams.get("batchCode")?.trim().slice(0, 30) || "all";
-  const rows = await loadParticipantExportRows(batchCode);
+  const requestedStatus = new URL(request.url).searchParams.get("registrationStatus");
+  const registrationStatus = requestedStatus === "CANCELLED" || requestedStatus === "all" ? requestedStatus : "REGISTERED";
+  const rows = await loadParticipantExportRows(batchCode, registrationStatus);
 
   if (!rows) {
     return NextResponse.json({ error: "Participant data is unavailable." }, { status: 500 });

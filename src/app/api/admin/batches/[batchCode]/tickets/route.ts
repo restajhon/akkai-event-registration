@@ -37,6 +37,7 @@ export async function GET(
     .from("participants")
     .select("registration_id")
     .eq("batch_id", batch.id)
+    .eq("registration_status", "REGISTERED")
     .order("created_at", { ascending: true });
   if (participantsError) return NextResponse.json({ error: "Data batch belum dapat dimuat." }, { status: 500 });
   const registrationIds = (participants ?? []).map((participant) => participant.registration_id as string);

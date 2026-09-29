@@ -16,3 +16,7 @@ export function getParticipantActionVisibility(role: UserRole): ParticipantActio
     canResendEmail: hasPermission(role, "participants.email"),
   };
 }
+
+export function canChangeRegistrationStatus(role: UserRole) {
+  return role === "SUPER_ADMIN";
+}

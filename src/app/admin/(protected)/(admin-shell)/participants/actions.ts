@@ -96,10 +96,129 @@ function readFormString(formData: FormData, field: string) {
 
 function revalidateParticipantPaths(registrationId: string) {
   try {
+    revalidatePath("/admin/dashboard");
     revalidatePath("/admin/participants");
     revalidatePath(`/admin/participants/${registrationId}`);
   } catch {
     // Cache refresh failure must not change the provider acceptance result.
+  }
+}
+
+function isActiveSuperAdminProfile(
+  profile: Awaited<ReturnType<typeof getAuthorizedProfile>>,
+): profile is NonNullable<Awaited<ReturnType<typeof getAuthorizedProfile>>> {
+  return Boolean(profile?.is_active === true && profile.role === "SUPER_ADMIN");
+}
+
+async function setParticipantRegistrationStatus(
+  registrationId: string,
+  targetStatus: "REGISTERED" | "CANCELLED",
+  changedBy: string,
+  cancellationReason: string | null,
+): Promise<ParticipantActionState> {
+  const { data, error } = await createAdminClient().rpc(
+    "set_participant_registration_status",
+    {
+      p_registration_id: registrationId,
+      p_target_status: targetStatus,
+      p_changed_by: changedBy,
+      p_cancellation_reason: cancellationReason,
+    },
+  );
+
+  if (error) {
+    return errorState("Status pendaftaran belum dapat diperbarui. Silakan coba kembali.");
+  }
+
+  const result = (Array.isArray(data) ? data[0] : data) as { result_code?: string } | null;
+  switch (result?.result_code) {
+    case "UPDATED":
+      revalidateParticipantPaths(registrationId);
+      return {
+        status: "success",
+        message: targetStatus === "CANCELLED"
+          ? "Pendaftaran peserta berhasil dibatalkan. Data dan histori tetap disimpan."
+          : "Pendaftaran peserta berhasil dipulihkan.",
+      };
+    case "ALREADY_CANCELLED":
+      return infoState("Pendaftaran peserta sudah berstatus Dibatalkan.");
+    case "ALREADY_REGISTERED":
+      return infoState("Pendaftaran peserta sudah berstatus Terdaftar.");
+    case "INVALID_REASON":
+      return errorState("Alasan pembatalan wajib diisi maksimal 500 karakter.");
+    case "NOT_FOUND":
+      return errorState("Peserta tidak ditemukan.");
+    case "UNAUTHORIZED_ACTOR":
+      return errorState("Hanya Super Admin aktif yang dapat mengubah status pendaftaran.");
+    default:
+      return errorState("Status pendaftaran belum dapat diperbarui. Silakan coba kembali.");
+  }
+}
+
+export async function cancelParticipantRegistration(
+  previousState: ParticipantActionState,
+  formData: FormData,
+): Promise<ParticipantActionState> {
+  void previousState;
+
+  const profile = await getAuthorizedProfile("participants.manage");
+  if (!isActiveSuperAdminProfile(profile)) {
+    return errorState("Hanya Super Admin aktif yang dapat membatalkan pendaftaran.");
+  }
+
+  const registrationId = readRegistrationId(formData);
+  const confirmationRegistrationId = readFormString(formData, "registrationIdConfirmation").trim();
+  const cancellationReason = readFormString(formData, "cancellationReason").trim();
+  const parsedRegistrationId = registrationIdSchema.safeParse(registrationId);
+
+  if (
+    !parsedRegistrationId.success ||
+    confirmationRegistrationId !== parsedRegistrationId.data
+  ) {
+    return errorState("Ketik Registration ID yang sama untuk mengonfirmasi pembatalan.");
+  }
+
+  if (cancellationReason.length === 0 || cancellationReason.length > 500) {
+    return errorState("Alasan pembatalan wajib diisi maksimal 500 karakter.");
+  }
+
+  try {
+    return await setParticipantRegistrationStatus(
+      parsedRegistrationId.data,
+      "CANCELLED",
+      profile.id,
+      cancellationReason,
+    );
+  } catch {
+    return errorState("Status pendaftaran belum dapat diperbarui. Silakan coba kembali.");
+  }
+}
+
+export async function restoreParticipantRegistration(
+  previousState: ParticipantActionState,
+  formData: FormData,
+): Promise<ParticipantActionState> {
+  void previousState;
+
+  const profile = await getAuthorizedProfile("participants.manage");
+  if (!isActiveSuperAdminProfile(profile)) {
+    return errorState("Hanya Super Admin aktif yang dapat memulihkan pendaftaran.");
+  }
+
+  const parsedRegistrationId = registrationIdSchema.safeParse(readRegistrationId(formData));
+  if (!parsedRegistrationId.success) {
+    return errorState("Data peserta tidak valid.");
+  }
+
+  try {
+    return await setParticipantRegistrationStatus(
+      parsedRegistrationId.data,
+      "REGISTERED",
+      profile.id,
+      null,
+    );
+  } catch {
+    return errorState("Status pendaftaran belum dapat diperbarui. Silakan coba kembali.");
   }
 }
 
