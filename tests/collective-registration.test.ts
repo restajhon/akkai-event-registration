@@ -77,6 +77,9 @@ describe("collective registration contract", () => {
 describe("collective registration delivery isolation", () => {
   beforeEach(() => {
     mocks.createAdminClient.mockReset();
+    mocks.generateParticipantQrPng.mockClear();
+    mocks.sendRegistrationEmail.mockClear();
+    mocks.sendBillingEmail.mockClear();
     mocks.generateParticipantQrPng.mockResolvedValue(Buffer.from("qr"));
     mocks.sendRegistrationEmail.mockImplementation(async ({ recipientEmail }: { recipientEmail: string }) =>
       recipientEmail === "peserta-1@example.com"
@@ -159,6 +162,46 @@ describe("collective registration delivery isolation", () => {
         p_actuarial_consultant_status: "Penerima Grandfathering CIAC",
       }),
     );
+  });
+
+  it("creates two independent participants with separate billing and idempotency keys", async () => {
+    const batchKey = "00000000-0000-4000-8000-000000000004";
+    const formData = new FormData();
+    formData.set("payload", JSON.stringify({
+      idempotency_key: batchKey,
+      participants: [participant(1), participant(2)],
+    }));
+
+    const result = await submitCollectiveRegistration({ status: "idle", fieldErrors: [], participants: [] }, formData);
+
+    expect(result.status).toBe("submitted");
+    expect(result.participants).toHaveLength(2);
+    expect(result.participants.map((item) => item.registrationId)).toEqual([
+      "AKKAI26-000001",
+      "AKKAI26-000002",
+    ]);
+    expect(result.participants.map((item) => item.billingNumber)).toEqual([
+      "INV-AKKAI26-000001",
+      "INV-AKKAI26-000002",
+    ]);
+    expect(result.participants.map((item) => item.status)).toEqual([
+      "created-email-failed",
+      "created-email-sent",
+    ]);
+    expect(new Set(result.participants.map((item) => item.registrationId)).size).toBe(2);
+    expect(new Set(result.participants.map((item) => item.billingNumber)).size).toBe(2);
+    expect(mocks.generateParticipantQrPng).toHaveBeenCalledTimes(2);
+
+    const rpc = mocks.createAdminClient.mock.results[0]?.value.rpc;
+    const participantReservationCalls = rpc.mock.calls.filter(
+      ([name]: [string]) => name === "create_participant_with_registration_reservation_v6",
+    );
+    expect(participantReservationCalls.map(([, args]: [string, { p_idempotency_key: string }]) => args.p_idempotency_key)).toEqual([
+      `collective:${batchKey}:1`,
+      `collective:${batchKey}:2`,
+    ]);
+    expect(mocks.sendRegistrationEmail).toHaveBeenCalledTimes(2);
+    expect(mocks.sendBillingEmail).toHaveBeenCalledTimes(2);
   });
 
   it("submits a collective participant without CIAC status and sends null to the RPC", async () => {
