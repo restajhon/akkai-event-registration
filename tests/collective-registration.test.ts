@@ -8,6 +8,7 @@ import {
 
 const mocks = vi.hoisted(() => ({
   createAdminClient: vi.fn(),
+  rpc: vi.fn(),
   generateParticipantQrPng: vi.fn(),
   sendRegistrationEmail: vi.fn(),
   sendBillingEmail: vi.fn(),
@@ -77,6 +78,7 @@ describe("collective registration contract", () => {
 describe("collective registration delivery isolation", () => {
   beforeEach(() => {
     mocks.createAdminClient.mockReset();
+    mocks.rpc.mockReset();
     mocks.generateParticipantQrPng.mockClear();
     mocks.sendRegistrationEmail.mockClear();
     mocks.sendBillingEmail.mockClear();
@@ -106,7 +108,7 @@ describe("collective registration delivery isolation", () => {
       };
     });
     let reservationIndex = 0;
-    const rpc = vi.fn().mockImplementation(async (name: string) => {
+    mocks.rpc.mockImplementation(async (name: string) => {
       if (name === "create_participant_with_registration_reservation_v6") {
         return { data: reservations[reservationIndex++], error: null };
       }
@@ -132,7 +134,7 @@ describe("collective registration delivery isolation", () => {
       };
       return query;
     });
-    mocks.createAdminClient.mockReturnValue({ rpc, from });
+    mocks.createAdminClient.mockReturnValue({ rpc: mocks.rpc, from });
   });
 
   it("keeps all five participants independent when one registration email fails", async () => {
@@ -155,8 +157,7 @@ describe("collective registration delivery isolation", () => {
     expect(mocks.sendRegistrationEmail.mock.calls.map(([input]) => input.recipientEmail).sort()).toEqual(
       Array.from({ length: 5 }, (_, index) => `peserta-${index + 1}@example.com`).sort(),
     );
-    const rpc = mocks.createAdminClient.mock.results[0]?.value.rpc;
-    expect(rpc).toHaveBeenCalledWith(
+    expect(mocks.rpc).toHaveBeenCalledWith(
       "create_participant_with_registration_reservation_v6",
       expect.objectContaining({
         p_actuarial_consultant_status: "Penerima Grandfathering CIAC",
@@ -167,9 +168,12 @@ describe("collective registration delivery isolation", () => {
   it("creates two independent participants with separate billing and idempotency keys", async () => {
     const batchKey = "00000000-0000-4000-8000-000000000004";
     const formData = new FormData();
+    const meetingParticipants = [participant(1), participant(2)];
+    meetingParticipants[0].participation_scope = "Rapat Anggota AKKAI 2026";
+    meetingParticipants[1].participation_scope = "Seluruh acara";
     formData.set("payload", JSON.stringify({
       idempotency_key: batchKey,
-      participants: [participant(1), participant(2)],
+      participants: meetingParticipants,
     }));
 
     const result = await submitCollectiveRegistration({ status: "idle", fieldErrors: [], participants: [] }, formData);
@@ -192,16 +196,162 @@ describe("collective registration delivery isolation", () => {
     expect(new Set(result.participants.map((item) => item.billingNumber)).size).toBe(2);
     expect(mocks.generateParticipantQrPng).toHaveBeenCalledTimes(2);
 
-    const rpc = mocks.createAdminClient.mock.results[0]?.value.rpc;
-    const participantReservationCalls = rpc.mock.calls.filter(
-      ([name]: [string]) => name === "create_participant_with_registration_reservation_v6",
-    );
-    expect(participantReservationCalls.map(([, args]: [string, { p_idempotency_key: string }]) => args.p_idempotency_key)).toEqual([
+    const participantReservationCalls = (
+      mocks.rpc.mock.calls as Array<[string, { p_idempotency_key: string; p_participation_scope: string }]>
+    ).filter(([name]) => name === "create_participant_with_registration_reservation_v6");
+    expect(participantReservationCalls.map(([, args]) => args.p_idempotency_key)).toEqual([
       `collective:${batchKey}:1`,
       `collective:${batchKey}:2`,
     ]);
+    expect(participantReservationCalls.map(([, args]) => args.p_participation_scope)).toEqual([
+      "Rapat Anggota AKKAI 2026",
+      "Seluruh acara",
+    ]);
     expect(mocks.sendRegistrationEmail).toHaveBeenCalledTimes(2);
     expect(mocks.sendBillingEmail).toHaveBeenCalledTimes(2);
+  });
+
+  it("creates exactly two participants with distinct identifiers and persists each travel payload", async () => {
+    mocks.sendRegistrationEmail.mockResolvedValue({
+      success: true,
+      providerMessageId: "registration-accepted",
+    });
+
+    const batchKey = "00000000-0000-4000-8000-000000000005";
+    const travel = {
+      outbound_date: "2026-11-10",
+      outbound_time: "08:30",
+      outbound_transport_mode: "Pesawat",
+      outbound_transport_number: "AB123",
+      outbound_origin: "Jakarta",
+      outbound_destination: "Semarang",
+      return_date: "2026-11-13",
+      return_time: "17:00",
+      return_transport_mode: "Kereta",
+      return_transport_number: "CD456",
+      return_destination: "Jakarta",
+      extend_stay: false,
+    };
+    const participants = [participant(1), participant(2)].map((item) => ({
+      ...item,
+      include_travel: true,
+      travel,
+    }));
+    const formData = new FormData();
+    formData.set("payload", JSON.stringify({ idempotency_key: batchKey, participants }));
+
+    const result = await submitCollectiveRegistration(
+      { status: "idle", fieldErrors: [], participants: [] },
+      formData,
+    );
+
+    expect(result.status).toBe("submitted");
+    expect(result.participants).toHaveLength(2);
+    expect(result.participants.every((item) => item.status === "created-email-sent")).toBe(true);
+    expect(new Set(result.participants.map((item) => item.registrationId)).size).toBe(2);
+    expect(new Set(result.participants.map((item) => item.billingNumber)).size).toBe(2);
+
+    const reservations = mocks.rpc.mock.calls.filter(
+      ([name]) => name === "create_participant_with_registration_reservation_v6",
+    );
+    expect(reservations).toHaveLength(2);
+    expect(reservations.map(([, args]) => args.p_idempotency_key)).toEqual([
+      `collective:${batchKey}:1`,
+      `collective:${batchKey}:2`,
+    ]);
+    expect(reservations.map(([, args]) => args.p_travel)).toEqual([travel, travel]);
+  });
+
+  it("keeps a successful participant successful when another participant RPC fails", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    let reservationIndex = 0;
+    mocks.rpc.mockImplementation(async (name: string) => {
+      if (name === "create_participant_with_registration_reservation_v6") {
+        if (reservationIndex++ === 0) {
+          return {
+            data: null,
+            error: {
+              code: "42702",
+              message: 'column reference "participant_id" is ambiguous',
+              details: "It could refer to either a PL/pgSQL variable or a table column.",
+            },
+          };
+        }
+        return {
+          data: {
+            result_code: "CREATED",
+            participant_id: "participant-2",
+            registration_id: "AKKAI26-000002",
+            full_name: "Peserta Kolektif 2",
+            email: "peserta-2@example.com",
+            qr_token: "b".repeat(64),
+            email_log_id: "email-log-2",
+            email_generation: 0,
+            billing_id: "billing-2",
+            billing_number: "INV-AKKAI26-000002",
+            billing_amount: 7_000_000,
+            billing_created_at: "2026-09-08T00:00:00.000Z",
+          },
+          error: null,
+        };
+      }
+      return { data: [{ result_code: "CURRENT_GENERATION" }], error: null };
+    });
+
+    const travel = {
+      outbound_date: "2026-11-10",
+      outbound_time: "08:30",
+      outbound_transport_mode: "Pesawat",
+      outbound_transport_number: "AB123",
+      outbound_origin: "Jakarta",
+      outbound_destination: "Semarang",
+      return_date: "2026-11-13",
+      return_time: "17:00",
+      return_transport_mode: "Kereta",
+      return_transport_number: "CD456",
+      return_destination: "Jakarta",
+      extend_stay: false,
+    };
+    const participants = [participant(1), participant(2)].map((item) => ({
+      ...item,
+      include_travel: true,
+      travel,
+    }));
+    const formData = new FormData();
+    formData.set("payload", JSON.stringify({
+      idempotency_key: "00000000-0000-4000-8000-000000000006",
+      participants,
+    }));
+
+    const result = await submitCollectiveRegistration(
+      { status: "idle", fieldErrors: [], participants: [] },
+      formData,
+    );
+
+    expect(result.status).toBe("submitted");
+    expect(result.participants.map((item) => item.status)).toEqual([
+      "failed",
+      "created-email-sent",
+    ]);
+    expect(result.participants[0].message).toBe("Peserta gagal dibuat karena error sistem.");
+    expect(result.participants[1].registrationId).toBe("AKKAI26-000002");
+    expect(result.participants[1].billingNumber).toBe("INV-AKKAI26-000002");
+    expect(result.participants[1].amount).toBe(7_000_000);
+    expect(mocks.sendRegistrationEmail).toHaveBeenCalledTimes(1);
+    expect(mocks.sendBillingEmail).toHaveBeenCalledTimes(1);
+    const reservationCalls = mocks.rpc.mock.calls.filter(
+      ([name]) => name === "create_participant_with_registration_reservation_v6",
+    );
+    expect(reservationCalls).toHaveLength(2);
+    expect(reservationCalls.map(([, args]) => args.p_travel)).toEqual([travel, travel]);
+    expect(errorSpy).toHaveBeenCalledWith("Registration stage failed", expect.objectContaining({
+      stage: "rpc-v6",
+      sqlState: "42702",
+      functionName: "create_participant_with_registration_reservation_v6",
+      details: "It could refer to either a PL/pgSQL variable or a table column.",
+      message: 'column reference "participant_id" is ambiguous',
+    }));
+    errorSpy.mockRestore();
   });
 
   it("submits a collective participant without CIAC status and sends null to the RPC", async () => {
@@ -216,8 +366,7 @@ describe("collective registration delivery isolation", () => {
     const result = await submitCollectiveRegistration({ status: "idle", fieldErrors: [], participants: [] }, formData);
 
     expect(result.status).toBe("submitted");
-    const rpc = mocks.createAdminClient.mock.results[0]?.value.rpc;
-    expect(rpc).toHaveBeenCalledWith(
+    expect(mocks.rpc).toHaveBeenCalledWith(
       "create_participant_with_registration_reservation_v6",
       expect.objectContaining({ p_actuarial_consultant_status: null }),
     );

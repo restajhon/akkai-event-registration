@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AdminDownloadButton } from "@/components/admin/admin-ui";
 import { requirePermission } from "@/lib/auth/server";
 import { loadMemberMeetingSubmission } from "@/lib/member-meeting/admin-data";
+import { MemberMeetingSubmissionDelete } from "../member-meeting-submission-delete";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +44,7 @@ export default async function MemberMeetingDetailPage({
           <h1 className="mt-2 text-3xl font-semibold text-[#142842]">Detail Rapat Anggota</h1>
           <dl className="mt-8 grid gap-5 sm:grid-cols-2">
             {[
+              ["Status submission", submission.cancelled_at ? "Dinonaktifkan" : "Aktif"],
               ["Nama", submission.name],
               ["Kantor Konsultan Aktuaria", submission.consulting_firm],
               ["Jabatan", submission.position],
@@ -60,6 +63,12 @@ export default async function MemberMeetingDetailPage({
             ))}
           </dl>
 
+          {submission.cancelled_at ? (
+            <p className="mt-5 rounded-lg border border-[#ead3cc] bg-[#fff5f2] p-3 text-sm text-[#9b3d31]">
+              Submission dinonaktifkan pada {formatDate(submission.cancelled_at)}. Riwayat dan datanya tetap tersimpan.
+            </p>
+          ) : null}
+
           <div className="mt-8 border-t border-[#e4d8c4] pt-5">
             <h2 className="text-lg font-semibold text-[#142842]">Surat Kuasa</h2>
             {submission.authorization_file_path && submission.authorization_file_name ? (
@@ -69,13 +78,23 @@ export default async function MemberMeetingDetailPage({
                   <p className="mt-1 text-xs text-[#667085]">{submission.authorization_file_mime} · {Math.ceil((submission.authorization_file_size ?? 0) / 1024)} KB</p>
                 </div>
                  {profile.role === "SUPER_ADMIN" || profile.role === "ADMIN" ? (
-                   <a className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-[#fffdf8] hover:bg-[#243e5e]" href={`/api/admin/member-meetings/${submission.id}/authorization`} rel="noreferrer" target="_blank">Buka / Download</a>
+                    <AdminDownloadButton href={`/api/admin/member-meetings/${submission.id}/authorization`} rel="noreferrer" target="_blank">Buka / Download</AdminDownloadButton>
                  ) : null}
               </div>
             ) : (
               <p className="mt-3 text-sm text-[#667085]">Tidak ada surat kuasa karena pemimpin KKA hadir sendiri.</p>
             )}
           </div>
+          {(profile.role === "SUPER_ADMIN" || profile.role === "ADMIN") && !submission.cancelled_at ? (
+            <div className="mt-6 border-t border-[#e4d8c4] pt-5">
+              <MemberMeetingSubmissionDelete
+                consultingFirm={submission.consulting_firm}
+                createdAt={formatDate(submission.created_at)}
+                name={submission.name}
+                submissionId={submission.id}
+              />
+            </div>
+          ) : null}
         </div>
       </section>
     </main>

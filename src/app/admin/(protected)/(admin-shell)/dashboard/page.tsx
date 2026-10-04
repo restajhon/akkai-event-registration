@@ -513,7 +513,7 @@ export async function loadDashboardData(
         ? adminSupabase.from("attendance").select("participant_id, session_id, check_in_time").in("session_id", sessionIds)
         : Promise.resolve({ data: [], error: null }),
       canViewMemberMeeting
-        ? adminSupabase.from("member_meeting_submissions").select("attendance_type")
+        ? adminSupabase.from("member_meeting_submissions").select("attendance_type").is("cancelled_at", null)
         : Promise.resolve({ data: [], error: null }),
     ]);
 

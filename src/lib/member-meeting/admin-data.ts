@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type MemberMeetingSubmission = {
   id: string;
+  cancelled_at: string | null;
   name: string;
   consulting_firm: string;
   position: string;
@@ -21,7 +22,7 @@ export type MemberMeetingSubmission = {
 };
 
 const submissionColumns =
-  "id, name, consulting_firm, position, phone, email, attendance_type, proxy_name, proxy_position, authorization_file_path, authorization_file_name, authorization_file_mime, authorization_file_size, created_at, updated_at";
+  "id, cancelled_at, name, consulting_firm, position, phone, email, attendance_type, proxy_name, proxy_position, authorization_file_path, authorization_file_name, authorization_file_mime, authorization_file_size, created_at, updated_at";
 
 export async function loadMemberMeetingSubmissions(): Promise<
   MemberMeetingSubmission[] | null
@@ -30,6 +31,7 @@ export async function loadMemberMeetingSubmissions(): Promise<
     const { data, error } = await createAdminClient()
       .from("member_meeting_submissions")
       .select(submissionColumns)
+      .is("cancelled_at", null)
       .order("created_at", { ascending: false });
 
     return error ? null : (data as MemberMeetingSubmission[]);

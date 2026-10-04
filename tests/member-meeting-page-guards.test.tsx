@@ -43,6 +43,7 @@ const adminProfile = {
 
 const submission = {
   id: "00000000-0000-4000-8000-000000000001",
+  cancelled_at: null,
   name: "Pemimpin KKA",
   consulting_firm: "Kantor Konsultan Aktuaria",
   position: "Direktur",
@@ -97,7 +98,7 @@ describe("member meeting page guards", () => {
 
   it("keeps export and file download visible for ADMIN", async () => {
     mocks.requirePermission.mockResolvedValue(adminProfile);
-    mocks.loadMemberMeetingSubmissions.mockResolvedValue([]);
+    mocks.loadMemberMeetingSubmissions.mockResolvedValue([submission]);
     mocks.loadMemberMeetingSubmission.mockResolvedValue(submission);
 
     const listMarkup = renderToStaticMarkup(await MemberMeetingsPage());
@@ -108,6 +109,8 @@ describe("member meeting page guards", () => {
     );
 
     expect(listMarkup).toContain("/api/admin/member-meetings-export");
+    expect(listMarkup).toContain("Hapus submission");
+    expect(detailMarkup).toContain("Hapus submission");
     expect(detailMarkup).toContain(
       "/api/admin/member-meetings/00000000-0000-4000-8000-000000000001/authorization",
     );

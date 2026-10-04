@@ -24,6 +24,9 @@ describe("registration diagnostics", () => {
       statusCode: null,
       errorType: "Error",
       errorCode: "PGRST202",
+      sqlState: null,
+      functionName: null,
+      details: null,
       message:
          "failed for [redacted-email], phone [redacted-phone] at [redacted-storage-path] with [redacted-credential]",
     });
@@ -40,6 +43,9 @@ describe("registration diagnostics", () => {
       statusCode: null,
       errorType: "Error",
       errorCode: null,
+      sqlState: null,
+      functionName: null,
+      details: null,
       message: "database request failed",
     });
 
@@ -57,6 +63,9 @@ describe("registration diagnostics", () => {
       statusCode: null,
       errorType: "object",
       errorCode: "42702",
+      sqlState: "42702",
+      functionName: null,
+      details: null,
       message: 'column reference "email" is ambiguous',
     });
   });
@@ -76,6 +85,9 @@ describe("registration diagnostics", () => {
       statusCode: null,
       errorType: "StorageError",
       errorCode: "STORAGE_UPLOAD_FAILED",
+      sqlState: null,
+      functionName: null,
+      details: null,
       message: "upload failed for [redacted-storage-path]",
     });
 
@@ -102,6 +114,9 @@ describe("registration diagnostics", () => {
       statusCode: 422,
       errorType: "validation_error",
       errorCode: "invalid_from",
+      sqlState: null,
+      functionName: null,
+      details: null,
       message:
         "send failed for [redacted-email]: [redacted-url] [redacted-credential]",
     });
@@ -120,6 +135,9 @@ describe("registration diagnostics", () => {
       statusCode: 503,
       errorType: "Error",
       errorCode: "temporarily_unavailable",
+      sqlState: null,
+      functionName: null,
+      details: null,
       message: "provider failed for [redacted-email]",
     });
   });
@@ -139,7 +157,37 @@ describe("registration diagnostics", () => {
     expect(diagnostic.statusCode).toBe(429);
     expect(diagnostic.errorType).toBe("rate_limit_error");
     expect(diagnostic.errorCode).toBe("rate_limited");
+    expect(diagnostic.sqlState).toBeNull();
+    expect(diagnostic.functionName).toBeNull();
+    expect(diagnostic.details).toBeNull();
     expect(diagnostic.message).toHaveLength(500);
     expect(diagnostic.message).not.toContain("https://");
+  });
+
+  it("logs the collective v6 stage, SQLSTATE, function, and sanitized database detail", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    logRegistrationStageFailure(
+      "rpc-v6",
+      Object.assign(new Error('column reference "participant_id" is ambiguous'), {
+        code: "42702",
+        details:
+          "It could refer to either a PL/pgSQL variable or a table column.",
+      }),
+    );
+
+    expect(errorSpy).toHaveBeenCalledWith("Registration stage failed", {
+      stage: "rpc-v6",
+      provider: null,
+      statusCode: null,
+      errorType: "Error",
+      errorCode: "42702",
+      sqlState: "42702",
+      functionName: "create_participant_with_registration_reservation_v6",
+      details: "It could refer to either a PL/pgSQL variable or a table column.",
+      message: 'column reference "participant_id" is ambiguous',
+    });
+
+    errorSpy.mockRestore();
   });
 });

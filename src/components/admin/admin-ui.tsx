@@ -1,7 +1,44 @@
-import type { ReactNode } from "react";
+import { Download } from "lucide-react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 function classes(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
+}
+
+type AdminDownloadLinkProps = { as?: "a" } & ComponentPropsWithoutRef<"a">;
+type AdminDownloadActionProps = { as: "button" } & ComponentPropsWithoutRef<"button">;
+
+export function AdminDownloadButton(
+  props: AdminDownloadLinkProps | AdminDownloadActionProps,
+) {
+  const { as, children, className, ...elementProps } = props;
+  const buttonClassName = classes(
+    "inline-flex min-h-[56px] w-full items-center justify-center gap-3 rounded-[10px] bg-[#142842] px-7 text-[16px] font-semibold text-[#fffdf8] transition-colors hover:bg-[#203d5d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto",
+    className,
+  );
+  const icon = <Download aria-hidden="true" size={20} strokeWidth={2} />;
+
+  if (as === "button") {
+    return (
+      <button
+        {...(elementProps as ComponentPropsWithoutRef<"button">)}
+        className={buttonClassName}
+      >
+        {icon}
+        {children}
+      </button>
+    );
+  }
+
+  return (
+    <a
+      {...(elementProps as ComponentPropsWithoutRef<"a">)}
+      className={buttonClassName}
+    >
+      {icon}
+      {children}
+    </a>
+  );
 }
 
 export function AdminPageHeader({

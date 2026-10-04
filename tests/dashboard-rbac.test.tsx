@@ -58,6 +58,7 @@ function configureDashboardClient() {
       const query = {
         select: () => query,
         eq: () => query,
+        is: () => query,
         in: () => query,
         order: () => query,
         then: (
