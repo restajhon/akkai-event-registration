@@ -26,7 +26,7 @@ Rundown publik menampilkan kegiatan berikut dan waktu yang telah disetujui:
 ```text
 Day 1
 - Kedatangan / Registrasi Kedatangan
-- Rapat Anggota — 16:00–21:00 WIB
+- Rapat Anggota — 16:00–22:00 WIB
 
 Day 2
 - Registrasi
