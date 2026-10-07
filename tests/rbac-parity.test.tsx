@@ -21,6 +21,7 @@ const roles: UserRole[] = [
 const allPermissions = [
   "dashboard.view",
   "participants.view",
+  "participants.edit",
   "participants.manage",
   "participants.email",
   "participants.export",
@@ -46,10 +47,11 @@ const allPermissions = [
 
 const expectedPermissions: Record<UserRole, readonly string[]> = {
   SUPER_ADMIN: allPermissions,
-  ADMIN: allPermissions.filter((permission) => permission !== "access.manage" && permission !== "participants.restore"),
+  ADMIN: allPermissions.filter((permission) => permission !== "access.manage" && permission !== "participants.restore" && permission !== "participants.edit"),
   REGISTRATION: [
     "dashboard.view",
     "participants.view",
+    "participants.edit",
     "participants.manage",
     "participants.email",
     "participants.export",
@@ -151,6 +153,25 @@ describe("RBAC parity", () => {
     expect(hasPermission("SUPER_ADMIN", "participants.restore")).toBe(true);
     for (const role of ["ADMIN", "OPERATOR", "OPERATIONAL", "REGISTRATION", "SCANNER"] as const) {
       expect(hasPermission(role, "participants.restore")).toBe(false);
+    }
+  });
+
+  it("limits participant-data editing without changing view or operational permissions", () => {
+    expect(hasPermission("ADMIN", "participants.view")).toBe(true);
+    expect(hasPermission("ADMIN", "participants.edit")).toBe(false);
+    expect(hasPermission("OPERATIONAL", "participants.view")).toBe(true);
+    expect(hasPermission("OPERATIONAL", "participants.edit")).toBe(false);
+    expect(hasPermission("SUPER_ADMIN", "participants.edit")).toBe(true);
+
+    // REGISTRATION already had participants.manage; its existing edit access is retained.
+    expect(hasPermission("REGISTRATION", "participants.edit")).toBe(true);
+    expect(hasPermission("OPERATOR", "participants.edit")).toBe(false);
+    expect(hasPermission("SCANNER", "participants.edit")).toBe(false);
+
+    for (const role of ["ADMIN", "OPERATIONAL"] as const) {
+      expect(hasPermission(role, "participants.cancel")).toBe(true);
+      expect(hasPermission(role, "participants.manage")).toBe(true);
+      expect(hasPermission(role, "participants.email")).toBe(true);
     }
   });
 

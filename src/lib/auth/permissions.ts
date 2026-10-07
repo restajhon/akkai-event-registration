@@ -3,6 +3,7 @@ import type { UserRole } from "@/lib/auth/server";
 export type Permission =
   | "dashboard.view"
   | "participants.view"
+  | "participants.edit"
   | "participants.manage"
   | "participants.email"
   | "participants.export"
@@ -57,6 +58,7 @@ const rolePermissions: Record<UserRole, readonly Permission[]> = {
   SUPER_ADMIN: [
     "dashboard.view",
     "participants.view",
+    "participants.edit",
     "participants.manage",
     "participants.email",
     "participants.export",
@@ -82,6 +84,7 @@ const rolePermissions: Record<UserRole, readonly Permission[]> = {
   REGISTRATION: [
     "dashboard.view",
     "participants.view",
+    "participants.edit",
     "participants.manage",
     "participants.email",
     "participants.export",

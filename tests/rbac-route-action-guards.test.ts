@@ -25,9 +25,10 @@ vi.mock("@/lib/stations/pairing", () => ({
 import { updateProfileAccess } from "@/app/admin/(protected)/(admin-shell)/access/actions";
 import { createStation } from "@/app/admin/(protected)/(admin-shell)/display/setup/actions";
 import { pairStation } from "@/app/admin/(protected)/(admin-shell)/scanner/pair/actions";
-import { updateParticipantData, updateRegistrationBillingPaymentStatus } from "@/app/admin/(protected)/(admin-shell)/participants/actions";
+import { correctParticipantEmail, updateParticipantData, updateRegistrationBillingPaymentStatus } from "@/app/admin/(protected)/(admin-shell)/participants/actions";
 import { POST as scannerCheckIn } from "@/app/admin/(protected)/(focused)/scanner/check-in/route";
 import { GET as privateCertificate } from "@/app/api/admin/participants/[registrationId]/certificate/route";
+import { hasPermission } from "@/lib/auth/permissions";
 
 beforeEach(() => {
   mocks.authorizePermission.mockReset();
@@ -132,18 +133,40 @@ describe("RBAC route and action guards", () => {
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
   });
 
-  it("rejects unauthorized participant edits before database access", async () => {
-    mocks.getAuthorizedProfile.mockResolvedValue(null);
+  it.each(["ADMIN", "OPERATIONAL"] as const)("rejects %s participant edits before database access", async (role) => {
+    mocks.getAuthorizedProfile.mockImplementation(async (permission: string) =>
+      permission === "participants.edit" && hasPermission(role, "participants.edit")
+        ? { id: `${role.toLowerCase()}-1`, full_name: role, email: "user@example.com", role, is_active: true }
+        : null,
+    );
     const formData = new FormData();
     formData.set("registrationId", "AKKAI26-000001");
 
     await expect(updateParticipantData({ status: "idle", message: null }, formData)).resolves.toMatchObject({ status: "error" });
-    expect(mocks.getAuthorizedProfile).toHaveBeenCalledWith("participants.manage");
+    expect(mocks.getAuthorizedProfile).toHaveBeenCalledWith("participants.edit");
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
   });
 
-  it("updates editable fields through the protected participant RPC", async () => {
-    mocks.getAuthorizedProfile.mockResolvedValue({ id: "admin-1", full_name: "Admin", email: "admin@example.com", role: "ADMIN", is_active: true });
+  it("rejects direct participant-edit requests without a verified session before database access", async () => {
+    mocks.getAuthorizedProfile.mockResolvedValue(null);
+    const formData = new FormData();
+    formData.set("registrationId", "AKKAI26-000001");
+    formData.set("actorId", "00000000-0000-4000-8000-000000000001");
+
+    await expect(updateParticipantData({ status: "idle", message: null }, formData)).resolves.toMatchObject({ status: "error" });
+    expect(mocks.getAuthorizedProfile).toHaveBeenCalledWith("participants.edit");
+    expect(mocks.createAdminClient).not.toHaveBeenCalled();
+  });
+
+  it("rejects direct participant-email edits for users without participant edit permission", async () => {
+    mocks.getAuthorizedProfile.mockResolvedValue(null);
+    await expect(correctParticipantEmail({ status: "idle", message: null }, new FormData())).resolves.toMatchObject({ status: "error" });
+    expect(mocks.getAuthorizedProfile).toHaveBeenCalledWith("participants.edit");
+    expect(mocks.createAdminClient).not.toHaveBeenCalled();
+  });
+
+  it("updates editable fields through the protected participant RPC for SUPER_ADMIN", async () => {
+    mocks.getAuthorizedProfile.mockResolvedValue({ id: "super-admin-1", full_name: "Super Admin", email: "admin@example.com", role: "SUPER_ADMIN", is_active: true });
     const rpc = vi.fn().mockResolvedValue({ data: [{ result_code: "UPDATED", billing_amount: 7_000_000 }], error: null });
     const participantQuery = {
       select: vi.fn().mockReturnThis(),
@@ -153,7 +176,7 @@ describe("RBAC route and action guards", () => {
     mocks.createAdminClient.mockReturnValue({ from: vi.fn().mockReturnValue(participantQuery), rpc });
     const formData = new FormData();
     for (const [key, value] of Object.entries({
-      registrationId: "AKKAI26-000001", emailGeneration: "0", full_name: "Peserta Diperbarui",
+      registrationId: "AKKAI26-000001", actorId: "00000000-0000-4000-8000-000000000001", emailGeneration: "0", full_name: "Peserta Diperbarui",
       email: "old@example.com", phone_number: "081234567890", member_number: "", institution: "",
       position: "Konsultan", kka_name: "KKA Maju", package_type: "Single",
       participation_scope: "Seluruh acara", polo_size: "L", polo_model: "Lengan Panjang",
@@ -162,7 +185,12 @@ describe("RBAC route and action guards", () => {
     })) formData.set(key, value);
 
     await expect(updateParticipantData({ status: "idle", message: null }, formData)).resolves.toMatchObject({ status: "success" });
-    expect(rpc).toHaveBeenCalledWith("update_participant_data", expect.objectContaining({ p_package_type: "Single", p_participant_id: "participant-1" }));
+    expect(mocks.getAuthorizedProfile).toHaveBeenCalledWith("participants.edit");
+    expect(rpc).toHaveBeenCalledWith("update_participant_data", expect.objectContaining({
+      p_actor_id: "super-admin-1",
+      p_package_type: "Single",
+      p_participant_id: "participant-1",
+    }));
   });
 
   it("allows an existing participant manager to update payment status", async () => {

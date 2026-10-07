@@ -4,12 +4,14 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("next/link", () => ({ default: "a" }));
 vi.mock("@/app/admin/(protected)/(admin-shell)/participants/actions", () => ({
   resendRegistrationQr: vi.fn(),
+  updateParticipantData: vi.fn(),
 }));
 vi.mock("@/app/admin/(protected)/(admin-shell)/participants/search-actions", () => ({
   searchParticipants: vi.fn(),
 }));
 
 import { ParticipantList } from "@/app/admin/(protected)/(admin-shell)/participants/participant-list";
+import { ParticipantEditForm } from "@/app/admin/(protected)/(admin-shell)/participants/participant-edit-form";
 
 const initialData = {
   participants: [{
@@ -50,6 +52,7 @@ describe("participant list actions", () => {
           canEdit: true,
           canExport: true,
           canResendEmail: true,
+          canUpdateBilling: true,
         }}
         initialData={initialData}
       />,
@@ -71,6 +74,7 @@ describe("participant list actions", () => {
           canEdit: false,
           canExport: false,
           canResendEmail: false,
+          canUpdateBilling: false,
         }}
         initialData={initialData}
       />,
@@ -82,5 +86,37 @@ describe("participant list actions", () => {
     expect(markup).not.toContain("Download QR/Tiket");
     expect(markup).not.toContain("Edit Data");
     expect(markup).not.toContain("Kirim Ulang Email Registrasi");
+  });
+
+  it("renders participant data as disabled read-only fields without a submit form", () => {
+    const markup = renderToStaticMarkup(
+      <ParticipantEditForm
+        canEdit={false}
+        participant={{
+          registration_id: "AKKAI26-000001",
+          email: "peserta@example.com",
+          email_generation: 0,
+          full_name: "Peserta Uji",
+          phone_number: "081234567890",
+          member_number: null,
+          institution: null,
+          position: "Konsultan",
+          kka_name: "KKA Maju",
+          package_type: "Single",
+          participation_scope: "Seluruh acara",
+          polo_size: "L",
+          polo_model: "Lengan Panjang",
+          actuarial_consultant_status: "Peserta Baru",
+          attends_pai_congress: true,
+        }}
+        travel={null}
+      />,
+    );
+
+    expect(markup).toContain("Data Peserta (Hanya Baca)");
+    expect(markup).toContain('value="Peserta Uji"');
+    expect(markup).toContain("disabled=\"\"");
+    expect(markup).not.toContain("<form");
+    expect(markup).not.toContain("Simpan Perubahan");
   });
 });

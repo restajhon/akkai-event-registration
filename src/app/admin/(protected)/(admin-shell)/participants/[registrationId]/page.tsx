@@ -530,12 +530,12 @@ export default async function ParticipantDetailPage({
             />
           </dl>
             <div className="mt-5 border-t border-[#eee6d8] pt-4">
-             {actionVisibility.canResendEmail ? <EmailCorrectionForm
+              {actionVisibility.canEdit && actionVisibility.canResendEmail ? <EmailCorrectionForm
                 currentEmail={participant.email}
                 emailGeneration={participant.email_generation}
                 registrationId={participant.registration_id}
               /> : null}
-              {actionVisibility.canEdit ? <ParticipantEditForm participant={participant} travel={detailData.travel} /> : null}
+              <ParticipantEditForm canEdit={actionVisibility.canEdit} participant={participant} travel={detailData.travel} />
            </div>
            {detailData.certificate ? (
              <div className="mt-5 border-t border-[#eee6d8] pt-4">
@@ -588,7 +588,7 @@ export default async function ParticipantDetailPage({
              </dl>
              {detailData.billing.billing_email_error ? <p className="mt-4 text-sm text-[#9b3d31]">Log email: {detailData.billing.billing_email_error}</p> : null}
              <p className="mt-4 text-sm leading-6 text-[#5b6c7c]">Instruksi pembayaran: {PAYMENT_INSTRUCTIONS.bank}, rekening {PAYMENT_INSTRUCTIONS.accountNumber} atas nama {PAYMENT_INSTRUCTIONS.accountName}. Batas akhir {PAYMENT_INSTRUCTIONS.deadline}. Bukti: {PAYMENT_INSTRUCTIONS.proofEmail} atau {PAYMENT_INSTRUCTIONS.proofWhatsapp}.</p>
-              {actionVisibility.canEdit ? <BillingPaymentForm billingId={detailData.billing.id} registrationId={participant.registration_id} paymentStatus={detailData.billing.payment_status} /> : null}
+               {actionVisibility.canUpdateBilling ? <BillingPaymentForm billingId={detailData.billing.id} registrationId={participant.registration_id} paymentStatus={detailData.billing.payment_status} /> : null}
            </section>
           ) : null}
 

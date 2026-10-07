@@ -46,12 +46,26 @@ describe("participant action visibility", () => {
       canEdit: true,
       canExport: true,
       canResendEmail: true,
+      canUpdateBilling: true,
     });
     expect(getParticipantActionVisibility("SCANNER")).toEqual({
       canDownloadTicket: false,
       canEdit: false,
       canExport: false,
       canResendEmail: false,
+      canUpdateBilling: false,
     });
+  });
+
+  it("hides participant editing from ADMIN and OPERATIONAL but preserves billing controls", () => {
+    for (const role of ["ADMIN", "OPERATIONAL"] as const) {
+      expect(getParticipantActionVisibility(role)).toMatchObject({
+        canDownloadTicket: true,
+        canEdit: false,
+        canUpdateBilling: true,
+      });
+    }
+
+    expect(getParticipantActionVisibility("SUPER_ADMIN").canEdit).toBe(true);
   });
 });

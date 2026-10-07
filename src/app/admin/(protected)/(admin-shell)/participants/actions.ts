@@ -334,7 +334,7 @@ export async function correctParticipantEmail(
 ): Promise<ParticipantActionState> {
   void previousState;
 
-  const profile = await getAuthorizedProfile("participants.email");
+  const profile = await getAuthorizedProfile("participants.edit");
   if (!profile) {
     return errorState("Anda tidak memiliki akses untuk mengubah email peserta.");
   }
@@ -712,7 +712,7 @@ export async function updateParticipantData(
   formData: FormData,
 ): Promise<ParticipantActionState> {
   void previousState;
-  const profile = await getAuthorizedProfile("participants.manage");
+  const profile = await getAuthorizedProfile("participants.edit");
   if (!profile) return errorState("Anda tidak memiliki akses untuk mengubah data peserta.");
 
   const parsed = participantEditDataSchema.safeParse({

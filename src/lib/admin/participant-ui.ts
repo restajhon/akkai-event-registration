@@ -6,14 +6,16 @@ export type ParticipantActionVisibility = {
   canEdit: boolean;
   canExport: boolean;
   canResendEmail: boolean;
+  canUpdateBilling: boolean;
 };
 
 export function getParticipantActionVisibility(role: UserRole): ParticipantActionVisibility {
   return {
     canDownloadTicket: hasPermission(role, "participants.view"),
-    canEdit: hasPermission(role, "participants.manage"),
+    canEdit: hasPermission(role, "participants.edit"),
     canExport: hasPermission(role, "participants.export"),
     canResendEmail: hasPermission(role, "participants.email"),
+    canUpdateBilling: hasPermission(role, "participants.manage"),
   };
 }
 
