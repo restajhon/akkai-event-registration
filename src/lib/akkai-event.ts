@@ -35,8 +35,7 @@ export const AKKAI_EVENT: AkkaiEventConfig = {
       items: [
         { time: "09.00–17.00 WIB", title: "Registrasi dan Check In" },
         { time: "16:00–22:00 WIB", title: "Rapat Anggota AKKAI 2026" },
-        { time: "17.00–19.00 WIB", title: "Istirahat, Sholat dan Makan Malam" },
-        { time: "23.00 WIB", title: "Free Time dan Istirahat" },
+        { time: "18:00–19:30 WIB", title: "Istirahat, Sholat dan Makan Malam" },
       ],
     },
     {
