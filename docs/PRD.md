@@ -474,8 +474,8 @@ Rundown publik homepage:
 
 ```text
 Day 1
-- Kedatangan
-- AKKAI NIGHT
+- Kedatangan / Registrasi Kedatangan
+- Rapat Anggota — 16:00–21:00 WIB
 
 Day 2
 - Registrasi
@@ -483,6 +483,7 @@ Day 2
 - Isoma
 - Seminar Sesi 2
 - Isoma
+- AKKAI Night — 19:00–23:00 WIB
 
 Day 3
 - Registrasi

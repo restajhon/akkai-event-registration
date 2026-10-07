@@ -9,7 +9,7 @@
 - Pendaftaran baru menggunakan `create_participant_with_registration_reservation_v3` dan mempertahankan alur reservasi email, QR, serta Registration ID yang sudah ada.
 - RPC H-3D2 `create_participant_with_registration_reservation_v2` tidak diubah dan tetap menerima kontrak lama selama rollout.
 - Informasi event publik menampilkan Hotel Gumaya Semarang; peserta tidak mengedit atau mengirimkan informasi ini.
-- Homepage menampilkan rundown umum Day 1 sampai Day 3. Halaman registrasi tidak menampilkan rundown lengkap dan rundown tidak memuat detail waktu yang belum ditetapkan.
+- Homepage dan halaman registrasi menampilkan rundown umum Day 1 sampai Day 3. Waktu Rapat Anggota dan AKKAI Night mengikuti jadwal yang telah disetujui.
 
 ## H-3D2 Event Sessions
 
@@ -21,12 +21,12 @@
 
 ## Public Rundown
 
-Homepage menampilkan rundown umum berikut tanpa detail waktu:
+Rundown publik menampilkan kegiatan berikut dan waktu yang telah disetujui:
 
 ```text
 Day 1
-- Kedatangan
-- AKKAI NIGHT
+- Kedatangan / Registrasi Kedatangan
+- Rapat Anggota — 16:00–21:00 WIB
 
 Day 2
 - Registrasi
@@ -34,6 +34,7 @@ Day 2
 - Isoma
 - Seminar Sesi 2
 - Isoma
+- AKKAI Night — 19:00–23:00 WIB
 
 Day 3
 - Registrasi

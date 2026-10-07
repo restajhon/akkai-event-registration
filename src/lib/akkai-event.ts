@@ -31,17 +31,17 @@ export const AKKAI_EVENT: AkkaiEventConfig = {
   homepageRundown: [
     {
       day: "Hari ke-1",
-      date: "19 Oktober 2026 — AKKAI NIGHT",
+      date: "19 Oktober 2026 — Kedatangan & Rapat Anggota",
       items: [
         { time: "09.00–17.00 WIB", title: "Registrasi dan Check In" },
+        { time: "16:00–21:00 WIB", title: "Rapat Anggota AKKAI 2026" },
         { time: "17.00–19.00 WIB", title: "Istirahat, Sholat dan Makan Malam" },
-        { time: "19.00–23.00 WIB", title: "AKKAI NIGHT" },
         { time: "23.00 WIB", title: "Free Time dan Istirahat" },
       ],
     },
     {
       day: "Hari ke-2",
-      date: "20 Oktober 2026 — Seminar",
+      date: "20 Oktober 2026 — Seminar & AKKAI Night",
       items: [
         { time: "06.00–07.00 WIB", title: "Sarapan Pagi" },
         { time: "07.00–08.00 WIB", title: "Registrasi" },
@@ -62,7 +62,7 @@ export const AKKAI_EVENT: AkkaiEventConfig = {
         { time: "16.30–17.30 WIB", title: "Sesi Ujian Sertifikasi CIAC" },
         { time: "17.30–17.45 WIB", title: "Penutupan dan Foto Bersama" },
         { time: "17.45–19.30 WIB", title: "Istirahat, Sholat dan Makan Malam" },
-        { time: "19.30–23.00 WIB", title: "Rapat Anggota AKKAI 2026" },
+        { time: "19:00–23:00 WIB", title: "AKKAI Night" },
       ],
     },
     {

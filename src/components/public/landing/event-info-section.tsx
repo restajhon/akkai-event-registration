@@ -4,12 +4,12 @@ import styles from "./landing.module.css";
 
 const activityHighlights = [
   {
-    title: "Kedatangan & AKKAI Night",
-    summary: "Kedatangan peserta, registrasi, check-in hotel, serta rangkaian AKKAI Night.",
+    title: "Kedatangan & Rapat Anggota",
+    summary: "Kedatangan peserta, registrasi dan check-in hotel, serta Rapat Anggota.",
   },
   {
-    title: "Seminar & Rapat Anggota",
-    summary: "Registrasi peserta, Seminar Profesi Konsultan Aktuaria, Sertifikasi CIAC, dan Rapat Anggota.",
+    title: "Seminar & AKKAI Night",
+    summary: "Registrasi peserta, Seminar Profesi Konsultan Aktuaria, Sertifikasi CIAC, dan AKKAI Night.",
   },
   {
     title: "Registrasi Kepulangan & City Tour",
