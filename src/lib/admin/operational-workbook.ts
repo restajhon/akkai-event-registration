@@ -1,5 +1,10 @@
 import * as XLSX from "@e965/xlsx";
 
+import {
+  ATTENDANCE_SESSIONS,
+  getAttendanceSession,
+  type SeparateAttendanceExportCode,
+} from "./attendance-sessions";
 import type { OperationalParticipant } from "./operational-data";
 
 function registrationStatus(value: OperationalParticipant["registrationStatus"]) {
@@ -96,17 +101,30 @@ export function buildOperationalWorkbook(participants: OperationalParticipant[])
     Catatan: participant.roomAssignment?.notes ?? "",
     "Status Assignment": participant.roomAssignment?.roomNumber ? "Sudah di-assign" : "Belum di-assign",
   }));
-  const attendance = participants.map((participant) => ({
-    "Registration ID": participant.registrationId,
-    Nama: participant.fullName,
-    "Status Registrasi": registrationStatus(participant.registrationStatus),
-    ARRIVAL: attendanceStatus(participant.arrival.checkedIn),
-    "ARRIVAL Check-in": readableDateTime(participant.arrival.checkedInAt),
-    SEMINAR: attendanceStatus(participant.seminar.checkedIn),
-    "SEMINAR Check-in": readableDateTime(participant.seminar.checkedInAt),
-    DAY3: attendanceStatus(participant.day3.checkedIn),
-    "DAY3 Check-in": readableDateTime(participant.day3.checkedInAt),
-  }));
+  const attendanceHeaders = [
+    "Registration ID",
+    "Nama",
+    "Status Registrasi",
+    ...ATTENDANCE_SESSIONS.flatMap(({ summaryLabel }) => [
+      summaryLabel,
+      `${summaryLabel} Check-in`,
+    ]),
+  ];
+  const attendance = participants.map((participant) => {
+    const row: Record<string, string> = {
+      "Registration ID": participant.registrationId,
+      Nama: participant.fullName,
+      "Status Registrasi": registrationStatus(participant.registrationStatus),
+    };
+
+    for (const session of ATTENDANCE_SESSIONS) {
+      const attendance = participant[session.key];
+      row[session.summaryLabel] = attendanceStatus(attendance.checkedIn);
+      row[`${session.summaryLabel} Check-in`] = readableDateTime(attendance.checkedInAt);
+    }
+
+    return row;
+  });
 
   XLSX.utils.book_append_sheet(
     workbook,
@@ -135,11 +153,40 @@ export function buildOperationalWorkbook(participants: OperationalParticipant[])
   XLSX.utils.book_append_sheet(
     workbook,
     worksheet(
-      ["Registration ID", "Nama", "Status Registrasi", "ARRIVAL", "ARRIVAL Check-in", "SEMINAR", "SEMINAR Check-in", "DAY3", "DAY3 Check-in"],
+      attendanceHeaders,
       attendance,
     ),
     "Kehadiran",
   );
 
+  return workbook;
+}
+
+export function buildAttendanceSessionWorkbook(
+  participants: OperationalParticipant[],
+  sessionCode: SeparateAttendanceExportCode,
+) {
+  const session = getAttendanceSession(sessionCode);
+  const headers = [
+    "Registration ID",
+    "Nama",
+    "Status Registrasi",
+    session.label,
+    `${session.label} Check-in`,
+  ];
+  const rows = participants.map((participant) => {
+    const attendance = participant[session.key];
+
+    return {
+      "Registration ID": participant.registrationId,
+      Nama: participant.fullName,
+      "Status Registrasi": registrationStatus(participant.registrationStatus),
+      [session.label]: attendanceStatus(attendance.checkedIn),
+      [`${session.label} Check-in`]: readableDateTime(attendance.checkedInAt),
+    };
+  });
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(workbook, worksheet(headers, rows), "Kehadiran");
   return workbook;
 }

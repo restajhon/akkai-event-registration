@@ -52,4 +52,57 @@ describe("cancelled QR rejection", () => {
       p_qr_token: "cancelled-qr-token",
     }));
   });
+
+  it.each([
+    {
+      sessionCode: "DAY1_MEMBER_MEETING",
+      sessionName: "Day 1 — Rapat Anggota",
+    },
+    {
+      sessionCode: "DAY2_AKKAI_NIGHT",
+      sessionName: "Day 2 — Akkai Night",
+    },
+  ])("returns the station's $sessionName context from the scan RPC", async ({ sessionCode, sessionName }) => {
+    mocks.authorizePermission.mockReset().mockResolvedValue({
+      authorized: true,
+      status: 200,
+      profile: { id: "operator-1", role: "OPERATOR", is_active: true },
+    });
+    const rpc = vi.fn().mockResolvedValue({
+      data: [{
+        status_code: "success",
+        result_status: "SUCCESS",
+        registration_id: "AKKAI26-000001",
+        full_name: "Peserta Uji",
+        institution: "KKA",
+        participant_category: "Anggota",
+        session_code: sessionCode,
+        session_name: sessionName,
+        checked_at: "2026-10-19T10:30:00+07:00",
+        is_duplicate: false,
+      }],
+      error: null,
+    });
+    mocks.createAdminClient.mockReset().mockReturnValue({ rpc });
+
+    const response = await POST(new Request("http://localhost/admin/scanner/check-in", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        stationId: "00000000-0000-4000-8000-000000000001",
+        qrValue: "participant-qr-token",
+      }),
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      status: "success",
+      session: { code: sessionCode, name: sessionName },
+    });
+    expect(rpc).toHaveBeenCalledWith("process_qr_scan", {
+      p_qr_token: "participant-qr-token",
+      p_station_id: "00000000-0000-4000-8000-000000000001",
+      p_operator_profile_id: "operator-1",
+    });
+  });
 });

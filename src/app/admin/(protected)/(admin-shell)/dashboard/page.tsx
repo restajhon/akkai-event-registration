@@ -29,7 +29,11 @@ import {
 } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  isAttendanceSessionCode,
+} from "@/lib/admin/attendance-sessions";
+import {
   calculateDashboardKpis,
+  getDashboardAttendanceSummary,
   type DashboardAttendance,
   type DashboardBilling,
   type DashboardParticipant,
@@ -50,7 +54,7 @@ type StationStatus =
 
 type SessionRow = {
   id: string;
-  code: "ARRIVAL" | "SEMINAR" | "DAY3";
+  code: string;
   name: string;
   event_date: string;
   status: SessionStatus;
@@ -421,9 +425,13 @@ function AttendanceReadiness({ kpis }: { kpis: ReturnType<typeof calculateDashbo
   return (
     <ReadinessCard icon={ClipboardCheck} title="Kehadiran dan Dokumen">
       <dl className="mt-3">
-        <ReadinessRow label="ARRIVAL" value={`${kpis.attendanceBySession.ARRIVAL} peserta`} />
-        <ReadinessRow label="SEMINAR" value={`${kpis.attendanceBySession.SEMINAR} peserta`} />
-        <ReadinessRow label="DAY3" value={`${kpis.attendanceBySession.DAY3} peserta`} />
+        {getDashboardAttendanceSummary(kpis.attendanceBySession).map(({ code, label, count }) => (
+          <ReadinessRow
+            key={code}
+            label={label}
+            value={`${count} peserta`}
+          />
+        ))}
         <ReadinessRow label="Surat Keterangan Kerja" value={`${kpis.certificateCount} dokumen`} />
       </dl>
     </ReadinessCard>
@@ -540,7 +548,7 @@ export async function loadDashboardData(
     const dashboardAttendance: DashboardAttendance[] = attendanceRows
       .map((row) => {
         const code = sessions.find((session) => session.id === row.session_id)?.code;
-        return code === "ARRIVAL" || code === "SEMINAR" || code === "DAY3"
+        return isAttendanceSessionCode(code)
           ? { participantId: row.participant_id, sessionCode: code }
           : null;
       })

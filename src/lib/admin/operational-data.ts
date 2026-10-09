@@ -1,8 +1,15 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  ATTENDANCE_SESSIONS,
+  ATTENDANCE_SESSION_CODES,
+  ATTENDANCE_SESSION_KEY_BY_CODE,
+  type AttendanceSessionCode,
+  type AttendanceSessionKey,
+} from "@/lib/admin/attendance-sessions";
 
-export type OperationalSessionCode = "ARRIVAL" | "SEMINAR" | "DAY3";
+export type OperationalSessionCode = AttendanceSessionCode;
 
 export type OperationalAttendance = {
   checkedIn: boolean;
@@ -50,10 +57,7 @@ export type OperationalParticipant = {
   travel: OperationalTravel | null;
   arrivalAssignment: OperationalPickupAssignment | null;
   departureAssignment: OperationalPickupAssignment | null;
-  arrival: OperationalAttendance;
-  seminar: OperationalAttendance;
-  day3: OperationalAttendance;
-};
+} & Record<AttendanceSessionKey, OperationalAttendance>;
 
 type ParticipantRow = Pick<OperationalParticipant, "id" | "registrationId" | "fullName" | "packageType" | "registrationStatus">;
 
@@ -104,10 +108,16 @@ type AttendanceRow = {
 
 const participantSelect =
   "id, registration_id, full_name, package_type, registration_status";
-const sessionCodes: OperationalSessionCode[] = ["ARRIVAL", "SEMINAR", "DAY3"];
+const sessionCodes: OperationalSessionCode[] = ATTENDANCE_SESSION_CODES;
 
 function emptyAttendance(): OperationalAttendance {
   return { checkedIn: false, checkedInAt: null };
+}
+
+function emptyAttendanceBySession(): Record<AttendanceSessionKey, OperationalAttendance> {
+  return Object.fromEntries(
+    ATTENDANCE_SESSIONS.map(({ key }) => [key, emptyAttendance()]),
+  ) as Record<AttendanceSessionKey, OperationalAttendance>;
 }
 
 function toTravel(row: TravelRow): OperationalTravel {
@@ -228,7 +238,7 @@ export async function loadOperationalData(): Promise<OperationalParticipant[] | 
       ((travelResult.data ?? []) as TravelRow[]).map((row) => [row.participant_id, row]),
     );
     const sessionCodeById = new Map(sessionRows.map((session) => [session.id, session.code]));
-    const attendance = new Map<string, Record<OperationalSessionCode, OperationalAttendance>>();
+    const attendance = new Map<string, Record<AttendanceSessionKey, OperationalAttendance>>();
 
     for (const row of (pickupResult.data ?? []) as PickupRow[]) {
       const rows = pickup.get(row.participant_id) ?? [];
@@ -243,25 +253,19 @@ export async function loadOperationalData(): Promise<OperationalParticipant[] | 
         continue;
       }
 
-      const current = attendance.get(row.participant_id) ?? {
-        ARRIVAL: emptyAttendance(),
-        SEMINAR: emptyAttendance(),
-        DAY3: emptyAttendance(),
-      };
-      current[code] = { checkedIn: true, checkedInAt: row.check_in_time };
+      const current = attendance.get(row.participant_id) ?? emptyAttendanceBySession();
+      const attendanceKey = ATTENDANCE_SESSION_KEY_BY_CODE[code];
+      current[attendanceKey] = { checkedIn: true, checkedInAt: row.check_in_time };
       attendance.set(row.participant_id, current);
     }
 
     return participants.map((participant) => {
       const pickupRows = pickup.get(participant.id) ?? [];
-      const attendanceRowsForParticipant = attendance.get(participant.id) ?? {
-        ARRIVAL: emptyAttendance(),
-        SEMINAR: emptyAttendance(),
-        DAY3: emptyAttendance(),
-      };
+      const attendanceRowsForParticipant = attendance.get(participant.id) ?? emptyAttendanceBySession();
 
       return {
         ...participant,
+        ...attendanceRowsForParticipant,
         roomAssignment: (() => {
           const room = rooms.get(participant.id);
           return room
@@ -282,9 +286,6 @@ export async function loadOperationalData(): Promise<OperationalParticipant[] | 
           const row = pickupRows.find((item) => item.transfer_type === "DEPARTURE");
           return row ? toPickup(row) : null;
         })(),
-        arrival: attendanceRowsForParticipant.ARRIVAL,
-        seminar: attendanceRowsForParticipant.SEMINAR,
-        day3: attendanceRowsForParticipant.DAY3,
       } satisfies OperationalParticipant;
     });
   } catch {

@@ -91,6 +91,8 @@ const participant = {
   arrival: { checkedIn: false, checkedInAt: null },
   seminar: { checkedIn: false, checkedInAt: null },
   day3: { checkedIn: false, checkedInAt: null },
+  day1MemberMeeting: { checkedIn: false, checkedInAt: null },
+  day2AkkaiNight: { checkedIn: false, checkedInAt: null },
 };
 
 describe("RBAC parity", () => {
@@ -122,7 +124,10 @@ describe("RBAC parity", () => {
     );
 
     expect(withoutExport).not.toContain("/api/admin/operational-export");
+    expect(withoutExport).not.toContain("/api/admin/attendance-export");
     expect(withExport).toContain("/api/admin/operational-export");
+    expect(withExport).toContain("sessionCode=DAY1_MEMBER_MEETING");
+    expect(withExport).toContain("sessionCode=DAY2_AKKAI_NIGHT");
   });
 
   it("keeps attendance export permission explicit", () => {

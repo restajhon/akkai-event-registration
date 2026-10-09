@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as XLSX from "@e965/xlsx";
 
-import { calculateDashboardKpis } from "@/lib/admin/dashboard-kpis";
+import { calculateDashboardKpis, getDashboardAttendanceSummary } from "@/lib/admin/dashboard-kpis";
 import { getEffectivePickupPoint } from "@/lib/admin/pickup-mapping";
 import { billingStatusLabel } from "@/lib/billing/status";
 import { buildParticipantWorkbook } from "@/lib/admin/revision-exports";
@@ -108,7 +108,13 @@ describe("dashboard feedback mapping", () => {
       [{ participantId: "p1", paymentStatus: "PAID" }, { participantId: "p2", paymentStatus: "UNPAID" }],
       [{ participantId: "p1", outboundDate: "2026-10-19", outboundTime: "10:00", returnDate: "2026-10-21", returnTime: "15:00" }],
       ["p1"],
-      [{ participantId: "p1", sessionCode: "ARRIVAL" }, { participantId: "p2", sessionCode: "SEMINAR" }],
+      [
+        { participantId: "p1", sessionCode: "ARRIVAL" },
+        { participantId: "p2", sessionCode: "SEMINAR" },
+        { participantId: "p1", sessionCode: "DAY1_MEMBER_MEETING" },
+        { participantId: "p2", sessionCode: "DAY2_AKKAI_NIGHT" },
+        { participantId: "p2", sessionCode: "DAY2_AKKAI_NIGHT" },
+      ],
     );
 
     expect(result.totalParticipants).toBe(2);
@@ -117,7 +123,23 @@ describe("dashboard feedback mapping", () => {
     expect(result.paymentPercentage).toBe(50);
     expect(result.travel).toEqual({ arrivalComplete: 1, arrivalIncomplete: 1, departureComplete: 1, departureIncomplete: 1 });
     expect(result.certificateCount).toBe(1);
-    expect(result.attendanceBySession).toEqual({ ARRIVAL: 1, SEMINAR: 1, DAY3: 0 });
+    expect(result.attendanceBySession).toEqual({
+      ARRIVAL: 1,
+      SEMINAR: 1,
+      DAY3: 0,
+      DAY1_MEMBER_MEETING: 1,
+      DAY2_AKKAI_NIGHT: 1,
+    });
+    expect(getDashboardAttendanceSummary(result.attendanceBySession)).toContainEqual({
+      code: "DAY1_MEMBER_MEETING",
+      label: "Day 1 — Rapat Anggota",
+      count: 1,
+    });
+    expect(getDashboardAttendanceSummary(result.attendanceBySession)).toContainEqual({
+      code: "DAY2_AKKAI_NIGHT",
+      label: "Day 2 — Akkai Night",
+      count: 1,
+    });
   });
 
   it("maps optional CIAC values to Belum diisi", () => {
@@ -155,7 +177,13 @@ describe("dashboard feedback mapping", () => {
       paidCount: 0,
       unpaidCount: 0,
       paymentPercentage: 0,
-      attendanceBySession: { ARRIVAL: 0, SEMINAR: 0, DAY3: 0 },
+      attendanceBySession: {
+        ARRIVAL: 0,
+        SEMINAR: 0,
+        DAY3: 0,
+        DAY1_MEMBER_MEETING: 0,
+        DAY2_AKKAI_NIGHT: 0,
+      },
     });
   });
 });

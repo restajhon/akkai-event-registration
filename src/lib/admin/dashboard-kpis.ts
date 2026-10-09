@@ -1,3 +1,9 @@
+import {
+  ATTENDANCE_SESSIONS,
+  ATTENDANCE_SESSION_CODES,
+  type AttendanceSessionCode,
+} from "@/lib/admin/attendance-sessions";
+
 export type DashboardParticipant = {
   id: string;
   registrationId: string;
@@ -25,7 +31,7 @@ export type DashboardTravel = {
 
 export type DashboardAttendance = {
   participantId: string;
-  sessionCode: "ARRIVAL" | "SEMINAR" | "DAY3";
+  sessionCode: AttendanceSessionCode;
 };
 
 export type DashboardKpis = {
@@ -44,8 +50,18 @@ export type DashboardKpis = {
     departureIncomplete: number;
   };
   certificateCount: number;
-  attendanceBySession: Record<"ARRIVAL" | "SEMINAR" | "DAY3", number>;
+  attendanceBySession: Record<AttendanceSessionCode, number>;
 };
+
+export function getDashboardAttendanceSummary(
+  attendanceBySession: Record<AttendanceSessionCode, number>,
+) {
+  return ATTENDANCE_SESSIONS.map(({ code, summaryLabel }) => ({
+    code,
+    label: summaryLabel,
+    count: attendanceBySession[code],
+  }));
+}
 
 function increment(map: Record<string, number>, key: string | null) {
   const label = key || "Belum diisi";
@@ -74,7 +90,9 @@ export function calculateDashboardKpis(
   const travelByParticipant = new Map(
     travels.map((travel) => [travel.participantId, travel]),
   );
-  const attendanceBySession = { ARRIVAL: 0, SEMINAR: 0, DAY3: 0 };
+  const attendanceBySession = Object.fromEntries(
+    ATTENDANCE_SESSION_CODES.map((code) => [code, 0]),
+  ) as Record<AttendanceSessionCode, number>;
   const seenAttendance = new Set<string>();
   const packageDistribution: Record<string, number> = {};
   const participationDistribution: Record<string, number> = {};

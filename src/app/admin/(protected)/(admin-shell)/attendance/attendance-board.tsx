@@ -4,15 +4,11 @@ import { useState } from "react";
 
 import { AdminMetricCard } from "@/components/admin/admin-ui";
 import type { OperationalParticipant, OperationalSessionCode } from "@/lib/admin/operational-data";
+import { ATTENDANCE_SESSIONS } from "@/lib/admin/attendance-sessions";
 
 type PresenceFilter = "all" | "present" | "absent";
 type RegistrationFilter = "all" | "REGISTERED" | "CANCELLED";
-
-const sessions: { code: OperationalSessionCode; label: string; date: string }[] = [
-  { code: "ARRIVAL", label: "Registrasi Kedatangan", date: "" },
-  { code: "SEMINAR", label: "Seminar AKKAI 2026", date: "" },
-  { code: "DAY3", label: "Registrasi Kepulangan", date: "" },
-];
+type AttendanceFilters = Record<OperationalSessionCode, PresenceFilter>;
 
 function presenceLabel(present: boolean) {
   return present ? "Hadir" : "Belum hadir";
@@ -45,6 +41,38 @@ function formatCheckIn(value: string | null) {
   }).format(date);
 }
 
+export function getAttendanceTotals(participants: OperationalParticipant[]) {
+  return Object.fromEntries(
+    ATTENDANCE_SESSIONS.map(({ code, key }) => [
+      code,
+      participants.filter((participant) => participant[key].checkedIn).length,
+    ]),
+  ) as Record<OperationalSessionCode, number>;
+}
+
+export function getVisibleAttendanceParticipants(
+  participants: OperationalParticipant[],
+  query: string,
+  registrationFilter: RegistrationFilter,
+  filters: AttendanceFilters,
+) {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  return participants.filter((participant) => {
+    const matchesQuery =
+      !normalizedQuery ||
+      participant.fullName.toLowerCase().includes(normalizedQuery) ||
+      participant.registrationId.toLowerCase().includes(normalizedQuery);
+    const matchesRegistration =
+      registrationFilter === "all" || participant.registrationStatus === registrationFilter;
+    const matchesSessions = ATTENDANCE_SESSIONS.every(({ code, key }) =>
+      matchesPresence(participant[key].checkedIn, filters[code]),
+    );
+
+    return matchesQuery && matchesRegistration && matchesSessions;
+  });
+}
+
 export function AttendanceBoard({
   participants,
   canExportAttendance,
@@ -54,30 +82,20 @@ export function AttendanceBoard({
 }) {
   const [query, setQuery] = useState("");
   const [registrationFilter, setRegistrationFilter] = useState<RegistrationFilter>("all");
-  const [filters, setFilters] = useState<Record<OperationalSessionCode, PresenceFilter>>({
+  const [filters, setFilters] = useState<AttendanceFilters>({
     ARRIVAL: "all",
     SEMINAR: "all",
     DAY3: "all",
+    DAY1_MEMBER_MEETING: "all",
+    DAY2_AKKAI_NIGHT: "all",
   });
-  const normalizedQuery = query.trim().toLowerCase();
-  const attendanceTotals = {
-    ARRIVAL: participants.filter((participant) => participant.arrival.checkedIn).length,
-    SEMINAR: participants.filter((participant) => participant.seminar.checkedIn).length,
-    DAY3: participants.filter((participant) => participant.day3.checkedIn).length,
-  };
-  const visibleParticipants = participants.filter((participant) => {
-    const matchesQuery =
-      !normalizedQuery ||
-      participant.fullName.toLowerCase().includes(normalizedQuery) ||
-      participant.registrationId.toLowerCase().includes(normalizedQuery);
-    const matchesRegistration =
-      registrationFilter === "all" || participant.registrationStatus === registrationFilter;
-    const matchesSessions = sessions.every(({ code }) =>
-      matchesPresence(participant[code === "ARRIVAL" ? "arrival" : code === "SEMINAR" ? "seminar" : "day3"].checkedIn, filters[code]),
-    );
-
-    return matchesQuery && matchesRegistration && matchesSessions;
-  });
+  const attendanceTotals = getAttendanceTotals(participants);
+  const visibleParticipants = getVisibleAttendanceParticipants(
+    participants,
+    query,
+    registrationFilter,
+    filters,
+  );
 
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
@@ -86,24 +104,40 @@ export function AttendanceBoard({
           <div>
             <p className="text-xs font-bold tracking-[0.18em] text-[#9a7526]">MONITORING</p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#142842] sm:text-3xl">Kehadiran</h1>
-            <p className="mt-1 text-sm text-[#5b6c7c]">Ringkasan check-in peserta pada tiga sesi operasional acara.</p>
+            <p className="mt-1 text-sm text-[#5b6c7c]">Ringkasan check-in peserta pada seluruh sesi operasional acara.</p>
           </div>
           {canExportAttendance ? (
-            <a
-              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-white hover:bg-[#203d5d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]"
-              download="AKKAI-2026-Operational.xlsx"
-              href="/api/admin/operational-export"
-            >
-              Unduh workbook Excel
-            </a>
+            <div className="flex flex-wrap gap-2">
+              <a
+                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-white hover:bg-[#203d5d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                download="AKKAI-2026-Operational.xlsx"
+                href="/api/admin/operational-export"
+              >
+                Unduh workbook Excel
+              </a>
+              <a
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                download="AKKAI-2026-Day-1-Rapat-Anggota.xlsx"
+                href="/api/admin/attendance-export?sessionCode=DAY1_MEMBER_MEETING"
+              >
+                Unduh Day 1 — Rapat Anggota
+              </a>
+              <a
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                download="AKKAI-2026-Day-2-Akkai-Night.xlsx"
+                href="/api/admin/attendance-export?sessionCode=DAY2_AKKAI_NIGHT"
+              >
+                Unduh Day 2 — Akkai Night
+              </a>
+            </div>
           ) : null}
         </header>
 
-        <section aria-label="Ringkasan kehadiran" className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
-          {sessions.map(({ code }) => (
+        <section aria-label="Ringkasan kehadiran" className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 sm:gap-3">
+          {ATTENDANCE_SESSIONS.map(({ code, summaryLabel }) => (
             <AdminMetricCard
               key={code}
-              label={code}
+              label={summaryLabel}
               subtitle="peserta"
               value={attendanceTotals[code]}
             />
@@ -111,7 +145,7 @@ export function AttendanceBoard({
         </section>
 
         <section className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_180px_180px_180px]">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-[minmax(0,1fr)_180px_180px_180px_180px_180px_180px]">
             <div>
               <label className="text-sm font-semibold text-[#142842]" htmlFor="attendance-search">Cari peserta</label>
               <input
@@ -136,7 +170,7 @@ export function AttendanceBoard({
                 <option value="CANCELLED">CANCELLED</option>
               </select>
             </div>
-            {sessions.map(({ code, label }) => (
+            {ATTENDANCE_SESSIONS.map(({ code, label }) => (
               <div key={code}>
                 <label className="text-sm font-semibold text-[#142842]" htmlFor={`attendance-${code.toLowerCase()}-filter`}>{label}</label>
                 <select
@@ -164,11 +198,11 @@ export function AttendanceBoard({
                 <p className="mt-1 text-xs font-semibold text-[#9a3e35]">Registrasi dibatalkan</p>
               ) : null}
               <dl className="mt-4 grid gap-3 border-t border-[#eee6d8] pt-3">
-                {(["arrival", "seminar", "day3"] as const).map((session) => {
-                  const attendance = participant[session];
+                {ATTENDANCE_SESSIONS.map(({ key, label }) => {
+                  const attendance = participant[key];
                   return (
-                    <div className="flex items-start justify-between gap-3" key={session}>
-                      <dt className="text-xs font-bold uppercase tracking-wide text-[#897657]">{session === "arrival" ? "ARRIVAL" : session === "seminar" ? "SEMINAR" : "DAY3"}</dt>
+                    <div className="flex items-start justify-between gap-3" key={key}>
+                      <dt className="text-xs font-bold uppercase tracking-wide text-[#897657]">{label}</dt>
                       <dd className="text-right">
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${presenceClassName(attendance.checkedIn)}`}>
                           {presenceLabel(attendance.checkedIn)}
@@ -185,13 +219,13 @@ export function AttendanceBoard({
         </div>
 
         <div className="mt-5 hidden overflow-x-auto rounded-xl border border-[#e4d8c4] bg-[#fffdf8] lg:block">
-          <table className="min-w-[1000px] w-full text-left text-sm">
+          <table className="min-w-[1450px] w-full text-left text-sm">
             <thead className="border-b border-[#e4d8c4] bg-[#fbf5e8] text-xs uppercase tracking-wide text-[#897657]">
               <tr>
                 <th className="px-4 py-3 font-semibold">Registration ID</th>
                 <th className="px-4 py-3 font-semibold">Nama</th>
                 <th className="px-4 py-3 font-semibold">Status Registrasi</th>
-                {sessions.map(({ code }) => <th className="px-4 py-3 font-semibold" key={code}>{code}</th>)}
+                {ATTENDANCE_SESSIONS.map(({ code, summaryLabel }) => <th className="px-4 py-3 font-semibold" key={code}>{summaryLabel}</th>)}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#eee6d8] text-[#344d68]">
@@ -200,10 +234,10 @@ export function AttendanceBoard({
                   <td className="px-4 py-4 font-semibold text-[#9a7526]">{participant.registrationId}</td>
                   <td className="px-4 py-4 font-semibold text-[#142842]">{participant.fullName}</td>
                   <td className="px-4 py-4">{participant.registrationStatus === "REGISTERED" ? "ACTIVE" : "CANCELLED"}</td>
-                  {(["arrival", "seminar", "day3"] as const).map((session) => {
-                    const attendance = participant[session];
+                  {ATTENDANCE_SESSIONS.map(({ code, key }) => {
+                    const attendance = participant[key];
                     return (
-                      <td className="px-4 py-4" key={session}>
+                      <td className="px-4 py-4" key={code}>
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${presenceClassName(attendance.checkedIn)}`}>
                           {presenceLabel(attendance.checkedIn)}
                         </span>
