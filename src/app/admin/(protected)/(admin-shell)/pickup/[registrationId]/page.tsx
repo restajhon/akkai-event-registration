@@ -103,7 +103,7 @@ export default async function PickupAssignmentDetailPage({
     return <DetailError message="Registration ID peserta tidak valid." />;
   }
 
-  const participant = await loadPickupAssignmentDetail(parsed.data);
+  const participant = await loadPickupAssignmentDetail(parsed.data, "REGISTERED");
 
   if (!participant) {
     return <DetailError message="Data peserta belum dapat dimuat." />;

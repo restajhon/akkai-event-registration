@@ -8,28 +8,46 @@ import type { RoomParticipant } from "@/lib/admin/assignment-types";
 
 type AssignmentFilter = "all" | "assigned" | "unassigned";
 type PackageFilter = "all" | "Twin Share" | "Single";
-type RegistrationFilter = "all" | "REGISTERED" | "CANCELLED";
 
 function isAssigned(participant: RoomParticipant) {
   return Boolean(participant.assignment?.roomNumber);
 }
 
 function statusLabel(participant: RoomParticipant) {
-  if (participant.registrationStatus === "CANCELLED") {
-    return "Dibatalkan";
-  }
-
   return isAssigned(participant) ? "Sudah diatur" : "Belum diatur";
 }
 
 function statusClassName(participant: RoomParticipant) {
-  if (participant.registrationStatus === "CANCELLED") {
-    return "border-[#dedbd3] bg-[#f2f0eb] text-[#6b6a66]";
-  }
-
   return isAssigned(participant)
     ? "border-[#b9dec8] bg-[#f3fbf5] text-[#267044]"
     : "border-[#e5cb8c] bg-[#fff9eb] text-[#80631e]";
+}
+
+export function getRoomAssignmentLists(
+  participants: RoomParticipant[],
+  query: string,
+  filter: AssignmentFilter,
+  packageFilter: PackageFilter,
+) {
+  const activeParticipants = participants.filter(
+    (participant) => participant.registrationStatus === "REGISTERED",
+  );
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleParticipants = activeParticipants.filter((participant) => {
+    const matchesQuery =
+      !normalizedQuery ||
+      participant.fullName.toLowerCase().includes(normalizedQuery) ||
+      participant.registrationId.toLowerCase().includes(normalizedQuery);
+    const matchesFilter =
+      filter === "all" ||
+      (filter === "assigned" && isAssigned(participant)) ||
+      (filter === "unassigned" && !isAssigned(participant));
+    const matchesPackage = packageFilter === "all" || participant.packageType === packageFilter;
+
+    return matchesQuery && matchesFilter && matchesPackage;
+  });
+
+  return { activeParticipants, visibleParticipants };
 }
 
 export function RoomAssignmentBoard({
@@ -40,28 +58,14 @@ export function RoomAssignmentBoard({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<AssignmentFilter>("all");
   const [packageFilter, setPackageFilter] = useState<PackageFilter>("all");
-  const [registrationFilter, setRegistrationFilter] = useState<RegistrationFilter>("all");
-  const activeParticipants = participants.filter(
-    (participant) => participant.registrationStatus === "REGISTERED",
+  const { activeParticipants, visibleParticipants } = getRoomAssignmentLists(
+    participants,
+    query,
+    filter,
+    packageFilter,
   );
   const assignedCount = activeParticipants.filter(isAssigned).length;
   const unassignedCount = activeParticipants.length - assignedCount;
-  const normalizedQuery = query.trim().toLowerCase();
-  const visibleParticipants = participants.filter((participant) => {
-    const matchesQuery =
-      !normalizedQuery ||
-      participant.fullName.toLowerCase().includes(normalizedQuery) ||
-      participant.registrationId.toLowerCase().includes(normalizedQuery);
-    const matchesFilter =
-      filter === "all" ||
-      (filter === "assigned" && isAssigned(participant)) ||
-       (filter === "unassigned" && !isAssigned(participant));
-    const matchesPackage = packageFilter === "all" || participant.packageType === packageFilter;
-    const matchesRegistration =
-      registrationFilter === "all" || participant.registrationStatus === registrationFilter;
-
-    return matchesQuery && matchesFilter && matchesPackage && matchesRegistration;
-  });
 
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
@@ -86,7 +90,7 @@ export function RoomAssignmentBoard({
         </section>
 
         <section className="mt-5 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_180px_180px]">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
             <div>
               <label className="text-sm font-semibold text-[#142842]" htmlFor="room-search">
                 Cari peserta
@@ -130,24 +134,9 @@ export function RoomAssignmentBoard({
                 <option value="Single">Single</option>
               </select>
             </div>
-            <div>
-              <label className="text-sm font-semibold text-[#142842]" htmlFor="room-registration-filter">
-                Status registrasi
-              </label>
-              <select
-                className="mt-2 min-h-11 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac]"
-                id="room-registration-filter"
-                onChange={(event) => setRegistrationFilter(event.target.value as RegistrationFilter)}
-                value={registrationFilter}
-              >
-                <option value="all">Semua status</option>
-                <option value="REGISTERED">ACTIVE</option>
-                <option value="CANCELLED">CANCELLED</option>
-              </select>
-            </div>
           </div>
           <p className="mt-3 text-sm text-[#5b6c7c]">
-            {visibleParticipants.length} dari {participants.length} peserta ditampilkan.
+            {visibleParticipants.length} dari {activeParticipants.length} peserta ditampilkan.
           </p>
         </section>
 
@@ -204,7 +193,7 @@ export function RoomAssignmentBoard({
                     {participant.registrationId}
                   </td>
                   <td className="px-4 py-4 font-semibold text-[#142842]">{participant.fullName}</td>
-                  <td className="px-4 py-4">{participant.registrationStatus === "REGISTERED" ? "ACTIVE" : "CANCELLED"}</td>
+                  <td className="px-4 py-4">ACTIVE</td>
                   <td className="px-4 py-4">{participant.packageType ?? "-"}</td>
                    <td className="px-4 py-4">
                     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClassName(participant)}`}>

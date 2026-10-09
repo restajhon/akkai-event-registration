@@ -12,7 +12,6 @@ import { getEffectivePickupPoint } from "@/lib/admin/pickup-mapping";
 type TransferType = "ARRIVAL" | "DEPARTURE";
 type AssignmentFilter = "all" | "assigned" | "unassigned";
 type TravelFilter = "all" | "available" | "missing";
-type RegistrationFilter = "all" | "REGISTERED" | "CANCELLED";
 
 function assignmentLabel(assignment: PickupAssignment | null) {
   if (!assignment) {
@@ -49,18 +48,18 @@ function selectAssignment(participant: PickupParticipant, transferType: Transfer
     : participant.departureAssignment;
 }
 
-export function PickupAssignmentBoard({
-  participants,
-}: {
-  participants: PickupParticipant[];
-}) {
-  const [transferType, setTransferType] = useState<TransferType>("ARRIVAL");
-  const [query, setQuery] = useState("");
-  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("all");
-  const [travelFilter, setTravelFilter] = useState<TravelFilter>("all");
-  const [registrationFilter, setRegistrationFilter] = useState<RegistrationFilter>("all");
+export function getPickupAssignmentLists(
+  participants: PickupParticipant[],
+  query: string,
+  assignmentFilter: AssignmentFilter,
+  travelFilter: TravelFilter,
+  transferType: TransferType,
+) {
+  const activeParticipants = participants.filter(
+    (participant) => participant.registrationStatus === "REGISTERED",
+  );
   const normalizedQuery = query.trim().toLowerCase();
-  const visibleParticipants = participants.filter((participant) => {
+  const visibleParticipants = activeParticipants.filter((participant) => {
     const assignment = selectAssignment(participant, transferType);
     const matchesQuery =
       !normalizedQuery ||
@@ -74,11 +73,29 @@ export function PickupAssignmentBoard({
       travelFilter === "all" ||
       (travelFilter === "available" && Boolean(participant.travel)) ||
       (travelFilter === "missing" && !participant.travel);
-    const matchesRegistration =
-      registrationFilter === "all" || participant.registrationStatus === registrationFilter;
 
-    return matchesQuery && matchesAssignment && matchesTravel && matchesRegistration;
+    return matchesQuery && matchesAssignment && matchesTravel;
   });
+
+  return { activeParticipants, visibleParticipants };
+}
+
+export function PickupAssignmentBoard({
+  participants,
+}: {
+  participants: PickupParticipant[];
+}) {
+  const [transferType, setTransferType] = useState<TransferType>("ARRIVAL");
+  const [query, setQuery] = useState("");
+  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("all");
+  const [travelFilter, setTravelFilter] = useState<TravelFilter>("all");
+  const { activeParticipants, visibleParticipants } = getPickupAssignmentLists(
+    participants,
+    query,
+    assignmentFilter,
+    travelFilter,
+    transferType,
+  );
 
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
@@ -120,7 +137,7 @@ export function PickupAssignmentBoard({
         </div>
 
         <section className="mt-4 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_180px_180px]">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
             <div>
               <label className="text-sm font-semibold text-[#142842]" htmlFor="pickup-search">
                 Cari peserta
@@ -164,24 +181,9 @@ export function PickupAssignmentBoard({
                 <option value="missing">Data travel belum tersedia</option>
               </select>
             </div>
-            <div>
-              <label className="text-sm font-semibold text-[#142842]" htmlFor="pickup-registration-filter">
-                Status registrasi
-              </label>
-              <select
-                className="mt-2 min-h-11 w-full rounded-lg border border-[#cfc5b4] bg-white px-3 text-sm text-[#142842] outline-none focus:border-[#9a7526] focus:ring-2 focus:ring-[#ead9ac]"
-                id="pickup-registration-filter"
-                onChange={(event) => setRegistrationFilter(event.target.value as RegistrationFilter)}
-                value={registrationFilter}
-              >
-                <option value="all">Semua status</option>
-                <option value="REGISTERED">ACTIVE</option>
-                <option value="CANCELLED">CANCELLED</option>
-              </select>
-            </div>
           </div>
           <p className="mt-3 text-sm text-[#5b6c7c]">
-            {visibleParticipants.length} dari {participants.length} peserta ditampilkan pada pickup {transferType}.
+            {visibleParticipants.length} dari {activeParticipants.length} peserta aktif ditampilkan pada pickup {transferType}.
           </p>
         </section>
 
@@ -198,9 +200,6 @@ export function PickupAssignmentBoard({
                    <div className="min-w-0">
                      <h2 className="break-words font-semibold text-[#142842]">{participant.fullName}</h2>
                      <p className="mt-1 break-all text-xs font-semibold text-[#9a7526]">{participant.registrationId}</p>
-                     {participant.registrationStatus === "CANCELLED" ? (
-                       <p className="mt-1 text-xs font-semibold text-[#9a3e35]">Registrasi dibatalkan</p>
-                     ) : null}
                    </div>
                    <span className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${assignmentClassName(assignment)}`}>
                      {assignmentLabel(assignment)}
@@ -266,7 +265,7 @@ export function PickupAssignmentBoard({
                   <tr className="align-top" key={participant.registrationId}>
                     <td className="px-4 py-4 font-semibold text-[#9a7526]">{participant.registrationId}</td>
                     <td className="px-4 py-4 font-semibold text-[#142842]">{participant.fullName}</td>
-                    <td className="px-4 py-4">{participant.registrationStatus === "REGISTERED" ? "ACTIVE" : "CANCELLED"}</td>
+                    <td className="px-4 py-4">ACTIVE</td>
                     <td className="px-4 py-4">{travel ? "Tersedia" : "Belum tersedia"}</td>
                     <td className="px-4 py-4">{travel ? (isArrival ? travel.outboundTransportMode : travel.returnTransportMode) : "-"}</td>
                     <td className="px-4 py-4">{travel ? (isArrival ? travel.outboundTransportNumber : travel.returnTransportNumber) ?? "-" : "-"}</td>

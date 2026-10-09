@@ -60,7 +60,10 @@ type TravelRow = {
 const participantSelect =
   "id, registration_id, full_name, package_type, participant_category, registration_status";
 
-async function loadParticipants(registrationId?: string) {
+async function loadParticipants(
+  registrationId?: string,
+  registrationStatus?: ParticipantRegistrationStatus,
+) {
   const supabase = createAdminClient();
   let query = supabase
     .from("participants")
@@ -69,6 +72,10 @@ async function loadParticipants(registrationId?: string) {
 
   if (registrationId) {
     query = query.eq("registration_id", registrationId);
+  }
+
+  if (registrationStatus) {
+    query = query.eq("registration_status", registrationStatus);
   }
 
   const { data, error } = await query;
@@ -131,7 +138,7 @@ async function loadRoomAssignments(participantIds: string[]) {
 
 export async function loadRoomAssignmentPage(): Promise<RoomParticipant[] | null> {
   try {
-    const participants = await loadParticipants();
+    const participants = await loadParticipants(undefined, "REGISTERED");
 
     if (!participants) {
       return null;
@@ -157,7 +164,7 @@ export async function loadRoomAssignmentDetail(
   registrationId: string,
 ): Promise<RoomParticipant | null> {
   try {
-    const participants = await loadParticipants(registrationId);
+    const participants = await loadParticipants(registrationId, "REGISTERED");
 
     if (!participants || participants.length !== 1) {
       return null;
@@ -269,7 +276,7 @@ function toPickupParticipant(
 
 export async function loadPickupAssignmentPage(): Promise<PickupParticipant[] | null> {
   try {
-    const participants = await loadParticipants();
+    const participants = await loadParticipants(undefined, "REGISTERED");
 
     if (!participants) {
       return null;
@@ -291,9 +298,10 @@ export async function loadPickupAssignmentPage(): Promise<PickupParticipant[] | 
 
 export async function loadPickupAssignmentDetail(
   registrationId: string,
+  registrationStatus?: ParticipantRegistrationStatus,
 ): Promise<PickupParticipant | null> {
   try {
-    const participants = await loadParticipants(registrationId);
+    const participants = await loadParticipants(registrationId, registrationStatus);
 
     if (!participants || participants.length !== 1) {
       return null;
