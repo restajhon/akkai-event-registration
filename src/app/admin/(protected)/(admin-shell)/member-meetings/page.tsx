@@ -1,11 +1,15 @@
 import Link from "next/link";
 
-import { AdminEmptyState, AdminMetricCard, AdminPageHeader } from "@/components/admin/admin-ui";
-import { requirePermission } from "@/lib/auth/server";
 import {
-  loadMemberMeetingSubmissions,
-  type MemberMeetingSubmission,
-} from "@/lib/member-meeting/admin-data";
+  AdminDownloadButton,
+  AdminEmptyState,
+  AdminMetricCard,
+  AdminPageHeader,
+} from "@/components/admin/admin-ui";
+import { requirePermission } from "@/lib/auth/server";
+import { loadMemberMeetingSubmissions, type MemberMeetingSubmission } from "@/lib/member-meeting/admin-data";
+import { getMemberMeetingSubmissionCounts } from "@/lib/member-meeting/metrics";
+import { MemberMeetingSubmissionDelete } from "./member-meeting-submission-delete";
 
 export const dynamic = "force-dynamic";
 
@@ -43,12 +47,7 @@ export default async function MemberMeetingsPage() {
     return <PageError />;
   }
 
-  const attendingDirectly = submissions.filter(
-    (submission) => submission.attendance_type !== "PROXY",
-  ).length;
-  const representedByProxy = submissions.filter(
-    (submission) => submission.attendance_type === "PROXY",
-  ).length;
+  const submissionCounts = getMemberMeetingSubmissionCounts(submissions);
 
   return (
     <main className="min-h-screen bg-[#f7f3ea] px-4 py-5 sm:px-8 sm:py-6">
@@ -57,13 +56,12 @@ export default async function MemberMeetingsPage() {
           action={
             <div className="flex flex-wrap gap-2">
             {profile.role === "SUPER_ADMIN" || profile.role === "ADMIN" ? (
-              <a
-                className="inline-flex min-h-11 items-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-[#fffdf8] hover:bg-[#243e5e]"
+              <AdminDownloadButton
                 download
                 href="/api/admin/member-meetings-export"
               >
                 Export Excel
-              </a>
+              </AdminDownloadButton>
             ) : null}
             <Link className="inline-flex min-h-11 items-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#344d68] hover:bg-[#fffdf8]" href="/admin/dashboard">
                 Dashboard
@@ -76,9 +74,9 @@ export default async function MemberMeetingsPage() {
         />
 
         <section aria-label="Ringkasan submission Rapat Anggota" className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
-          <AdminMetricCard label="Total" subtitle="submission" value={submissions.length} />
-          <AdminMetricCard label="Hadir Sendiri" subtitle="anggota" value={attendingDirectly} />
-          <AdminMetricCard label="Dikuasakan" subtitle="anggota" value={representedByProxy} />
+          <AdminMetricCard label="Total" subtitle="submission aktif" value={submissionCounts.total} />
+          <AdminMetricCard label="Hadir Sendiri" subtitle="anggota" value={submissionCounts.self} />
+          <AdminMetricCard label="Dikuasakan" subtitle="anggota" value={submissionCounts.proxy} />
         </section>
 
         <div className="mt-5 overflow-hidden rounded-xl border border-[#e4d8c4] bg-[#fffdf8]">
@@ -110,7 +108,19 @@ export default async function MemberMeetingsPage() {
                       <td className="px-5 py-4">{attendanceLabel(submission.attendance_type)}</td>
                       <td className="px-5 py-4">{submission.authorization_file_name ?? "-"}</td>
                       <td className="whitespace-nowrap px-5 py-4">{formatDate(submission.created_at)}</td>
-                      <td className="px-5 py-4"><Link className="font-semibold text-[#80631e] underline underline-offset-4" href={`/admin/member-meetings/${submission.id}`}>Detail</Link></td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-4">
+                          <Link className="font-semibold text-[#80631e] underline underline-offset-4" href={`/admin/member-meetings/${submission.id}`}>Detail</Link>
+                          {profile.role === "SUPER_ADMIN" || profile.role === "ADMIN" ? (
+                            <MemberMeetingSubmissionDelete
+                              consultingFirm={submission.consulting_firm}
+                              createdAt={formatDate(submission.created_at)}
+                              name={submission.name}
+                              submissionId={submission.id}
+                            />
+                          ) : null}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -118,6 +128,7 @@ export default async function MemberMeetingsPage() {
             </div>
           )}
         </div>
+
       </section>
     </main>
   );

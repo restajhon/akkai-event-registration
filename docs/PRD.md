@@ -254,8 +254,8 @@ Tujuan:
 * Sesi disimpan di database sejak awal.
 * Admin dapat membuka atau menutup sesi.
 * Operator tidak dapat mengubah sesi.
-* Station hanya boleh terhubung ke satu sesi aktif.
-* Satu QR dapat digunakan pada ketiga sesi.
+* Setiap station hanya terhubung ke satu sesi; beberapa sesi dapat aktif bersamaan dengan station masing-masing.
+* Satu QR dapat digunakan pada seluruh sesi, dengan attendance terpisah untuk tiap sesi.
 * Satu peserta hanya memiliki satu attendance per sesi.
 * Peserta seminar tidak wajib memiliki attendance kedatangan.
 * Jika peserta seminar belum check-in kedatangan, seminar tetap berhasil dicatat.
@@ -948,6 +948,7 @@ Untuk setiap sesi tampilkan:
 * Sesi yang sudah dibuka dapat ditutup kembali.
 * Station tidak dapat melakukan check-in pada sesi closed.
 * Membuka sesi tidak otomatis membuat station.
+* Beberapa sesi dapat berstatus `OPEN` bersamaan; setiap station/scanner tetap terikat ke sesi yang dipilih saat station dibuat.
 
 ### Recent attendance
 

@@ -35,6 +35,7 @@ const headers = [
 const submissions = [
   {
     id: "submission-self",
+    cancelled_at: null,
     name: "Pemimpin Self",
     consulting_firm: "Kantor Self",
     position: "Direktur",
@@ -52,6 +53,7 @@ const submissions = [
   },
   {
     id: "submission-proxy",
+    cancelled_at: null,
     name: "Pemimpin Proxy",
     consulting_firm: "Kantor Proxy",
     position: "Komisaris",
@@ -66,6 +68,24 @@ const submissions = [
     authorization_file_size: 2048,
     created_at: "2026-01-03T01:04:05.000Z",
     updated_at: "2026-01-03T01:04:05.000Z",
+  },
+  {
+    id: "submission-deleted",
+    cancelled_at: "2026-10-02T12:00:00.000Z",
+    name: "Submission Dihapus",
+    consulting_firm: "Kantor Nonaktif",
+    position: "Direktur",
+    phone: "081222222222",
+    email: "deleted@example.com",
+    attendance_type: "SELF" as const,
+    proxy_name: null,
+    proxy_position: null,
+    authorization_file_path: null,
+    authorization_file_name: null,
+    authorization_file_mime: null,
+    authorization_file_size: null,
+    created_at: "2026-01-04T01:04:05.000Z",
+    updated_at: "2026-01-04T01:04:05.000Z",
   },
 ];
 
@@ -156,6 +176,7 @@ describe("member meeting Excel export API", () => {
     ]);
     expect(JSON.stringify(rows)).not.toContain("submissions/private-file.pdf");
     expect(JSON.stringify(rows)).not.toContain("application/pdf");
+    expect(JSON.stringify(rows)).not.toContain("Submission Dihapus");
     expect(mocks.loadMemberMeetingSubmissions).toHaveBeenCalledOnce();
   });
 

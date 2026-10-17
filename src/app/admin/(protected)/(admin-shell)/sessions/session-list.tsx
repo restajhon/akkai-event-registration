@@ -106,7 +106,7 @@ export function SessionList({ sessions, role }: SessionListProps) {
 
         <div className="mt-5">
           <AdminFeedback tone="warning">
-            Hanya satu sesi dapat aktif. Scanner dan station akan mengikuti sesi yang dibuka.
+            Beberapa sesi dapat aktif bersamaan. Setiap station dan scanner hanya memproses sesi yang dipilih saat station dibuat.
           </AdminFeedback>
         </div>
 

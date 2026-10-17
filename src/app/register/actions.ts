@@ -48,6 +48,8 @@ const REGISTRATION_DIAGNOSTIC_STAGES: RegistrationDiagnosticStage[] = [
   "upload-intent",
   "storage-upload",
   "rpc-v5",
+  "rpc-v6",
+  "collective-batch",
   "billing",
   "registration-email",
   "billing-email",
@@ -664,6 +666,7 @@ async function processCollectiveParticipant(
   index: number,
   participant: NormalizedCollectiveParticipantData,
 ): Promise<CollectiveParticipantResult> {
+  let stage: RegistrationDiagnosticStage = "rpc-v6";
   try {
     const idempotencyKey = `collective:${batchKey}:${index + 1}`;
     const { data: reservationData, error: reservationError } = await supabase.rpc(
@@ -691,7 +694,7 @@ async function processCollectiveParticipant(
     );
 
     if (reservationError || !reservationData) {
-      logRegistrationStageFailure("rpc-v5", reservationError ?? new Error("collective reservation failed"));
+      logRegistrationStageFailure("rpc-v6", reservationError ?? new Error("collective reservation failed"));
       if (participant.certificate_upload_id) await cleanupUploadIntent(supabase, participant.certificate_upload_id);
       return collectiveResultFailure(index, participant, "Peserta gagal dibuat karena error sistem.");
     }
@@ -727,6 +730,7 @@ async function processCollectiveParticipant(
       return collectiveResultFailure(index, participant, "Peserta gagal dibuat karena data billing tidak lengkap.");
     }
 
+    stage = "registration-email";
     const reservedEmailLog = await getReservedEmailLog(
       supabase,
       reservation.participant_id,
@@ -789,6 +793,7 @@ async function processCollectiveParticipant(
       }
     }
 
+    stage = "billing-email";
     let billingEmailDelivery: EmailDeliveryStatus = "failed";
     const existingBillingStatus = await getBillingEmailLogStatus(supabase, reservation.billing_id);
     if (existingBillingStatus === "SENT") billingEmailDelivery = "accepted";
@@ -835,7 +840,7 @@ async function processCollectiveParticipant(
         : "Peserta berhasil dibuat, tetapi satu atau lebih email gagal dikirim.",
     };
   } catch (error) {
-    logRegistrationStageFailure("rpc-v5", error);
+    logRegistrationStageFailure(stage, error);
     return collectiveResultFailure(index, participant, "Peserta gagal dibuat karena error sistem.");
   }
 }
@@ -922,7 +927,7 @@ export async function submitCollectiveRegistration(
       participants,
     };
   } catch (error) {
-    logRegistrationStageFailure("rpc-v5", error);
+    logRegistrationStageFailure("collective-batch", error);
     return { ...initialCollectiveRegistrationState, status: "general-error", generalError: GENERAL_ERROR };
   }
 }

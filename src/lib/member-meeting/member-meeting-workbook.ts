@@ -38,7 +38,7 @@ export function buildMemberMeetingWorkbook(
   submissions: MemberMeetingSubmission[],
 ) {
   const workbook = XLSX.utils.book_new();
-  const rows = submissions.map((submission) => {
+  const rows = submissions.filter((submission) => submission.cancelled_at === null).map((submission) => {
     const hasAuthorizationFile =
       submission.authorization_file_name !== null &&
       submission.authorization_file_size !== null;

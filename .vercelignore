@@ -1,1 +1,4 @@
 design-reference/
+supabase/.temp/
+.env*
+**/.env*
