@@ -31,6 +31,20 @@ Pemeriksaan lokal awal sebelum integrasi branch: `npm run lint`, `npm test` (38 
 - Perubahan lokal lain pada checkout asal tetap **di luar kandidat** dan tidak dihapus: desain referensi, revamp visual admin (layout, CSS, detail peserta, tombol download), penyaringan/ekspor peserta yang dibatalkan dan pemolesan form, beserta test terkait. Perubahan ini perlu review dan QA terpisah sebelum dijadikan bagian rilis lain.
 - Preview untuk branch fitur sesi lama memiliki override QA; variabel Preview umum pada project Vercel tidak boleh diasumsikan mengarah ke QA. Deployment kandidat harus membawa override build-time dan runtime yang spesifik untuk project QA `ydzuazlzgsgcwhqzbsmv`; verifikasi ref pada deployment sebelum melakukan smoke test. Jangan menggunakan `--prod`.
 
+## Pemeriksaan migration production (read-only)
+
+Ref `bqmaqudemldzvgacuywq` diverifikasi dari environment **Vercel Production**, lalu database dibaca melalui pooler dalam transaksi `BEGIN READ ONLY`. Saat pemeriksaan terdapat 45 migration Remote dan 46 file Local kandidat, tanpa versi Remote-only. Dari lima migration kandidat, `20261002100000`, `20261002110000`, `20261002120000`, dan `20261004100000` **sudah applied**. **Hanya `20261009230000_add_day1_meeting_and_day2_akkai_night_sessions.sql` yang masih pending di production.** Ulangi pemeriksaan read-only tepat sebelum setiap release; tidak ada migration production yang diterapkan dalam pemeriksaan ini.
+
+## Audit dependency kandidat
+
+Audit awal dari `npm ci`: 10 temuan (1 critical, 9 high). Dengan `npm audit --omit=dev`, tiga paket masih masuk pohon dependency production: `next` (critical), `sharp` (high, dependency opsional `next`), dan `source-map-js` (high, melalui `postcss` yang juga digunakan `next`). Tujuh lainnya hanya pada toolchain development/lint: `@next/eslint-plugin-next`, `brace-expansion`, `braces`, `eslint-config-next`, `fast-glob`, `js-yaml`, dan `micromatch`.
+
+Kandidat diperbarui ke `next`/`eslint-config-next` `16.4.2`, `sharp` `0.35.5`, dan `source-map-js` `1.2.2`. Audit setelah pembaruan: **0 temuan pada `npm audit --omit=dev`**; tujuh temuan high pada toolchain development masih tercatat untuk tindak lanjut tanpa melakukan downgrade Next lint config yang tidak kompatibel. Versi Next sebelumnya `16.3.1` memiliki beberapa advisory; advisory khusus server Windows/`next/og` tidak otomatis berlaku pada Vercel Linux dan kode aplikasi ini, tetapi Image Optimization (`next/image`) digunakan, sehingga paket runtime tetap diperbarui.
+
+## Penyimpanan branch tanpa auto-Preview salah target
+
+`vercel.json` pada kandidat menetapkan `git.deploymentEnabled` bernilai `false` **hanya untuk** `release/akkai-2026-qa-candidate`. Menurut konfigurasi Vercel, push ke branch itu tidak memicu deployment Git otomatis; branch lain tetap memakai perilaku default. Prosedur aman setelah review: pastikan guard ini sudah ada di commit, push branch release, konfirmasi tidak ada auto-Preview baru, baru tambahkan override `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, dan `SUPABASE_SECRET_KEY` untuk **Preview branch itu** dari project QA. Tarik/cek konfigurasi branch dan lakukan deploy Preview manual dengan override QA build-time dan runtime; jangan mencetak secret atau memakai `--prod`. Saat dokumentasi ini ditulis, branch belum di-push ke `origin`.
+
 ## Checklist release production
 
 Status: **persiapan; belum ada perubahan pada production**. Centang gate berikut saat pelaksanaan release, setelah otorisasi release diberikan.
@@ -42,12 +56,12 @@ Status: **persiapan; belum ada perubahan pada production**. Centang gate berikut
 - [x] Pastikan kelima file migration QA tracked pada branch kandidat dan cocok dengan sumbernya; jangan mengandalkan migration untracked pada checkout asal.
 - [x] Sertakan pembaruan teks UI/SOP dan automated test dua sesi `OPEN` dengan station/scanner masing-masing; tidak ada unique constraint yang membatasi satu sesi `OPEN` secara global.
 - [ ] Review diff final dan perubahan kerja lain; pilih hanya perubahan yang memang ikut release. Jalankan `npm run lint`, `npm test`, `npx tsc --noEmit`, dan `npm run build` pada kandidat final, kemudian cocokkan perilakunya dengan yang diuji di QA.
-- [ ] Konfirmasi target project ref **production** secara eksplisit dan pastikan berbeda dari QA `ydzuazlzgsgcwhqzbsmv`; verifikasi target CLI/Vercel dan environment server/browser (Supabase URL dan key) tanpa mencetak rahasia. Jangan menggunakan `.env.local` sebagai bukti target deployment.
+- [ ] Konfirmasi ulang target ref **production** `bqmaqudemldzvgacuywq` sebelum eksekusi dan pastikan berbeda dari QA `ydzuazlzgsgcwhqzbsmv`; verifikasi target CLI/Vercel dan environment server/browser tanpa mencetak rahasia. Jangan menggunakan `.env.local` sebagai satu-satunya bukti target deployment.
 - [ ] Ambil snapshot/backup dan titik rollback production, termasuk versi aplikasi, riwayat migration, serta rencana pemulihan data; tentukan jadwal dan penanggung jawab release.
 
 ### Saat release disetujui (belum dijalankan)
 
-- [ ] Jalankan `supabase migration list` terhadap **production yang sudah diverifikasi**; cocokkan riwayat Local/Remote. Review `supabase db push --dry-run` ke target itu dan hentikan bila ada migration yang tidak direncanakan, termasuk migration QA yang ternyata belum ada di production.
+- [ ] Baca ulang riwayat migration **production yang sudah diverifikasi** dan cocokkan Local/Remote. Review dry-run ke target itu; ekspektasi saat pemeriksaan ini hanya `20261009230000` pending. Hentikan bila ada migration lain yang tidak direncanakan.
 - [ ] Setelah daftar migration disetujui, terapkan migration yang diperlukan hanya ke production yang telah diverifikasi, lalu ulangi `migration list` hingga Local/Remote cocok. Jangan menandai migration sebagai applied tanpa penerapan dan verifikasi sebenarnya.
 - [ ] Deploy artifact aplikasi yang sama dengan kandidat yang diverifikasi; pastikan konfigurasi deployment menunjuk ke Supabase production yang benar dan tidak membocorkan `SUPABASE_SECRET_KEY`/`RESEND_API_KEY` ke browser.
 - [ ] Smoke test terotorisasi: registrasi hingga tiket/QR, kelima sesi pada halaman admin, station creation/pairing, scan dan penolakan duplikat, attendance/dashboard/export. Jika menguji dua sesi `OPEN` bersamaan, gunakan station/scanner terpisah dan periksa isolasi hasil scan serta Live Display; tutup kembali sesi uji dan station setelah selesai. Pastikan data uji production ditangani sesuai prosedur operasional.
