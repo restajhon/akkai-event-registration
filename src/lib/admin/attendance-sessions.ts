@@ -4,30 +4,40 @@ export const ATTENDANCE_SESSIONS = [
     label: "Registrasi Kedatangan",
     summaryLabel: "ARRIVAL",
     key: "arrival",
+    downloadLabel: "Unduh Arrival — Registrasi Kedatangan",
+    exportFilename: "AKKAI-2026-Arrival-Registrasi-Kedatangan.xlsx",
   },
   {
     code: "SEMINAR",
     label: "Seminar AKKAI 2026",
     summaryLabel: "SEMINAR",
     key: "seminar",
+    downloadLabel: "Unduh Seminar AKKAI 2026",
+    exportFilename: "AKKAI-2026-Seminar.xlsx",
   },
   {
     code: "DAY3",
     label: "Registrasi Kepulangan",
     summaryLabel: "DAY3",
     key: "day3",
+    downloadLabel: "Unduh Registrasi Kepulangan — Day 3",
+    exportFilename: "AKKAI-2026-Day-3-Registrasi-Kepulangan.xlsx",
   },
   {
     code: "DAY1_MEMBER_MEETING",
     label: "Day 1 — Rapat Anggota",
     summaryLabel: "Day 1 — Rapat Anggota",
     key: "day1MemberMeeting",
+    downloadLabel: "Unduh Day 1 — Rapat Anggota",
+    exportFilename: "AKKAI-2026-Day-1-Rapat-Anggota.xlsx",
   },
   {
     code: "DAY2_AKKAI_NIGHT",
     label: "Day 2 — Akkai Night",
     summaryLabel: "Day 2 — Akkai Night",
     key: "day2AkkaiNight",
+    downloadLabel: "Unduh Day 2 — Akkai Night",
+    exportFilename: "AKKAI-2026-Day-2-Akkai-Night.xlsx",
   },
 ] as const;
 
@@ -42,13 +52,9 @@ export const ATTENDANCE_SESSION_KEY_BY_CODE = Object.fromEntries(
   ATTENDANCE_SESSIONS.map(({ code, key }) => [code, key]),
 ) as Record<AttendanceSessionCode, AttendanceSessionKey>;
 
-export const SEPARATE_ATTENDANCE_EXPORT_CODES = [
-  "DAY1_MEMBER_MEETING",
-  "DAY2_AKKAI_NIGHT",
-] as const;
+export const SEPARATE_ATTENDANCE_EXPORT_CODES = ATTENDANCE_SESSION_CODES;
 
-export type SeparateAttendanceExportCode =
-  (typeof SEPARATE_ATTENDANCE_EXPORT_CODES)[number];
+export type SeparateAttendanceExportCode = AttendanceSessionCode;
 
 export function isAttendanceSessionCode(
   code: string | null | undefined,
@@ -61,7 +67,7 @@ export function isAttendanceSessionCode(
 export function isSeparateAttendanceExportCode(
   code: string | null,
 ): code is SeparateAttendanceExportCode {
-  return code !== null && (SEPARATE_ATTENDANCE_EXPORT_CODES as readonly string[]).includes(code);
+  return code !== null && isAttendanceSessionCode(code);
 }
 
 export function getAttendanceSession(code: AttendanceSessionCode) {

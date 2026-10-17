@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { AttendanceBoard } from "@/app/admin/(protected)/(admin-shell)/attendance/attendance-board";
+import { ATTENDANCE_SESSIONS } from "@/lib/admin/attendance-sessions";
 import {
   getDefaultAdminRoute,
   getPermissionsForRole,
@@ -126,8 +127,10 @@ describe("RBAC parity", () => {
     expect(withoutExport).not.toContain("/api/admin/operational-export");
     expect(withoutExport).not.toContain("/api/admin/attendance-export");
     expect(withExport).toContain("/api/admin/operational-export");
-    expect(withExport).toContain("sessionCode=DAY1_MEMBER_MEETING");
-    expect(withExport).toContain("sessionCode=DAY2_AKKAI_NIGHT");
+    for (const session of ATTENDANCE_SESSIONS) {
+      expect(withExport).toContain(`sessionCode=${session.code}`);
+      expect(withExport).toContain(session.exportFilename);
+    }
   });
 
   it("keeps attendance export permission explicit", () => {

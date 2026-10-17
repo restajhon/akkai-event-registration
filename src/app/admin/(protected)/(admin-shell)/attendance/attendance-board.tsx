@@ -115,20 +115,17 @@ export function AttendanceBoard({
               >
                 Unduh workbook Excel
               </a>
-              <a
-                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]"
-                download="AKKAI-2026-Day-1-Rapat-Anggota.xlsx"
-                href="/api/admin/attendance-export?sessionCode=DAY1_MEMBER_MEETING"
-              >
-                Unduh Day 1 — Rapat Anggota
-              </a>
-              <a
-                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]"
-                download="AKKAI-2026-Day-2-Akkai-Night.xlsx"
-                href="/api/admin/attendance-export?sessionCode=DAY2_AKKAI_NIGHT"
-              >
-                Unduh Day 2 — Akkai Night
-              </a>
+              {ATTENDANCE_SESSIONS.map(({ code, downloadLabel, exportFilename }) => (
+                <a
+                  aria-label={downloadLabel}
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                  download={exportFilename}
+                  href={`/api/admin/attendance-export?sessionCode=${code}`}
+                  key={code}
+                >
+                  {downloadLabel}
+                </a>
+              ))}
             </div>
           ) : null}
         </header>

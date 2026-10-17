@@ -11,7 +11,12 @@ vi.mock("@/lib/auth/server", () => ({ authorizePermission: mocks.authorizePermis
 vi.mock("@/lib/admin/operational-data", () => ({ loadOperationalData: mocks.loadOperationalData }));
 
 import { GET } from "@/app/api/admin/attendance-export/route";
-import type { OperationalParticipant } from "@/lib/admin/operational-data";
+import type {
+  OperationalAttendance,
+  OperationalParticipant,
+} from "@/lib/admin/operational-data";
+import type { AttendanceSessionKey } from "@/lib/admin/attendance-sessions";
+import { ATTENDANCE_SESSIONS } from "@/lib/admin/attendance-sessions";
 import { buildOperationalWorkbook } from "@/lib/admin/operational-workbook";
 
 const participant: OperationalParticipant = {
@@ -42,8 +47,37 @@ beforeEach(() => {
   mocks.loadOperationalData.mockReset();
 });
 
+function makeSessionParticipant(
+  session: (typeof ATTENDANCE_SESSIONS)[number],
+  index: number,
+): OperationalParticipant {
+  const attendance: Record<AttendanceSessionKey, OperationalAttendance> = {
+    arrival: { checkedIn: false, checkedInAt: null },
+    seminar: { checkedIn: false, checkedInAt: null },
+    day3: { checkedIn: false, checkedInAt: null },
+    day1MemberMeeting: { checkedIn: false, checkedInAt: null },
+    day2AkkaiNight: { checkedIn: false, checkedInAt: null },
+  };
+
+  attendance[session.key] = {
+    checkedIn: true,
+    checkedInAt: "2026-10-19T10:30:00+07:00",
+  };
+
+  return {
+    ...participant,
+    id: `participant-${index + 1}`,
+    registrationId: `AKKAI26-${String(index + 1).padStart(6, "0")}`,
+    fullName: `Peserta Sesi ${session.code}`,
+    registrationStatus: session.code === "DAY2_AKKAI_NIGHT" ? "CANCELLED" : "REGISTERED",
+    ...attendance,
+  };
+}
+
+const sessionParticipants = ATTENDANCE_SESSIONS.map(makeSessionParticipant);
+
 describe("separate attendance session exports", () => {
-  it("keeps existing attendance workbook columns and adds both new sessions", () => {
+  it("keeps the combined attendance workbook with all five session columns", () => {
     const workbook = buildOperationalWorkbook([participant]);
     const attendanceSheet = workbook.Sheets.Kehadiran;
     const headers = XLSX.utils.sheet_to_json<string[]>(attendanceSheet, { header: 1 })[0];
@@ -57,37 +91,22 @@ describe("separate attendance session exports", () => {
     ]));
   });
 
-  it.each([
-    {
-      code: "DAY1_MEMBER_MEETING",
-      label: "Day 1 — Rapat Anggota",
-      checkIn: "Hadir",
-      filename: "AKKAI-2026-Day-1-Rapat-Anggota.xlsx",
-      otherLabel: "Day 2 — Akkai Night",
-    },
-    {
-      code: "DAY2_AKKAI_NIGHT",
-      label: "Day 2 — Akkai Night",
-      checkIn: "Belum hadir",
-      filename: "AKKAI-2026-Day-2-Akkai-Night.xlsx",
-      otherLabel: "Day 1 — Rapat Anggota",
-    },
-  ])("exports $label independently", async ({ code, label, checkIn, filename, otherLabel }) => {
+  it.each(ATTENDANCE_SESSIONS)("exports $code independently", async (session) => {
     mocks.authorizePermission.mockResolvedValue({
       profile: { id: "admin-1", role: "ADMIN", is_active: true },
       authorized: true,
       status: 200,
     });
-    mocks.loadOperationalData.mockResolvedValue([participant]);
+    mocks.loadOperationalData.mockResolvedValue(sessionParticipants);
 
     const response = await GET(
-      new Request(`http://localhost/api/admin/attendance-export?sessionCode=${code}`),
+      new Request(`http://localhost/api/admin/attendance-export?sessionCode=${session.code}`),
     );
 
     expect(mocks.authorizePermission).toHaveBeenCalledWith("attendance.export");
     expect(mocks.loadOperationalData).toHaveBeenCalledOnce();
     expect(response.status).toBe(200);
-    expect(response.headers.get("content-disposition")).toContain(filename);
+    expect(response.headers.get("content-disposition")).toContain(session.exportFilename);
 
     const workbook = XLSX.read(await response.arrayBuffer(), { type: "array" });
     expect(workbook.SheetNames).toEqual(["Kehadiran"]);
@@ -96,19 +115,41 @@ describe("separate attendance session exports", () => {
       { defval: "" },
     );
 
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
-      "Registration ID": "AKKAI26-000001",
-      Nama: "Peserta AKKAI",
-      [label]: checkIn,
-    });
-    expect(Object.keys(rows[0])).not.toContain(otherLabel);
+    expect(rows).toHaveLength(ATTENDANCE_SESSIONS.length);
+    expect(Object.keys(rows[0])).toEqual([
+      "Registration ID",
+      "Nama",
+      "Status Registrasi",
+      session.label,
+      `${session.label} Check-in`,
+    ]);
+
+    for (const [index, row] of rows.entries()) {
+      const participantForSession = sessionParticipants[index];
+      expect(row).toMatchObject({
+        "Registration ID": participantForSession.registrationId,
+        Nama: participantForSession.fullName,
+        "Status Registrasi": participantForSession.registrationStatus === "REGISTERED" ? "ACTIVE" : "CANCELLED",
+        [session.label]: index === ATTENDANCE_SESSIONS.indexOf(session) ? "Hadir" : "Belum hadir",
+      });
+      expect(Object.keys(row)).not.toContain(
+        ATTENDANCE_SESSIONS.find(({ code }) => code !== session.code)?.label,
+      );
+    }
+
+    const cancelledParticipantRow = rows.find(
+      (row) => row["Status Registrasi"] === "CANCELLED",
+    );
+    expect(cancelledParticipantRow).toBeDefined();
+    expect(cancelledParticipantRow?.[session.label]).toBe(
+      session.code === "DAY2_AKKAI_NIGHT" ? "Hadir" : "Belum hadir",
+    );
   });
 
-  it.each([
-    { status: 401 as const },
-    { status: 403 as const },
-  ])("requires attendance.export before loading data (HTTP $status)", async ({ status }) => {
+  it.each(ATTENDANCE_SESSIONS.flatMap(({ code }) => [
+    { code, status: 401 as const },
+    { code, status: 403 as const },
+  ]))("requires attendance.export for $code before loading data (HTTP $status)", async ({ code, status }) => {
     mocks.authorizePermission.mockResolvedValue({
       profile: null,
       authorized: false,
@@ -116,7 +157,7 @@ describe("separate attendance session exports", () => {
     });
 
     const response = await GET(
-      new Request("http://localhost/api/admin/attendance-export?sessionCode=DAY1_MEMBER_MEETING"),
+      new Request(`http://localhost/api/admin/attendance-export?sessionCode=${code}`),
     );
 
     expect(response.status).toBe(status);
@@ -124,7 +165,7 @@ describe("separate attendance session exports", () => {
     expect(mocks.loadOperationalData).not.toHaveBeenCalled();
   });
 
-  it("rejects all-session and unknown-code requests instead of broadening the export", async () => {
+  it("rejects unknown-code requests instead of broadening the export", async () => {
     mocks.authorizePermission.mockResolvedValue({
       profile: { id: "admin-1", role: "ADMIN", email: "admin@example.com", full_name: "Admin", is_active: true },
       authorized: true,
@@ -132,7 +173,7 @@ describe("separate attendance session exports", () => {
     });
 
     const response = await GET(
-      new Request("http://localhost/api/admin/attendance-export?sessionCode=ARRIVAL"),
+      new Request("http://localhost/api/admin/attendance-export?sessionCode=UNKNOWN"),
     );
 
     expect(response.status).toBe(400);

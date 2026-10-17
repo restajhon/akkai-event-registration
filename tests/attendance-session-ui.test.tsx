@@ -46,6 +46,7 @@ import { PairForm } from "@/app/admin/(protected)/(admin-shell)/scanner/pair/pai
 import { SessionList } from "@/app/admin/(protected)/(admin-shell)/sessions/session-list";
 import { StationSetup } from "@/app/admin/(protected)/(admin-shell)/display/setup/station-setup";
 import type { OperationalParticipant } from "@/lib/admin/operational-data";
+import { ATTENDANCE_SESSIONS } from "@/lib/admin/attendance-sessions";
 import { participantCheckInEventSchema } from "@/lib/realtime/participant-check-in-event";
 
 const day1Session = {
@@ -224,10 +225,12 @@ describe("AKKAI attendance sessions in operations UI", () => {
       DAY2_AKKAI_NIGHT: "present",
     }).map((entry) => entry.registrationId)).toEqual(["AKKAI26-000002"]);
 
-    expect(permitted).toContain("Day 1 — Rapat Anggota");
-    expect(permitted).toContain("Day 2 — Akkai Night");
-    expect(permitted).toContain("sessionCode=DAY1_MEMBER_MEETING");
-    expect(permitted).toContain("sessionCode=DAY2_AKKAI_NIGHT");
+    expect(permitted).toContain("Unduh workbook Excel");
+    for (const session of ATTENDANCE_SESSIONS) {
+      expect(permitted).toContain(session.downloadLabel);
+      expect(permitted).toContain(session.exportFilename);
+      expect(permitted).toContain(`sessionCode=${session.code}`);
+    }
     expect(permittedText).toContain("Day 1 — Rapat Anggota 1 peserta");
     expect(permittedText).toContain("Day 2 — Akkai Night 1 peserta");
     expect(restricted).not.toContain("/api/admin/attendance-export");
