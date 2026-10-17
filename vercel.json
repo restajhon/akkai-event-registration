@@ -2,8 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "release/akkai-2026-qa-candidate": false,
-      "feature/attendance-session-exports-qa-20261018": false
+      "release/akkai-2026-qa-candidate": false
     }
   }
 }
