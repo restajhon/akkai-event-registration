@@ -3,16 +3,26 @@
 import { useState } from "react";
 
 import { AdminMetricCard } from "@/components/admin/admin-ui";
-import type { OperationalParticipant, OperationalSessionCode } from "@/lib/admin/operational-data";
+import type { OperationalParticipant } from "@/lib/admin/operational-data";
+import { OPERATIONAL_SESSION_CODES, type OperationalSessionCode } from "@/lib/admin/operational-sessions";
 
 type PresenceFilter = "all" | "present" | "absent";
 type RegistrationFilter = "all" | "REGISTERED" | "CANCELLED";
+type FilterSessionCode = "ARRIVAL" | "SEMINAR" | "DAY3";
 
-const sessions: { code: OperationalSessionCode; label: string; date: string }[] = [
+const filterSessions: { code: FilterSessionCode; label: string; date: string }[] = [
   { code: "ARRIVAL", label: "Registrasi Kedatangan", date: "" },
   { code: "SEMINAR", label: "Seminar AKKAI 2026", date: "" },
   { code: "DAY3", label: "Registrasi Kepulangan", date: "" },
 ];
+
+const sessionLabels: Record<OperationalSessionCode, string> = {
+  ARRIVAL: "Arrival",
+  DAY1_MEMBER_MEETING: "Day 1 — Rapat Anggota",
+  SEMINAR: "Seminar",
+  DAY2_AKKAI_NIGHT: "Day 2 — Akkai Night",
+  DAY3: "Day 3",
+};
 
 function presenceLabel(present: boolean) {
   return present ? "Hadir" : "Belum hadir";
@@ -54,16 +64,16 @@ export function AttendanceBoard({
 }) {
   const [query, setQuery] = useState("");
   const [registrationFilter, setRegistrationFilter] = useState<RegistrationFilter>("all");
-  const [filters, setFilters] = useState<Record<OperationalSessionCode, PresenceFilter>>({
+  const [filters, setFilters] = useState<Record<FilterSessionCode, PresenceFilter>>({
     ARRIVAL: "all",
     SEMINAR: "all",
     DAY3: "all",
   });
   const normalizedQuery = query.trim().toLowerCase();
   const attendanceTotals = {
-    ARRIVAL: participants.filter((participant) => participant.arrival.checkedIn).length,
-    SEMINAR: participants.filter((participant) => participant.seminar.checkedIn).length,
-    DAY3: participants.filter((participant) => participant.day3.checkedIn).length,
+    ARRIVAL: participants.filter((participant) => participant.attendanceBySession.ARRIVAL.checkedIn).length,
+    SEMINAR: participants.filter((participant) => participant.attendanceBySession.SEMINAR.checkedIn).length,
+    DAY3: participants.filter((participant) => participant.attendanceBySession.DAY3.checkedIn).length,
   };
   const visibleParticipants = participants.filter((participant) => {
     const matchesQuery =
@@ -72,8 +82,8 @@ export function AttendanceBoard({
       participant.registrationId.toLowerCase().includes(normalizedQuery);
     const matchesRegistration =
       registrationFilter === "all" || participant.registrationStatus === registrationFilter;
-    const matchesSessions = sessions.every(({ code }) =>
-      matchesPresence(participant[code === "ARRIVAL" ? "arrival" : code === "SEMINAR" ? "seminar" : "day3"].checkedIn, filters[code]),
+    const matchesSessions = filterSessions.every(({ code }) =>
+      matchesPresence(participant.attendanceBySession[code].checkedIn, filters[code]),
     );
 
     return matchesQuery && matchesRegistration && matchesSessions;
@@ -100,7 +110,7 @@ export function AttendanceBoard({
         </header>
 
         <section aria-label="Ringkasan kehadiran" className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
-          {sessions.map(({ code }) => (
+          {filterSessions.map(({ code }) => (
             <AdminMetricCard
               key={code}
               label={code}
@@ -136,7 +146,7 @@ export function AttendanceBoard({
                 <option value="CANCELLED">CANCELLED</option>
               </select>
             </div>
-            {sessions.map(({ code, label }) => (
+            {filterSessions.map(({ code, label }) => (
               <div key={code}>
                 <label className="text-sm font-semibold text-[#142842]" htmlFor={`attendance-${code.toLowerCase()}-filter`}>{label}</label>
                 <select
@@ -164,11 +174,11 @@ export function AttendanceBoard({
                 <p className="mt-1 text-xs font-semibold text-[#9a3e35]">Registrasi dibatalkan</p>
               ) : null}
               <dl className="mt-4 grid gap-3 border-t border-[#eee6d8] pt-3">
-                {(["arrival", "seminar", "day3"] as const).map((session) => {
-                  const attendance = participant[session];
+                {OPERATIONAL_SESSION_CODES.map((code) => {
+                  const attendance = participant.attendanceBySession[code];
                   return (
-                    <div className="flex items-start justify-between gap-3" key={session}>
-                      <dt className="text-xs font-bold uppercase tracking-wide text-[#897657]">{session === "arrival" ? "ARRIVAL" : session === "seminar" ? "SEMINAR" : "DAY3"}</dt>
+                    <div className="flex items-start justify-between gap-3" key={code}>
+                      <dt className="text-xs font-bold uppercase tracking-wide text-[#897657]">{sessionLabels[code]}</dt>
                       <dd className="text-right">
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${presenceClassName(attendance.checkedIn)}`}>
                           {presenceLabel(attendance.checkedIn)}
@@ -188,22 +198,22 @@ export function AttendanceBoard({
           <table className="min-w-[1000px] w-full text-left text-sm">
             <thead className="border-b border-[#e4d8c4] bg-[#fbf5e8] text-xs uppercase tracking-wide text-[#897657]">
               <tr>
+                <th className="px-4 py-3 font-semibold">Status Registrasi</th>
                 <th className="px-4 py-3 font-semibold">Registration ID</th>
                 <th className="px-4 py-3 font-semibold">Nama</th>
-                <th className="px-4 py-3 font-semibold">Status Registrasi</th>
-                {sessions.map(({ code }) => <th className="px-4 py-3 font-semibold" key={code}>{code}</th>)}
+                {OPERATIONAL_SESSION_CODES.map((code) => <th className="px-4 py-3 font-semibold" key={code}>{sessionLabels[code]}</th>)}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#eee6d8] text-[#344d68]">
               {visibleParticipants.map((participant) => (
                 <tr className="align-top" key={participant.registrationId}>
+                  <td className="px-4 py-4">{participant.registrationStatus === "REGISTERED" ? "ACTIVE" : "CANCELLED"}</td>
                   <td className="px-4 py-4 font-semibold text-[#9a7526]">{participant.registrationId}</td>
                   <td className="px-4 py-4 font-semibold text-[#142842]">{participant.fullName}</td>
-                  <td className="px-4 py-4">{participant.registrationStatus === "REGISTERED" ? "ACTIVE" : "CANCELLED"}</td>
-                  {(["arrival", "seminar", "day3"] as const).map((session) => {
-                    const attendance = participant[session];
+                  {OPERATIONAL_SESSION_CODES.map((code) => {
+                    const attendance = participant.attendanceBySession[code];
                     return (
-                      <td className="px-4 py-4" key={session}>
+                      <td className="px-4 py-4" key={code}>
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${presenceClassName(attendance.checkedIn)}`}>
                           {presenceLabel(attendance.checkedIn)}
                         </span>

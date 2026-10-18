@@ -86,9 +86,13 @@ const participant = {
   travel: null,
   arrivalAssignment: null,
   departureAssignment: null,
-  arrival: { checkedIn: false, checkedInAt: null },
-  seminar: { checkedIn: false, checkedInAt: null },
-  day3: { checkedIn: false, checkedInAt: null },
+  attendanceBySession: {
+    ARRIVAL: { checkedIn: false, checkedInAt: null },
+    DAY1_MEMBER_MEETING: { checkedIn: false, checkedInAt: null },
+    SEMINAR: { checkedIn: false, checkedInAt: null },
+    DAY2_AKKAI_NIGHT: { checkedIn: false, checkedInAt: null },
+    DAY3: { checkedIn: false, checkedInAt: null },
+  },
 };
 
 describe("RBAC parity", () => {

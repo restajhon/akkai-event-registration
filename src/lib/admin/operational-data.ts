@@ -1,8 +1,10 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { OPERATIONAL_SESSION_CODES, type OperationalSessionCode } from "./operational-sessions";
 
-export type OperationalSessionCode = "ARRIVAL" | "SEMINAR" | "DAY3";
+export { OPERATIONAL_SESSION_CODES } from "./operational-sessions";
+export type { OperationalSessionCode } from "./operational-sessions";
 
 export type OperationalAttendance = {
   checkedIn: boolean;
@@ -50,9 +52,7 @@ export type OperationalParticipant = {
   travel: OperationalTravel | null;
   arrivalAssignment: OperationalPickupAssignment | null;
   departureAssignment: OperationalPickupAssignment | null;
-  arrival: OperationalAttendance;
-  seminar: OperationalAttendance;
-  day3: OperationalAttendance;
+  attendanceBySession: Record<OperationalSessionCode, OperationalAttendance>;
 };
 
 type ParticipantRow = Pick<OperationalParticipant, "id" | "registrationId" | "fullName" | "packageType" | "registrationStatus">;
@@ -104,10 +104,20 @@ type AttendanceRow = {
 
 const participantSelect =
   "id, registration_id, full_name, package_type, registration_status";
-const sessionCodes: OperationalSessionCode[] = ["ARRIVAL", "SEMINAR", "DAY3"];
+const sessionCodes: OperationalSessionCode[] = [...OPERATIONAL_SESSION_CODES];
 
 function emptyAttendance(): OperationalAttendance {
   return { checkedIn: false, checkedInAt: null };
+}
+
+function emptyAttendanceBySession(): Record<OperationalSessionCode, OperationalAttendance> {
+  return {
+    ARRIVAL: emptyAttendance(),
+    DAY1_MEMBER_MEETING: emptyAttendance(),
+    SEMINAR: emptyAttendance(),
+    DAY2_AKKAI_NIGHT: emptyAttendance(),
+    DAY3: emptyAttendance(),
+  };
 }
 
 function toTravel(row: TravelRow): OperationalTravel {
@@ -243,22 +253,14 @@ export async function loadOperationalData(): Promise<OperationalParticipant[] | 
         continue;
       }
 
-      const current = attendance.get(row.participant_id) ?? {
-        ARRIVAL: emptyAttendance(),
-        SEMINAR: emptyAttendance(),
-        DAY3: emptyAttendance(),
-      };
+      const current = attendance.get(row.participant_id) ?? emptyAttendanceBySession();
       current[code] = { checkedIn: true, checkedInAt: row.check_in_time };
       attendance.set(row.participant_id, current);
     }
 
     return participants.map((participant) => {
       const pickupRows = pickup.get(participant.id) ?? [];
-      const attendanceRowsForParticipant = attendance.get(participant.id) ?? {
-        ARRIVAL: emptyAttendance(),
-        SEMINAR: emptyAttendance(),
-        DAY3: emptyAttendance(),
-      };
+      const attendanceRowsForParticipant = attendance.get(participant.id) ?? emptyAttendanceBySession();
 
       return {
         ...participant,
@@ -282,9 +284,7 @@ export async function loadOperationalData(): Promise<OperationalParticipant[] | 
           const row = pickupRows.find((item) => item.transfer_type === "DEPARTURE");
           return row ? toPickup(row) : null;
         })(),
-        arrival: attendanceRowsForParticipant.ARRIVAL,
-        seminar: attendanceRowsForParticipant.SEMINAR,
-        day3: attendanceRowsForParticipant.DAY3,
+        attendanceBySession: attendanceRowsForParticipant,
       } satisfies OperationalParticipant;
     });
   } catch {

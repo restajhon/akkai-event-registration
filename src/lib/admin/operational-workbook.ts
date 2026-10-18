@@ -1,6 +1,7 @@
 import * as XLSX from "@e965/xlsx";
 
 import type { OperationalParticipant } from "./operational-data";
+import { OPERATIONAL_SESSION_CODES } from "./operational-sessions";
 
 function registrationStatus(value: OperationalParticipant["registrationStatus"]) {
   return value === "REGISTERED" ? "ACTIVE" : "CANCELLED";
@@ -96,17 +97,27 @@ export function buildOperationalWorkbook(participants: OperationalParticipant[])
     Catatan: participant.roomAssignment?.notes ?? "",
     "Status Assignment": participant.roomAssignment?.roomNumber ? "Sudah di-assign" : "Belum di-assign",
   }));
-  const attendance = participants.map((participant) => ({
-    "Registration ID": participant.registrationId,
-    Nama: participant.fullName,
-    "Status Registrasi": registrationStatus(participant.registrationStatus),
-    ARRIVAL: attendanceStatus(participant.arrival.checkedIn),
-    "ARRIVAL Check-in": readableDateTime(participant.arrival.checkedInAt),
-    SEMINAR: attendanceStatus(participant.seminar.checkedIn),
-    "SEMINAR Check-in": readableDateTime(participant.seminar.checkedInAt),
-    DAY3: attendanceStatus(participant.day3.checkedIn),
-    "DAY3 Check-in": readableDateTime(participant.day3.checkedInAt),
-  }));
+  const attendance = participants.map((participant) => {
+    const row: Record<string, string> = {
+      "Status Registrasi": registrationStatus(participant.registrationStatus),
+      "Registration ID": participant.registrationId,
+      Nama: participant.fullName,
+    };
+
+    for (const code of OPERATIONAL_SESSION_CODES) {
+      const sessionAttendance = participant.attendanceBySession[code];
+      row[code] = attendanceStatus(sessionAttendance.checkedIn);
+      row[`${code} Check-in`] = readableDateTime(sessionAttendance.checkedInAt);
+    }
+
+    return row;
+  });
+  const attendanceHeaders = [
+    "Status Registrasi",
+    "Registration ID",
+    "Nama",
+    ...OPERATIONAL_SESSION_CODES.flatMap((code) => [code, `${code} Check-in`]),
+  ];
 
   XLSX.utils.book_append_sheet(
     workbook,
@@ -135,7 +146,7 @@ export function buildOperationalWorkbook(participants: OperationalParticipant[])
   XLSX.utils.book_append_sheet(
     workbook,
     worksheet(
-      ["Registration ID", "Nama", "Status Registrasi", "ARRIVAL", "ARRIVAL Check-in", "SEMINAR", "SEMINAR Check-in", "DAY3", "DAY3 Check-in"],
+      attendanceHeaders,
       attendance,
     ),
     "Kehadiran",
