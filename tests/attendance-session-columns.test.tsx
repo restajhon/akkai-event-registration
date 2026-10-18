@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { AttendanceBoard } from "@/app/admin/(protected)/(admin-shell)/attendance/attendance-board";
+import { ATTENDANCE_SESSIONS } from "@/lib/admin/attendance-sessions";
 import { buildOperationalWorkbook } from "@/lib/admin/operational-workbook";
 import type { OperationalParticipant } from "@/lib/admin/operational-data";
 import { OPERATIONAL_SESSION_CODES } from "@/lib/admin/operational-sessions";
@@ -84,5 +85,26 @@ describe("attendance session columns", () => {
       "Hadir",
       "",
     ]);
+  });
+
+  it("shows five session downloads alongside the combined workbook download", () => {
+    const permitted = renderToStaticMarkup(
+      <AttendanceBoard canExportAttendance participants={[participant]} />,
+    );
+    const restricted = renderToStaticMarkup(
+      <AttendanceBoard canExportAttendance={false} participants={[participant]} />,
+    );
+
+    expect(permitted).toContain("Unduh workbook Excel");
+    expect(permitted).toContain('href="/api/admin/operational-export"');
+    for (const session of ATTENDANCE_SESSIONS) {
+      expect(permitted).toContain(session.downloadLabel);
+      expect(permitted).toContain(`download="${session.exportFilename}"`);
+      expect(permitted).toContain(
+        `href="/api/admin/attendance-export?sessionCode=${session.code}"`,
+      );
+    }
+    expect(restricted).not.toContain("/api/admin/attendance-export");
+    expect(restricted).not.toContain("/api/admin/operational-export");
   });
 });

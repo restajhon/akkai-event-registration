@@ -1,7 +1,8 @@
 import * as XLSX from "@e965/xlsx";
 
+import { getAttendanceSession } from "./attendance-sessions";
 import type { OperationalParticipant } from "./operational-data";
-import { OPERATIONAL_SESSION_CODES } from "./operational-sessions";
+import { OPERATIONAL_SESSION_CODES, type OperationalSessionCode } from "./operational-sessions";
 
 function registrationStatus(value: OperationalParticipant["registrationStatus"]) {
   return value === "REGISTERED" ? "ACTIVE" : "CANCELLED";
@@ -152,5 +153,34 @@ export function buildOperationalWorkbook(participants: OperationalParticipant[])
     "Kehadiran",
   );
 
+  return workbook;
+}
+
+export function buildAttendanceSessionWorkbook(
+  participants: OperationalParticipant[],
+  sessionCode: OperationalSessionCode,
+) {
+  const session = getAttendanceSession(sessionCode);
+  const headers = [
+    "Registration ID",
+    "Nama",
+    "Status Registrasi",
+    session.exportLabel,
+    `${session.exportLabel} Check-in`,
+  ];
+  const rows = participants.map((participant) => {
+    const attendance = participant.attendanceBySession[sessionCode];
+
+    return {
+      "Registration ID": participant.registrationId,
+      Nama: participant.fullName,
+      "Status Registrasi": registrationStatus(participant.registrationStatus),
+      [session.exportLabel]: attendanceStatus(attendance.checkedIn),
+      [`${session.exportLabel} Check-in`]: readableDateTime(attendance.checkedInAt),
+    };
+  });
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(workbook, worksheet(headers, rows), "Kehadiran");
   return workbook;
 }

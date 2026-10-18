@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 
-import { AdminMetricCard } from "@/components/admin/admin-ui";
+import { AdminDownloadButton, AdminMetricCard } from "@/components/admin/admin-ui";
+import { ATTENDANCE_SESSIONS } from "@/lib/admin/attendance-sessions";
 import type { OperationalParticipant } from "@/lib/admin/operational-data";
 import { OPERATIONAL_SESSION_CODES, type OperationalSessionCode } from "@/lib/admin/operational-sessions";
 
@@ -99,13 +100,25 @@ export function AttendanceBoard({
             <p className="mt-1 text-sm text-[#5b6c7c]">Ringkasan check-in peserta pada tiga sesi operasional acara.</p>
           </div>
           {canExportAttendance ? (
-            <a
-              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#142842] px-4 text-sm font-semibold text-white hover:bg-[#203d5d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]"
-              download="AKKAI-2026-Operational.xlsx"
-              href="/api/admin/operational-export"
-            >
-              Unduh workbook Excel
-            </a>
+            <div className="flex max-w-[900px] flex-wrap justify-end gap-2">
+              <AdminDownloadButton
+                download="AKKAI-2026-Operational.xlsx"
+                href="/api/admin/operational-export"
+              >
+                Unduh workbook Excel
+              </AdminDownloadButton>
+              {ATTENDANCE_SESSIONS.map(({ code, downloadLabel, exportFilename }) => (
+                <a
+                  aria-label={downloadLabel}
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#b99a5a] px-4 text-sm font-semibold text-[#6d531e] hover:bg-[#fbf5e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9a7526]"
+                  download={exportFilename}
+                  href={`/api/admin/attendance-export?sessionCode=${code}`}
+                  key={code}
+                >
+                  {downloadLabel}
+                </a>
+              ))}
+            </div>
           ) : null}
         </header>
 
