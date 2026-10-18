@@ -13,6 +13,8 @@ export const participantCheckInEventSchema = z
         fullName: z.string().min(1),
         institution: z.string().min(1).nullable(),
         participantCategory: z.string().min(1).nullable(),
+        poloModel: z.string().nullable().optional(),
+        poloSize: z.string().nullable().optional(),
       })
       .strict(),
     session: z
