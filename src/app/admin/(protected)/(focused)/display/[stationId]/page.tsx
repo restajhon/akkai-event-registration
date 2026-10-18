@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { z } from "zod";
 
+import { ARRIVAL_SESSION_CODE } from "@/lib/admin/attendance-sessions";
 import { requirePermission } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -56,6 +57,8 @@ type ParticipantRow = {
   full_name: string;
   institution: string | null;
   participant_category: string | null;
+  polo_model?: string | null;
+  polo_size?: string | null;
 };
 
 type DisplayData = {
@@ -79,6 +82,11 @@ function mapDisplayStatus(status: DatabaseScanStatus): LiveDisplayEvent["status"
     case "ALREADY_CHECKED_IN":
       return "already-checked-in";
   }
+}
+
+function normalizedPoloValue(value: string | null | undefined) {
+  const normalizedValue = value?.trim();
+  return normalizedValue || undefined;
 }
 
 async function loadDisplayData(stationId: string): Promise<DisplayData | null> {
@@ -152,11 +160,13 @@ async function loadDisplayData(stationId: string): Promise<DisplayData | null> {
     }
 
     const scanEventRow = scanEvent as ScanEventRow;
+    const participantColumns =
+      sessionRow.code === ARRIVAL_SESSION_CODE
+        ? "registration_id, full_name, institution, participant_category, polo_model, polo_size"
+        : "registration_id, full_name, institution, participant_category";
     const { data: participant, error: participantError } = await adminSupabase
       .from("participants")
-      .select(
-        "registration_id, full_name, institution, participant_category",
-      )
+      .select(participantColumns)
       .eq("id", scanEventRow.participant_id)
       .maybeSingle();
 
@@ -164,7 +174,9 @@ async function loadDisplayData(stationId: string): Promise<DisplayData | null> {
       return null;
     }
 
-    const participantRow = participant as ParticipantRow;
+    const participantRow = participant as unknown as ParticipantRow;
+    const poloModel = normalizedPoloValue(participantRow.polo_model);
+    const poloSize = normalizedPoloValue(participantRow.polo_size);
 
     return {
       station: stationRow,
@@ -176,6 +188,12 @@ async function loadDisplayData(stationId: string): Promise<DisplayData | null> {
           fullName: participantRow.full_name,
           institution: participantRow.institution,
           participantCategory: participantRow.participant_category,
+          ...(sessionRow.code === ARRIVAL_SESSION_CODE
+            ? {
+                ...(poloModel ? { poloModel } : {}),
+                ...(poloSize ? { poloSize } : {}),
+              }
+            : {}),
         },
         session: {
           code: sessionRow.code,

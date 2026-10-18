@@ -1,5 +1,7 @@
 import * as XLSX from "@e965/xlsx";
+import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
 
 const mocks = vi.hoisted(() => ({
   authorizePermission: vi.fn(),
@@ -11,6 +13,7 @@ vi.mock("@/lib/auth/server", () => ({ authorizePermission: mocks.authorizePermis
 vi.mock("@/lib/admin/operational-data", () => ({ loadOperationalData: mocks.loadOperationalData }));
 
 import { GET } from "@/app/api/admin/attendance-export/route";
+import { AttendanceBoard } from "@/app/admin/(protected)/(admin-shell)/attendance/attendance-board";
 import type {
   OperationalAttendance,
   OperationalParticipant,
@@ -75,20 +78,45 @@ function makeSessionParticipant(
 }
 
 const sessionParticipants = ATTENDANCE_SESSIONS.map(makeSessionParticipant);
+const expectedAttendanceOrder = [
+  "ARRIVAL",
+  "DAY1_MEMBER_MEETING",
+  "SEMINAR",
+  "DAY2_AKKAI_NIGHT",
+  "DAY3",
+] as const;
 
 describe("separate attendance session exports", () => {
-  it("keeps the combined attendance workbook with all five session columns", () => {
+  it("keeps the combined workbook and board ordered across all five sessions", () => {
     const workbook = buildOperationalWorkbook([participant]);
     const attendanceSheet = workbook.Sheets.Kehadiran;
     const headers = XLSX.utils.sheet_to_json<string[]>(attendanceSheet, { header: 1 })[0];
+    const sessionHeaders = ATTENDANCE_SESSIONS.flatMap(({ summaryLabel }) => [
+      summaryLabel,
+      `${summaryLabel} Check-in`,
+    ]);
 
-    expect(headers).toEqual(expect.arrayContaining([
-      "ARRIVAL",
-      "SEMINAR",
-      "DAY3",
-      "Day 1 — Rapat Anggota",
-      "Day 2 — Akkai Night",
-    ]));
+    expect(ATTENDANCE_SESSIONS.map(({ code }) => code)).toEqual(expectedAttendanceOrder);
+    expect(headers).toEqual([
+      "Registration ID",
+      "Nama",
+      "Status Registrasi",
+      ...sessionHeaders,
+    ]);
+  });
+
+  it("renders five separate session downloads and the combined workbook download", () => {
+    const markup = renderToStaticMarkup(
+      createElement(AttendanceBoard, {
+        canExportAttendance: true,
+        participants: [participant],
+      }),
+    );
+    const sessionCodes = [...markup.matchAll(/href="\/api\/admin\/attendance-export\?sessionCode=([A-Z0-9_]+)"/g)]
+      .map((match) => match[1]);
+
+    expect(markup).toContain('href="/api/admin/operational-export"');
+    expect(sessionCodes).toEqual(expectedAttendanceOrder);
   });
 
   it.each(ATTENDANCE_SESSIONS)("exports $code independently", async (session) => {

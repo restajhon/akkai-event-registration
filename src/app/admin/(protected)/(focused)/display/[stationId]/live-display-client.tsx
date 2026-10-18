@@ -8,6 +8,7 @@ import {
   participantCheckInEventSchema,
   type ParticipantCheckInEvent,
 } from "@/lib/realtime/participant-check-in-event";
+import { ARRIVAL_SESSION_CODE } from "@/lib/admin/attendance-sessions";
 import { createClient } from "@/lib/supabase/client";
 import { getStationDisplayRealtimeTopic } from "@/lib/realtime/topics";
 
@@ -128,9 +129,12 @@ function ConnectionStatus({ status }: { status: ConnectionStatus }) {
   );
 }
 
-function EventDetails({ event }: { event: LiveDisplayEvent }) {
+export function EventDetails({ event }: { event: LiveDisplayEvent }) {
   const theme = eventTheme(event.status);
   const isAlreadyCheckedIn = event.status === "already-checked-in";
+  const isArrival = event.session.code === ARRIVAL_SESSION_CODE;
+  const poloModel = isArrival ? event.participant.poloModel?.trim() : undefined;
+  const poloSize = isArrival ? event.participant.poloSize?.trim() : undefined;
 
   return (
     <section
@@ -158,6 +162,34 @@ function EventDetails({ event }: { event: LiveDisplayEvent }) {
         ) : null}
          <span className="break-words">{event.participant.participantCategory ?? "-"}</span>
       </div>
+
+      {poloModel || poloSize ? (
+        <dl
+          aria-label="Informasi polo peserta"
+          className="mt-7 flex max-w-[min(90vw,1100px)] flex-wrap justify-center gap-3"
+        >
+          {poloModel ? (
+            <div className="min-w-40 rounded-xl border border-[#d9ad45]/35 bg-white/5 px-5 py-3">
+              <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-[#d9ad45] sm:text-sm">
+                Model polo
+              </dt>
+              <dd className="mt-1 text-[clamp(1.1rem,1.7vw,1.7rem)] font-semibold text-[#fffdf8]">
+                {poloModel}
+              </dd>
+            </div>
+          ) : null}
+          {poloSize ? (
+            <div className="min-w-40 rounded-xl border border-[#d9ad45]/35 bg-white/5 px-5 py-3">
+              <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-[#d9ad45] sm:text-sm">
+                Ukuran polo
+              </dt>
+              <dd className="mt-1 text-[clamp(1.1rem,1.7vw,1.7rem)] font-semibold text-[#fffdf8]">
+                {poloSize}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+      ) : null}
 
       <div className="mt-12 w-full max-w-[min(90vw,1100px)] border-t border-white/15 pt-6 sm:mt-16 sm:pt-8">
         <p className={`text-[clamp(1rem,1.5vw,1.6rem)] font-semibold ${theme.confirmation}`}>

@@ -1,27 +1,13 @@
+export const ARRIVAL_SESSION_CODE = "ARRIVAL" as const;
+
 export const ATTENDANCE_SESSIONS = [
   {
-    code: "ARRIVAL",
+    code: ARRIVAL_SESSION_CODE,
     label: "Registrasi Kedatangan",
     summaryLabel: "ARRIVAL",
     key: "arrival",
     downloadLabel: "Unduh Arrival — Registrasi Kedatangan",
     exportFilename: "AKKAI-2026-Arrival-Registrasi-Kedatangan.xlsx",
-  },
-  {
-    code: "SEMINAR",
-    label: "Seminar AKKAI 2026",
-    summaryLabel: "SEMINAR",
-    key: "seminar",
-    downloadLabel: "Unduh Seminar AKKAI 2026",
-    exportFilename: "AKKAI-2026-Seminar.xlsx",
-  },
-  {
-    code: "DAY3",
-    label: "Registrasi Kepulangan",
-    summaryLabel: "DAY3",
-    key: "day3",
-    downloadLabel: "Unduh Registrasi Kepulangan — Day 3",
-    exportFilename: "AKKAI-2026-Day-3-Registrasi-Kepulangan.xlsx",
   },
   {
     code: "DAY1_MEMBER_MEETING",
@@ -32,12 +18,28 @@ export const ATTENDANCE_SESSIONS = [
     exportFilename: "AKKAI-2026-Day-1-Rapat-Anggota.xlsx",
   },
   {
+    code: "SEMINAR",
+    label: "Seminar AKKAI 2026",
+    summaryLabel: "SEMINAR",
+    key: "seminar",
+    downloadLabel: "Unduh Seminar AKKAI 2026",
+    exportFilename: "AKKAI-2026-Seminar.xlsx",
+  },
+  {
     code: "DAY2_AKKAI_NIGHT",
     label: "Day 2 — Akkai Night",
     summaryLabel: "Day 2 — Akkai Night",
     key: "day2AkkaiNight",
     downloadLabel: "Unduh Day 2 — Akkai Night",
     exportFilename: "AKKAI-2026-Day-2-Akkai-Night.xlsx",
+  },
+  {
+    code: "DAY3",
+    label: "Registrasi Kepulangan",
+    summaryLabel: "DAY3",
+    key: "day3",
+    downloadLabel: "Unduh Registrasi Kepulangan — Day 3",
+    exportFilename: "AKKAI-2026-Day-3-Registrasi-Kepulangan.xlsx",
   },
 ] as const;
 
