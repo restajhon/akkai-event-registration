@@ -4,6 +4,10 @@ export type RegistrationDiagnosticStage =
   | "upload-intent"
   | "storage-upload"
   | "rpc-v5"
+  | "rpc-v6"
+  | "rpc-v7"
+  | "rpc-v8"
+  | "collective-batch"
   | "billing"
   | "registration-email"
   | "billing-email";
@@ -15,6 +19,9 @@ export type RegistrationDiagnosticDetails = {
   statusCode?: unknown;
   errorType?: unknown;
   errorCode?: unknown;
+  sqlState?: unknown;
+  functionName?: unknown;
+  details?: unknown;
   message?: unknown;
 };
 
@@ -37,9 +44,39 @@ function sanitizeMessage(message: string) {
     .replace(/\bbearer\s+[^\s,;]+/gi, "Bearer [redacted-credential]")
     .replace(/\bcertificates[\\/][^\s,)'"`]+/gi, "[redacted-storage-path]")
     .replace(/\b(?:eyJ|sb_|re_)[A-Za-z0-9._-]+/g, "[redacted-secret]")
+    .replace(/\bKey \(([^)]*)\)=\(([^)]*)\)/gi, "Key ($1)=([redacted-value])")
+    .replace(/'[^']*'/g, "'[redacted-value]'")
     .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, "[redacted-uuid]")
     .replace(/\/[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)+/g, "[redacted-path]")
     .slice(0, 500);
+}
+
+function getSqlState(value: unknown) {
+  return typeof value === "string" && /^[0-9A-Z]{5}$/.test(value)
+    ? value
+    : null;
+}
+
+function getRegistrationFunctionName(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const match = value.match(
+      /\b(create_participant_with_registration_reservation_v[45678])\b/i,
+    );
+    if (match) return match[1].toLowerCase();
+  }
+  return null;
+}
+
+function getSafeDetails(value: unknown) {
+  if (typeof value !== "string") return null;
+
+  const safeKnownDetails = [
+    "It could refer to either a PL/pgSQL variable or a table column.",
+  ];
+  const normalized = value.trim();
+  if (safeKnownDetails.includes(normalized)) return normalized;
+  return sanitizeMessage(normalized);
 }
 
 function getSafeStatusCode(value: unknown) {
@@ -90,6 +127,9 @@ export function getRegistrationDiagnosticError(
             ? String(providerError)
             : "unknown error";
   const code = record?.errorCode ?? record?.code;
+  const sqlState = getSqlState(record?.code ?? record?.sqlState);
+  const details = record?.details ?? record?.detail;
+  const hint = record?.hint;
   const errorType =
     providerError instanceof Error
       ? providerError.name
@@ -102,6 +142,14 @@ export function getRegistrationDiagnosticError(
     statusCode: getStatusCode(record),
     errorType,
     errorCode: typeof code === "string" ? sanitizeMessage(code) : null,
+    sqlState,
+    functionName: getRegistrationFunctionName(
+      record?.message,
+      details,
+      hint,
+      record?.context,
+    ),
+    details: getSafeDetails(details),
     message: sanitizeMessage(message),
   };
 }
@@ -118,6 +166,16 @@ export function logRegistrationStageDetails(
   stage: RegistrationDiagnosticStage,
   details: RegistrationDiagnosticDetails,
 ) {
+  const functionName =
+    getRegistrationFunctionName(details.functionName) ??
+    (stage === "rpc-v6"
+      ? "create_participant_with_registration_reservation_v6"
+      : stage === "rpc-v7"
+        ? "create_participant_with_registration_reservation_v7"
+        : stage === "rpc-v8"
+          ? "create_participant_with_registration_reservation_v8"
+          : null);
+
   console.error("Registration stage failed", {
     stage,
     provider:
@@ -128,6 +186,10 @@ export function logRegistrationStageDetails(
       details.errorCode == null
         ? null
         : sanitizeMessage(String(details.errorCode)),
+    sqlState: getSqlState(details.sqlState),
+    functionName,
+    details:
+      details.details == null ? null : getSafeDetails(String(details.details)),
     message: sanitizeMessage(String(details.message ?? "unknown error")),
   });
 }

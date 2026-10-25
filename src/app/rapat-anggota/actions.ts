@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { loadPublishedEventForm } from "@/lib/tenant/public-events";
 import { participantEmailSchema } from "@/lib/validation/email";
 import { consumeMemberMeetingRateLimit } from "@/lib/member-meeting/member-meeting-rate-limit";
 import { MEMBER_MEETING_BUCKET } from "@/lib/member-meeting/storage";
@@ -22,6 +23,14 @@ const RATE_LIMIT_ERROR =
   "Terlalu banyak percobaan. Silakan coba kembali beberapa saat lagi.";
 const UPLOAD_ERROR =
   "Surat Kuasa belum dapat diunggah. Silakan coba kembali.";
+
+async function createMemberMeetingAdminClient() {
+  const event = await loadPublishedEventForm("akkai-2026");
+  if (!event || event.eventCode !== "AKKAI26") {
+    throw new Error("AKKAI member meeting event is unavailable.");
+  }
+  return createAdminClient({ scope: "public-event", eventId: event.eventId });
+}
 
 type UploadPreparationState =
   | {
@@ -155,7 +164,7 @@ export async function prepareMemberMeetingUpload(
   const email = parsedEmail.data;
 
   try {
-    const supabase = createAdminClient();
+    const supabase = await createMemberMeetingAdminClient();
     const rateLimitResult = await consumeMemberMeetingRateLimit(supabase, email);
 
     if (rateLimitResult === "limited") {
@@ -210,7 +219,7 @@ export async function cancelMemberMeetingUpload(intentId: string) {
   }
 
   try {
-    await cleanupUploadIntent(createAdminClient(), intentId);
+    await cleanupUploadIntent(await createMemberMeetingAdminClient(), intentId);
   } catch {
     // Cleanup is best effort; the intent expiry prevents indefinite reuse.
   }
@@ -236,7 +245,7 @@ export async function submitMemberMeeting(
   if (!details.success) {
     if (intentId) {
       try {
-        await cleanupUploadIntent(createAdminClient(), intentId);
+        await cleanupUploadIntent(await createMemberMeetingAdminClient(), intentId);
       } catch {
         // Preserve the validation response if cleanup also fails.
       }
@@ -253,7 +262,7 @@ export async function submitMemberMeeting(
   let submissionId: string | null = null;
 
   try {
-    const supabase = createAdminClient();
+    const supabase = await createMemberMeetingAdminClient();
 
     if (details.data.attendance_type === "SELF") {
       const rateLimitResult = await consumeMemberMeetingRateLimit(
@@ -373,9 +382,9 @@ export async function submitMemberMeeting(
   } catch {
     if (intent) {
       try {
-        await cleanupUploadIntent(createAdminClient(), intent.id, intent.storage_path);
+        await cleanupUploadIntent(await createMemberMeetingAdminClient(), intent.id, intent.storage_path);
         if (submissionId) {
-          await createAdminClient()
+          await (await createMemberMeetingAdminClient())
             .from("member_meeting_submissions")
             .delete()
             .eq("id", submissionId);

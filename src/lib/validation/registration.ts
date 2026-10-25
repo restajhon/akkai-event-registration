@@ -177,6 +177,7 @@ const travelSchema = z.object({
 export const collectiveParticipantSchema = z
   .object({
     ...registrationSchema.shape,
+    form_answers: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
     certificate_file: z.custom<File | null | undefined>(
       (value) => value === undefined || value === null || (typeof File !== "undefined" && value instanceof File),
     ).optional(),
@@ -217,6 +218,8 @@ export type NormalizedCollectiveParticipantData = z.output<
 
 export const collectiveRegistrationPayloadSchema = z.object({
   idempotency_key: z.string().uuid(),
+  event_id: z.string().uuid(),
+  form_version_id: z.string().uuid(),
   participants: z.array(collectiveParticipantSchema).min(1).max(100),
 });
 

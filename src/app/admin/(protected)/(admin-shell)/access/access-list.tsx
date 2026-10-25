@@ -48,7 +48,7 @@ export function AccessList({ profiles }: { profiles: AccessProfile[] }) {
             Akses Pengguna
           </h1>
           <p className="mt-1 text-sm text-[#5b6c7c]">
-            Atur peran dan status akun admin AKKAI 2026.
+            Atur role global Super Admin dan status akun. Akses event untuk role lain diatur melalui membership perusahaan; perubahan di halaman ini tidak mengubah membership.
           </p>
         </header>
 

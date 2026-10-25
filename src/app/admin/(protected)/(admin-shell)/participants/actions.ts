@@ -17,8 +17,9 @@ import {
   getEmailCorrectionFieldErrors,
 } from "@/lib/validation/email";
 import { participantEditDataSchema } from "@/lib/validation/participant-edit";
+import { resolveActiveTenantContext } from "@/lib/tenant/server-context";
 
-const registrationIdSchema = z.string().regex(/^AKKAI26-[0-9]{6}$/);
+const registrationIdSchema = z.string().regex(/^[A-Z0-9]{2,16}-[0-9]{6}$/);
 const STALE_PENDING_WINDOW_MS = 15 * 60 * 1000;
 
 type ParticipantEmailRow = {
@@ -448,6 +449,7 @@ export async function resendRegistrationQr(
   const registrationId = parsedRegistrationId.data;
 
   try {
+    const activeEvent = await resolveActiveTenantContext();
     const supabase = createAdminClient();
     const { data: participant, error: participantError } = await supabase
       .from("participants")
@@ -580,6 +582,7 @@ export async function resendRegistrationQr(
       attendsPaiCongress: participantRow.attends_pai_congress,
       qrPngBuffer,
       idempotencyKey,
+      eventName: activeEvent?.eventCode === "AKKAI26" ? undefined : activeEvent?.eventName,
     });
 
     if (!emailResult.success) {

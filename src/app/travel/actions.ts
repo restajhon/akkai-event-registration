@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { loadPublishedEventForm } from "@/lib/tenant/public-events";
 import {
   consumeTravelRateLimit,
 } from "@/lib/travel/travel-rate-limit";
@@ -85,7 +86,9 @@ export async function submitTravel(
   }
 
   try {
-    const supabase = createAdminClient();
+    const event = await loadPublishedEventForm("akkai-2026");
+    if (!event) return errorState("general-error", GENERAL_ERROR);
+    const supabase = createAdminClient({ scope: "public-event", eventId: event.eventId });
     const rateLimitResult = await consumeTravelRateLimit(
       supabase,
       parsed.data.registration_id,

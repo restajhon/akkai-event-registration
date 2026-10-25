@@ -2,18 +2,20 @@
 
 import { useState } from "react";
 
+import type { PublishedEventForm } from "@/lib/tenant/public-events";
+
 import { CollectiveRegistrationForm } from "./collective-registration-form";
-import { RegistrationForm } from "./registration-form";
+import { PublishedRegistrationForm } from "./published-registration-form";
 import styles from "./registration.module.css";
 
-export function RegistrationFlow() {
+export function RegistrationFlow({ publishedForm }: { publishedForm: PublishedEventForm }) {
   const [mode, setMode] = useState<"single" | "collective" | null>(null);
 
   if (mode === "single") {
     return (
       <div>
         <button className={styles.modeBack} onClick={() => setMode(null)} type="button">&larr; Ubah jenis pendaftaran</button>
-        <RegistrationForm />
+        <PublishedRegistrationForm publishedForm={publishedForm} />
       </div>
     );
   }
@@ -22,7 +24,7 @@ export function RegistrationFlow() {
     return (
       <div>
         <button className={styles.modeBack} onClick={() => setMode(null)} type="button">&larr; Ubah jenis pendaftaran</button>
-        <CollectiveRegistrationForm />
+        <CollectiveRegistrationForm publishedForm={publishedForm} />
       </div>
     );
   }

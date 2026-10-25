@@ -1,6 +1,7 @@
 import * as XLSX from "@e965/xlsx";
 
 import type { PickupParticipant, RoomParticipant } from "./assignment-types";
+import type { RegistrationFormAnswer } from "./form-answer-data";
 import { getEffectivePickupPoint } from "./pickup-mapping";
 
 type AttendanceExportValue = { status: string; time: string; method: string; operator: string };
@@ -74,6 +75,7 @@ export type ParticipantExportRow = {
   privacyConsentAt: string;
   createdAt: string;
   updatedAt: string;
+  formAnswers: RegistrationFormAnswer[];
 };
 
 function registrationStatus(value: ParticipantExportRow["registrationStatus"]) {
@@ -89,6 +91,16 @@ function worksheet(headers: string[], rows: Array<Record<string, string | number
     headers,
     ...rows.map((row) => headers.map((header) => row[header] ?? "")),
   ]);
+}
+
+function formAnswerRows(participants: Array<{ registrationId: string; formAnswers: RegistrationFormAnswer[] }>) {
+  return participants.flatMap((participant) => participant.formAnswers.map((answer) => ({
+    "Registration ID": participant.registrationId,
+    "Versi Form": answer.versionNumber,
+    Key: answer.key,
+    Pertanyaan: answer.label,
+    Jawaban: answer.value,
+  })));
 }
 
 function sizeLabel(value: number | null) {
@@ -190,6 +202,18 @@ export function buildParticipantWorkbook(rows: ParticipantExportRow[]) {
   }));
 
   XLSX.utils.book_append_sheet(workbook, worksheet(headers, values), "Peserta");
+  const answerRows = rows.flatMap((row) => row.formAnswers.map((answer) => ({
+    "Registration ID": row.registrationId,
+    "Versi Form": answer.versionNumber,
+    Key: answer.key,
+    Pertanyaan: answer.label,
+    Jawaban: answer.value,
+  })));
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet(["Registration ID", "Versi Form", "Key", "Pertanyaan", "Jawaban"], answerRows),
+    "Jawaban Tambahan",
+  );
   return workbook;
 }
 
@@ -230,6 +254,11 @@ export function buildRoomAssignmentWorkbook(participants: RoomParticipant[]) {
     "Assignment Status": participant.assignment?.roomNumber ? "Sudah di-assign" : "Belum di-assign",
   }));
   XLSX.utils.book_append_sheet(workbook, worksheet(headers, rows), "Room Assignment");
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet(["Registration ID", "Versi Form", "Key", "Pertanyaan", "Jawaban"], formAnswerRows(participants)),
+    "Jawaban Tambahan",
+  );
   return workbook;
 }
 
@@ -239,5 +268,10 @@ export function buildPickupAssignmentWorkbook(participants: PickupParticipant[])
   const departureHeaders = ["Registration ID", "Nama", "Travel context", "Titik Antar", "Kendaraan", "Catatan", "Assignment Status"];
   XLSX.utils.book_append_sheet(workbook, worksheet(arrivalHeaders, pickupRows(participants, "ARRIVAL")), "Pickup Kedatangan");
   XLSX.utils.book_append_sheet(workbook, worksheet(departureHeaders, pickupRows(participants, "DEPARTURE")), "Pickup Kepulangan");
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet(["Registration ID", "Versi Form", "Key", "Pertanyaan", "Jawaban"], formAnswerRows(participants)),
+    "Jawaban Tambahan",
+  );
   return workbook;
 }

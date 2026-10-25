@@ -22,6 +22,7 @@ function exportRow(registrationId: string): ParticipantExportRow {
     seminarAttendance: { status: "", time: "", method: "", operator: "" }, day3Attendance: { status: "", time: "", method: "", operator: "" },
     emailStatus: "SENT", emailLastSentAt: "", latestEmailStatus: "SENT", latestEmailAt: "", billingEmailStatus: "SENT",
     billingEmailSentAt: "", privacyConsentAt: "", createdAt: "", updatedAt: "",
+    formAnswers: [{ key: "diet", label: "Preferensi makanan", value: "Vegan", versionNumber: 2 }],
   };
 }
 
@@ -33,5 +34,7 @@ describe("participant export with shared email", () => {
     expect(registrationIds).toEqual(["AKKAI26-000048", "AKKAI26-000049"]);
     expect(rows.slice(1).map((row) => row[6])).toEqual(["admin@example.com", "admin@example.com"]);
     expect(JSON.stringify(rows)).not.toContain("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    const answerRows = XLSX.utils.sheet_to_json(workbook.Sheets["Jawaban Tambahan"], { header: 1 }) as string[][];
+    expect(answerRows).toContainEqual(["AKKAI26-000048", 2, "diet", "Preferensi makanan", "Vegan"]);
   });
 });

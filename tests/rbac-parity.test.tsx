@@ -41,6 +41,9 @@ const allPermissions = [
   "display.view",
   "display.manage",
   "member_meetings.view",
+  "member_meetings.manage",
+  "forms.view",
+  "forms.manage",
   "access.manage",
 ] as const;
 
@@ -54,6 +57,7 @@ const expectedPermissions: Record<UserRole, readonly string[]> = {
     "participants.email",
     "participants.export",
     "attendance.view",
+    "forms.view",
   ],
   OPERATIONAL: [
     "dashboard.view",
@@ -71,6 +75,7 @@ const expectedPermissions: Record<UserRole, readonly string[]> = {
     "attendance.view",
     "attendance.export",
     "member_meetings.view",
+    "forms.view",
   ],
   SCANNER: ["scanner.pair", "scanner.checkin", "display.view"],
   OPERATOR: ["scanner.pair", "scanner.checkin", "display.view"],

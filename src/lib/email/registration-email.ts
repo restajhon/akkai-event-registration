@@ -36,6 +36,8 @@ type SendRegistrationEmailInput = {
   attendsPaiCongress: boolean | null;
   qrPngBuffer: Buffer;
   idempotencyKey: string;
+  eventName?: string;
+  eventDateRange?: string | null;
 };
 
 export async function sendRegistrationEmail({
@@ -48,6 +50,8 @@ export async function sendRegistrationEmail({
   attendsPaiCongress,
   qrPngBuffer,
   idempotencyKey,
+  eventName,
+  eventDateRange,
 }: SendRegistrationEmailInput): Promise<RegistrationEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL;
@@ -73,6 +77,8 @@ export async function sendRegistrationEmail({
       participationScope,
       actuarialConsultantStatus,
       attendsPaiCongress,
+      eventName,
+      eventDateRange,
     });
     const resend = new Resend(apiKey);
     const { data, error } = await resend.emails.send(

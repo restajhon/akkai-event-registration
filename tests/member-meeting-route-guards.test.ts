@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createAdminClient: vi.fn(),
-  getCurrentUserProfile: vi.fn(),
+  authorizePermission: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/auth/server", () => ({
-  getCurrentUserProfile: mocks.getCurrentUserProfile,
+  authorizePermission: mocks.authorizePermission,
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -19,12 +19,12 @@ import { GET } from "@/app/api/admin/member-meetings/[id]/authorization/route";
 
 beforeEach(() => {
   mocks.createAdminClient.mockReset();
-  mocks.getCurrentUserProfile.mockReset();
+  mocks.authorizePermission.mockReset();
 });
 
 describe("member meeting authorization route", () => {
   it("rejects unauthenticated requests", async () => {
-    mocks.getCurrentUserProfile.mockResolvedValue(null);
+    mocks.authorizePermission.mockResolvedValue({ authorized: false, status: 401, profile: null });
 
     const response = await GET(new Request("http://localhost"), {
       params: Promise.resolve({ id: "00000000-0000-4000-8000-000000000001" }),
@@ -35,13 +35,7 @@ describe("member meeting authorization route", () => {
   });
 
   it("rejects OPERATIONAL requests", async () => {
-    mocks.getCurrentUserProfile.mockResolvedValue({
-      id: "profile-1",
-      full_name: "Operational",
-      email: "operational@example.com",
-      role: "OPERATIONAL",
-      is_active: true,
-    });
+    mocks.authorizePermission.mockResolvedValue({ authorized: false, status: 403, profile: null });
 
     const response = await GET(new Request("http://localhost"), {
       params: Promise.resolve({ id: "00000000-0000-4000-8000-000000000001" }),
@@ -52,12 +46,17 @@ describe("member meeting authorization route", () => {
   });
 
   it("allows the existing ADMIN role to continue to the data check", async () => {
-    mocks.getCurrentUserProfile.mockResolvedValue({
-      id: "profile-1",
-      full_name: "Admin",
-      email: "admin@example.com",
-      role: "ADMIN",
-      is_active: true,
+    mocks.authorizePermission.mockResolvedValue({
+      authorized: true,
+      status: 200,
+      profile: {
+        id: "profile-1",
+        activeEventId: "00000000-0000-4000-8000-000000000002",
+        full_name: "Admin",
+        email: "admin@example.com",
+        role: "ADMIN",
+        is_active: true,
+      },
     });
     mocks.createAdminClient.mockReturnValue({
       from: () => ({
@@ -80,12 +79,17 @@ describe("member meeting authorization route", () => {
   it.each(["ADMIN", "SUPER_ADMIN"] as const)(
     "allows %s to download an authorization file",
     async (role) => {
-      mocks.getCurrentUserProfile.mockResolvedValue({
-        id: "profile-1",
-        full_name: role,
-        email: `${role.toLowerCase()}@example.com`,
-        role,
-        is_active: true,
+      mocks.authorizePermission.mockResolvedValue({
+        authorized: true,
+        status: 200,
+        profile: {
+          id: "profile-1",
+          full_name: role,
+          email: `${role.toLowerCase()}@example.com`,
+          role,
+          is_active: true,
+          activeEventId: "00000000-0000-4000-8000-000000000002",
+        },
       });
       mocks.createAdminClient.mockReturnValue({
         from: () => ({

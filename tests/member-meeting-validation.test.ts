@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -22,7 +23,19 @@ const baseValues = {
 
 describe("member meeting validation", () => {
   it("accepts a self-attendance submission without proxy data", () => {
-    expect(memberMeetingSchema.safeParse(baseValues).success).toBe(true);
+    const result = memberMeetingSchema.safeParse(baseValues);
+    expect(result.success).toBe(true);
+  });
+
+  it("does not require or expose a global participant Registration ID", () => {
+    const form = readFileSync(
+      "src/components/public/member-meeting/member-meeting-form.tsx",
+      "utf8",
+    );
+    const schema = memberMeetingSchema.safeParse(baseValues);
+    expect(schema.success).toBe(true);
+    expect(form).not.toContain('name="registration_id"');
+    expect(form).not.toContain("Registration ID Peserta AKKAI");
   });
 
   it("requires proxy fields and an authorization file for proxy attendance", () => {

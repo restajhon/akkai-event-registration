@@ -7,6 +7,7 @@ import {
   hasPermission,
 } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { resolveActiveTenantContext } from "@/lib/tenant/server-context";
 
 export type UserRole =
   | "ADMIN"
@@ -22,6 +23,10 @@ export type UserProfile = {
   email: string;
   role: UserRole;
   is_active: boolean;
+  globalRole?: UserRole;
+  activeCompanyId?: string;
+  activeEventId?: string;
+  activeEventRegistrationOpen?: boolean;
 };
 
 const profileColumns = "id, full_name, email, role, is_active";
@@ -89,6 +94,25 @@ export async function requireAuthenticatedUser(): Promise<UserProfile> {
   return profile;
 }
 
+function profileForTenant(profile: UserProfile, tenant: Awaited<ReturnType<typeof resolveActiveTenantContext>>): UserProfile {
+  if (!tenant) return profile;
+  return {
+    ...profile,
+    globalRole: profile.role,
+    role: tenant.role,
+    activeCompanyId: tenant.companyId,
+    activeEventId: tenant.id,
+    activeEventRegistrationOpen: tenant.registrationOpen,
+  };
+}
+
+export async function requireTenantUser(): Promise<UserProfile> {
+  const profile = await requireAuthenticatedUser();
+  const tenant = await resolveActiveTenantContext();
+  if (!tenant) redirect("/admin/unauthorized");
+  return profileForTenant(profile, tenant);
+}
+
 export async function requireRole(
   roles: UserRole | readonly UserRole[],
 ): Promise<UserProfile> {
@@ -102,34 +126,40 @@ export async function requireRole(
   return profile;
 }
 
-export async function requirePermission(
-  permission: Permission,
-): Promise<UserProfile> {
+export async function requirePermission(permission: Permission): Promise<UserProfile> {
   const profile = await requireAuthenticatedUser();
-
-  if (!hasPermission(profile.role, permission)) {
-    redirect("/admin/unauthorized");
+  if (permission === "access.manage") {
+    if (!hasPermission(profile.role, permission)) redirect("/admin/unauthorized");
+    return profile;
   }
-
-  return profile;
+  const tenant = await resolveActiveTenantContext();
+  if (!tenant || !hasPermission(tenant.role, permission)) redirect("/admin/unauthorized");
+  return profileForTenant(profile, tenant);
 }
 
 export async function authorizePermission(permission: Permission) {
   const profile = await getCurrentUserProfile();
-
-  if (!profile) {
-    return { profile: null, authorized: false, status: 401 as const };
+  if (!profile) return { profile: null, authorized: false, status: 401 as const };
+  if (permission === "access.manage") {
+    return hasPermission(profile.role, permission)
+      ? { profile, authorized: true, status: 200 as const }
+      : { profile, authorized: false, status: 403 as const };
   }
-
-  if (!hasPermission(profile.role, permission)) {
+  const tenant = await resolveActiveTenantContext();
+  if (!tenant || !hasPermission(tenant.role, permission)) {
     return { profile, authorized: false, status: 403 as const };
   }
-
-  return { profile, authorized: true, status: 200 as const };
+  return { profile: profileForTenant(profile, tenant), authorized: true, status: 200 as const };
 }
 
 export async function getAuthorizedProfile(permission: Permission) {
   const profile = await getCurrentUserProfile();
-
-  return profile && hasPermission(profile.role, permission) ? profile : null;
+  if (!profile) return null;
+  if (permission === "access.manage") {
+    return hasPermission(profile.role, permission) ? profile : null;
+  }
+  const tenant = await resolveActiveTenantContext();
+  return tenant && hasPermission(tenant.role, permission)
+    ? profileForTenant(profile, tenant)
+    : null;
 }

@@ -8,7 +8,7 @@ import {
 import { loadParticipantTicketData } from "@/lib/registration/participant-ticket-data";
 import { createZip } from "@/lib/registration/zip";
 
-const registrationIdPattern = /^AKKAI26-[0-9]{6}$/;
+const registrationIdPattern = /^[A-Z0-9]{2,16}-[0-9]{6}$/;
 const MAX_BULK_TICKETS = 100;
 
 export async function POST(request: Request) {

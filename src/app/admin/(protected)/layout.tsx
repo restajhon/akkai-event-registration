@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { DM_Serif_Display, Inter } from "next/font/google";
 
-import { requireAuthenticatedUser } from "@/lib/auth/server";
+import { requireTenantUser } from "@/lib/auth/server";
 import { AdminProfileProvider } from "@/components/admin/admin-sidebar";
 
 const adminDisplayFont = DM_Serif_Display({
@@ -18,7 +18,7 @@ const adminBodyFont = Inter({
 export default async function ProtectedAdminLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  const profile = await requireAuthenticatedUser();
+  const profile = await requireTenantUser();
 
   return (
     <AdminProfileProvider

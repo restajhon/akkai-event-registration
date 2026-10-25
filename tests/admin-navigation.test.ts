@@ -17,7 +17,9 @@ describe("admin navigation", () => {
 
   it("filters navigation based on the server permission matrix", () => {
     expect(getVisibleAdminNavigationItems("SUPER_ADMIN").map((item) => item.href)).toContain("/admin/access");
+    expect(getVisibleAdminNavigationItems("SUPER_ADMIN").map((item) => item.href)).toContain("/admin/tenants");
     expect(getVisibleAdminNavigationItems("REGISTRATION").map((item) => item.href)).not.toContain("/admin/access");
+    expect(getVisibleAdminNavigationItems("REGISTRATION").map((item) => item.href)).not.toContain("/admin/tenants");
     expect(getVisibleAdminNavigationItems("SCANNER").map((item) => item.href)).toEqual([
       "/admin/scanner/pair",
       "/admin/display",

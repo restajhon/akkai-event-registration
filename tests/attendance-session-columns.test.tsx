@@ -25,6 +25,7 @@ const participant: OperationalParticipant = {
     DAY2_AKKAI_NIGHT: { checkedIn: false, checkedInAt: null },
     DAY3: { checkedIn: true, checkedInAt: null },
   },
+  formAnswers: [],
 };
 
 const sessionLabels = [

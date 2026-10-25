@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { loadRegistrationFormAnswers, type RegistrationFormAnswer } from "@/lib/admin/form-answer-data";
 import { OPERATIONAL_SESSION_CODES, type OperationalSessionCode } from "./operational-sessions";
 
 export { OPERATIONAL_SESSION_CODES } from "./operational-sessions";
@@ -53,6 +54,7 @@ export type OperationalParticipant = {
   arrivalAssignment: OperationalPickupAssignment | null;
   departureAssignment: OperationalPickupAssignment | null;
   attendanceBySession: Record<OperationalSessionCode, OperationalAttendance>;
+  formAnswers: RegistrationFormAnswer[];
 };
 
 type ParticipantRow = Pick<OperationalParticipant, "id" | "registrationId" | "fullName" | "packageType" | "registrationStatus">;
@@ -178,6 +180,8 @@ export async function loadOperationalData(): Promise<OperationalParticipant[] | 
       } satisfies ParticipantRow;
     });
     const participantIds = participants.map((participant) => participant.id);
+    const formAnswersByParticipant = await loadRegistrationFormAnswers(supabase, participantIds);
+    if (!formAnswersByParticipant) return null;
 
     const [roomsResult, pickupResult, travelResult, sessionsResult] = await Promise.all([
       participantIds.length > 0
@@ -285,6 +289,7 @@ export async function loadOperationalData(): Promise<OperationalParticipant[] | 
           return row ? toPickup(row) : null;
         })(),
         attendanceBySession: attendanceRowsForParticipant,
+        formAnswers: formAnswersByParticipant.get(participant.id) ?? [],
       } satisfies OperationalParticipant;
     });
   } catch {

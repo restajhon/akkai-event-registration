@@ -39,6 +39,7 @@ function makeParticipant(checkedInCode: (typeof OPERATIONAL_SESSION_CODES)[numbe
     arrivalAssignment: null,
     departureAssignment: null,
     attendanceBySession,
+    formAnswers: [],
   };
 }
 
@@ -71,7 +72,7 @@ describe("separate attendance session exports", () => {
     );
 
     const workbook = XLSX.read(await response.arrayBuffer(), { type: "array" });
-    expect(workbook.SheetNames).toEqual(["Kehadiran"]);
+    expect(workbook.SheetNames).toEqual(["Kehadiran", "Jawaban Tambahan"]);
     const rows = XLSX.utils.sheet_to_json<Record<string, string>>(
       workbook.Sheets.Kehadiran,
       { defval: "" },

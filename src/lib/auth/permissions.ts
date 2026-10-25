@@ -23,6 +23,9 @@ export type Permission =
   | "display.view"
   | "display.manage"
   | "member_meetings.view"
+  | "member_meetings.manage"
+  | "forms.view"
+  | "forms.manage"
   | "access.manage";
 
 const rolePermissions: Record<UserRole, readonly Permission[]> = {
@@ -48,6 +51,9 @@ const rolePermissions: Record<UserRole, readonly Permission[]> = {
     "display.view",
     "display.manage",
     "member_meetings.view",
+    "member_meetings.manage",
+    "forms.view",
+    "forms.manage",
   ],
   OPERATOR: [
     "scanner.pair",
@@ -77,6 +83,9 @@ const rolePermissions: Record<UserRole, readonly Permission[]> = {
     "display.view",
     "display.manage",
     "member_meetings.view",
+    "member_meetings.manage",
+    "forms.view",
+    "forms.manage",
     "access.manage",
   ],
   REGISTRATION: [
@@ -86,6 +95,7 @@ const rolePermissions: Record<UserRole, readonly Permission[]> = {
     "participants.email",
     "participants.export",
     "attendance.view",
+    "forms.view",
   ],
   OPERATIONAL: [
     "dashboard.view",
@@ -103,6 +113,7 @@ const rolePermissions: Record<UserRole, readonly Permission[]> = {
     "attendance.view",
     "attendance.export",
     "member_meetings.view",
+    "forms.view",
   ],
   SCANNER: [
     "scanner.pair",

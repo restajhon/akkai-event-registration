@@ -9,6 +9,7 @@ export type BillingEmailTemplateInput = {
   participationScope: string;
   amount: number;
   createdAt: string;
+  eventName?: string;
 };
 
 export type BillingEmailTemplate = {
@@ -38,9 +39,11 @@ export function createBillingEmailTemplate({
   participationScope,
   amount,
   createdAt,
+  eventName = "AKKAI 2026",
 }: BillingEmailTemplateInput): BillingEmailTemplate {
   const safe = (value: string) => escapeHtml(value);
   const formattedAmount = formatIndonesianRupiah(amount);
+  const safeEventName = safe(eventName);
 
   return {
     subject: `Tagihan Biaya Pendaftaran ${billingNumber}`,
@@ -50,7 +53,7 @@ export function createBillingEmailTemplate({
     <tr><td align="center" style="padding:24px 12px;">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:100%;max-width:600px;background:#fffdf9;border:1px solid #ddbb6a;">
         <tr><td style="padding:24px;background:#082b5a;border-bottom:4px solid #c79a35;color:#fffdf9;">
-          <p style="margin:0 0 8px;font-size:12px;letter-spacing:2px;color:#ddbb6a;">AKKAI 2026</p>
+          <p style="margin:0 0 8px;font-size:12px;letter-spacing:2px;color:#ddbb6a;">${safeEventName}</p>
           <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.2;">Tagihan Biaya Pendaftaran</h1>
         </td></tr>
         <tr><td style="padding:24px;">
@@ -81,7 +84,7 @@ export function createBillingEmailTemplate({
 </body></html>`,
     text: `Halo ${fullName},
 
-Tagihan Biaya Pendaftaran
+Tagihan Biaya Pendaftaran — ${eventName}
 Nomor tagihan unik: ${billingNumber}
 Nomor registrasi: ${registrationId}
 Nama peserta: ${fullName}

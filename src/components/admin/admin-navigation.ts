@@ -8,6 +8,7 @@ export type AdminNavigationIcon =
   | "attendance"
   | "dashboard"
   | "display"
+  | "forms"
   | "meeting"
   | "participants"
   | "pickup"
@@ -38,12 +39,14 @@ export const adminNavigationItems: AdminNavigationItem[] = [
   { href: "/admin/participants", icon: "participants", label: "Peserta", permission: "participants.view", section: "OPERASIONAL" },
   { href: "/admin/participants/cancel", icon: "participants", label: "Batalkan Pendaftaran", permission: "participants.cancel", section: "OPERASIONAL" },
   { href: "/admin/member-meetings", icon: "meeting", label: "Rapat Anggota", permission: "member_meetings.view", section: "OPERASIONAL" },
+  { href: "/admin/forms", icon: "forms", label: "Form Builder", permission: "forms.manage", section: "SETUP" },
   { href: "/admin/rooms", icon: "rooms", label: "Room Assignment", permission: "rooms.view", section: "OPERASIONAL" },
   { href: "/admin/pickup", icon: "pickup", label: "Pickup Assignment", permission: "pickup.view", section: "OPERASIONAL" },
   { href: "/admin/attendance", icon: "attendance", label: "Kehadiran", permission: "attendance.view", section: "OPERASIONAL" },
   { href: "/admin/display", icon: "display", label: "Live Display", permission: "display.view", section: "MONITORING" },
   { href: "/admin/display/setup", icon: "station", label: "Station Scanner", permission: "display.manage", section: "SETUP" },
   { href: "/admin/access", icon: "access", label: "Akses Pengguna", permission: "access.manage", section: "SETUP" },
+  { href: "/admin/tenants", icon: "access", label: "Perusahaan & Membership", permission: "access.manage", section: "SETUP" },
 ];
 
 export function getVisibleAdminNavigationItems(role: UserRole) {

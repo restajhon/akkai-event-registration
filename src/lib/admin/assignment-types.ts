@@ -1,3 +1,5 @@
+import type { RegistrationFormAnswer } from "./form-answer-data";
+
 export type ParticipantRegistrationStatus = "REGISTERED" | "CANCELLED";
 
 export type RoomAssignment = {
@@ -16,6 +18,7 @@ export type RoomParticipant = {
   participantCategory: string | null;
   registrationStatus: ParticipantRegistrationStatus;
   assignment: RoomAssignment | null;
+  formAnswers: RegistrationFormAnswer[];
 };
 
 export type PickupStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED";
@@ -56,4 +59,5 @@ export type PickupParticipant = {
   travel: ParticipantTravel | null;
   arrivalAssignment: PickupAssignment | null;
   departureAssignment: PickupAssignment | null;
+  formAnswers: RegistrationFormAnswer[];
 };

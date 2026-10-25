@@ -16,7 +16,7 @@ export type AccessProfile = {
 export default async function AccessManagementPage() {
   await requirePermission("access.manage");
 
-  const { data, error } = await createAdminClient()
+  const { data, error } = await createAdminClient({ scope: "global" })
     .from("profiles")
     .select("id, full_name, email, role, is_active")
     .order("full_name", { ascending: true });

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { loadRegistrationFormAnswers, type RegistrationFormAnswer } from "@/lib/admin/form-answer-data";
 
 import type {
   ParticipantRegistrationStatus,
@@ -17,6 +18,7 @@ type ParticipantRow = {
   package_type: string | null;
   participant_category: string | null;
   registration_status: ParticipantRegistrationStatus;
+  formAnswers: RegistrationFormAnswer[];
 };
 
 type RoomAssignmentRow = {
@@ -77,7 +79,16 @@ async function loadParticipants(registrationId?: string) {
     return null;
   }
 
-  return (data ?? []) as ParticipantRow[];
+  const rows = (data ?? []) as Omit<ParticipantRow, "formAnswers">[];
+  const formAnswersByParticipant = await loadRegistrationFormAnswers(
+    supabase,
+    rows.map((row) => row.id),
+  );
+  if (!formAnswersByParticipant) return null;
+  return rows.map((row) => ({
+    ...row,
+    formAnswers: formAnswersByParticipant.get(row.id) ?? [],
+  }));
 }
 
 function toRoomParticipant(
@@ -90,6 +101,7 @@ function toRoomParticipant(
     packageType: participant.package_type,
     participantCategory: participant.participant_category,
     registrationStatus: participant.registration_status,
+    formAnswers: participant.formAnswers,
     assignment: assignment
       ? {
           roomNumber: assignment.room_number,
@@ -248,7 +260,7 @@ async function loadPickupData(participantIds: string[]) {
 }
 
 function toPickupParticipant(
-  participant: ParticipantRow,
+  participant: Omit<ParticipantRow, "formAnswers"> & { formAnswers?: RegistrationFormAnswer[] },
   pickupData: Awaited<ReturnType<typeof loadPickupData>>,
 ): PickupParticipant {
   const rows = pickupData?.assignments.get(participant.id) ?? [];
@@ -261,6 +273,7 @@ function toPickupParticipant(
     fullName: participant.full_name,
     participantCategory: participant.participant_category,
     registrationStatus: participant.registration_status,
+    formAnswers: participant.formAnswers ?? [],
     travel: travel ? toParticipantTravel(travel) : null,
     arrivalAssignment: arrival ? toPickupAssignment(arrival) : null,
     departureAssignment: departure ? toPickupAssignment(departure) : null,

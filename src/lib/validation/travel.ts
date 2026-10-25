@@ -94,7 +94,7 @@ export const travelSchema = z
       .trim()
       .transform((value) => value.toUpperCase())
       .refine(
-        (value) => /^AKKAI26-[0-9]{6}$/.test(value),
+        (value) => /^[A-Z0-9]{2,16}-[0-9]{6}$/.test(value),
         "Format Registration ID belum sesuai.",
       ),
     registered_email: participantEmailSchema,

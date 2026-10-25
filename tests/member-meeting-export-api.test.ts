@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as XLSX from "@e965/xlsx";
 
 const mocks = vi.hoisted(() => ({
-  getCurrentUserProfile: vi.fn(),
+  authorizePermission: vi.fn(),
   loadMemberMeetingSubmissions: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/auth/server", () => ({
-  getCurrentUserProfile: mocks.getCurrentUserProfile,
+  authorizePermission: mocks.authorizePermission,
 }));
 
 vi.mock("@/lib/member-meeting/admin-data", () => ({
@@ -79,13 +79,13 @@ function readRows(response: Response) {
 }
 
 beforeEach(() => {
-  mocks.getCurrentUserProfile.mockReset();
+  mocks.authorizePermission.mockReset();
   mocks.loadMemberMeetingSubmissions.mockReset();
 });
 
 describe("member meeting Excel export API", () => {
   it("rejects unauthenticated export requests", async () => {
-    mocks.getCurrentUserProfile.mockResolvedValue(null);
+    mocks.authorizePermission.mockResolvedValue({ authorized: false, status: 401, profile: null });
 
     const response = await GET();
 
@@ -94,13 +94,7 @@ describe("member meeting Excel export API", () => {
   });
 
   it("rejects users without the member meeting access role", async () => {
-    mocks.getCurrentUserProfile.mockResolvedValue({
-      id: "profile-1",
-      full_name: "Operational",
-      email: "operational@example.com",
-      role: "OPERATIONAL",
-      is_active: true,
-    });
+    mocks.authorizePermission.mockResolvedValue({ authorized: false, status: 403, profile: null });
 
     const response = await GET();
 
@@ -109,12 +103,10 @@ describe("member meeting Excel export API", () => {
   });
 
   it("returns an xlsx with safe headers and SELF/PROXY metadata mapping", async () => {
-    mocks.getCurrentUserProfile.mockResolvedValue({
-      id: "profile-1",
-      full_name: "Admin",
-      email: "admin@example.com",
-      role: "ADMIN",
-      is_active: true,
+    mocks.authorizePermission.mockResolvedValue({
+      authorized: true,
+      status: 200,
+      profile: { id: "profile-1", full_name: "Admin", email: "admin@example.com", role: "ADMIN", is_active: true, activeEventId: "00000000-0000-4000-8000-000000000002" },
     });
     mocks.loadMemberMeetingSubmissions.mockResolvedValue(submissions);
 
@@ -160,12 +152,10 @@ describe("member meeting Excel export API", () => {
   });
 
   it("returns a valid header-only workbook for empty data without mutation", async () => {
-    mocks.getCurrentUserProfile.mockResolvedValue({
-      id: "profile-1",
-      full_name: "Super Admin",
-      email: "super-admin@example.com",
-      role: "SUPER_ADMIN",
-      is_active: true,
+    mocks.authorizePermission.mockResolvedValue({
+      authorized: true,
+      status: 200,
+      profile: { id: "profile-1", full_name: "Super Admin", email: "super-admin@example.com", role: "SUPER_ADMIN", is_active: true, activeEventId: "00000000-0000-4000-8000-000000000002" },
     });
     mocks.loadMemberMeetingSubmissions.mockResolvedValue([]);
 

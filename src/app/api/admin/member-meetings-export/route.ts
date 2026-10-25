@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "@e965/xlsx";
 
-import { getCurrentUserProfile } from "@/lib/auth/server";
+import { authorizePermission } from "@/lib/auth/server";
 import {
   loadMemberMeetingSubmissions,
 } from "@/lib/member-meeting/admin-data";
@@ -13,17 +13,12 @@ const contentType =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 export async function GET() {
-  const profile = await getCurrentUserProfile();
-
-  if (!profile) {
+  const authorization = await authorizePermission("member_meetings.manage");
+  if (!authorization.authorized) {
     return NextResponse.json(
-      { error: "Authentication required." },
-      { status: 401 },
+      { error: authorization.status === 401 ? "Authentication required." : "Forbidden." },
+      { status: authorization.status },
     );
-  }
-
-  if (profile.role !== "SUPER_ADMIN" && profile.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
   const submissions = await loadMemberMeetingSubmissions();

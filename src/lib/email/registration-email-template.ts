@@ -5,7 +5,11 @@ type RegistrationEmailTemplateInput = {
   participationScope: string;
   actuarialConsultantStatus: string | null;
   attendsPaiCongress: boolean | null;
+  eventName?: string;
+  eventDateRange?: string | null;
 };
+
+const DEFAULT_EVENT_NAME = "Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026";
 
 export type RegistrationEmailTemplate = {
   subject: string;
@@ -34,17 +38,24 @@ export function createRegistrationEmailTemplate({
   participationScope,
   actuarialConsultantStatus,
   attendsPaiCongress,
+  eventName = DEFAULT_EVENT_NAME,
+  eventDateRange,
 }: RegistrationEmailTemplateInput): RegistrationEmailTemplate {
   const safeFullName = escapeHtml(fullName);
   const safeRegistrationId = escapeHtml(registrationId);
   const safePackageType = escapeHtml(packageType);
   const safeParticipationScope = escapeHtml(participationScope);
   const safeActuarialConsultantStatus = escapeHtml(actuarialConsultantStatus ?? "-");
+  const safeEventName = escapeHtml(eventName);
+  const isAkkaiEvent = eventName === DEFAULT_EVENT_NAME;
+  const eventLabel = isAkkaiEvent ? "AKKAI 2026" : eventName;
+  const safeEventLabel = escapeHtml(eventLabel);
+  const safeDateRange = escapeHtml(eventDateRange ?? (isAkkaiEvent ? "19–21 Oktober 2026" : "Tanggal event diinformasikan oleh panitia."));
   const paiCongressAnswer =
     attendsPaiCongress === null ? "-" : attendsPaiCongress ? "Ya" : "Tidak";
 
   return {
-    subject: `Konfirmasi Registrasi AKKAI 2026 | ${fullName} | ${registrationId}`,
+    subject: `Konfirmasi Registrasi ${eventLabel} | ${fullName} | ${registrationId}`,
     html: `<!doctype html>
 <html lang="id">
   <body style="margin:0;background:#fcf9f2;color:#263246;font-family:Arial,Helvetica,sans-serif;">
@@ -54,14 +65,14 @@ export function createRegistrationEmailTemplate({
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:100%;max-width:600px;background:#fffdf9;border:1px solid #ddbb6a;">
             <tr>
               <td style="padding:28px 32px;background:#082b5a;border-bottom:4px solid #c79a35;color:#fffdf9;">
-                <p style="margin:0 0 8px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#ddbb6a;">AKKAI 2026</p>
+                <p style="margin:0 0 8px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#ddbb6a;">${safeEventLabel}</p>
                 <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.2;font-weight:700;">Konfirmasi Registrasi</h1>
               </td>
             </tr>
             <tr>
               <td style="padding:32px;">
                 <p style="margin:0 0 20px;font-size:16px;line-height:1.7;">Halo ${safeFullName},</p>
-                <p style="margin:0 0 20px;font-size:16px;line-height:1.7;">Pendaftaran Anda untuk Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026 telah berhasil.</p>
+                <p style="margin:0 0 20px;font-size:16px;line-height:1.7;">Pendaftaran Anda untuk ${safeEventName} telah berhasil.</p>
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;background:#fcf9f2;border-left:4px solid #c79a35;">
                   <tr>
                     <td style="padding:16px 20px;">
@@ -76,13 +87,11 @@ export function createRegistrationEmailTemplate({
                   <tr><td style="padding:3px 0;"><strong>Konsultan Aktuaria:</strong> ${safeActuarialConsultantStatus}</td></tr>
                   <tr><td style="padding:3px 0;"><strong>Hadir Kongres PAI:</strong> ${paiCongressAnswer}</td></tr>
                 </table>
-                <p style="margin:0 0 8px;font-size:16px;line-height:1.7;"><strong>Tanggal:</strong> 19–21 Oktober 2026</p>
-                <p style="margin:0 0 20px;font-size:16px;line-height:1.7;"><strong>Lokasi:</strong> Semarang</p>
+                <p style="margin:0 0 8px;font-size:16px;line-height:1.7;"><strong>Tanggal:</strong> ${safeDateRange}</p>
+                ${isAkkaiEvent ? '<p style="margin:0 0 20px;font-size:16px;line-height:1.7;"><strong>Lokasi:</strong> Semarang</p>' : ''}
                 <p style="margin:0 0 12px;font-size:16px;line-height:1.7;">Satu QR yang sama digunakan untuk:</p>
                 <ul style="margin:0 0 24px;padding-left:22px;font-size:16px;line-height:1.7;">
-                   <li>Registrasi Kedatangan — Senin, 19 Oktober 2026</li>
-                   <li>Seminar AKKAI 2026 — Selasa, 20 Oktober 2026</li>
-                   <li>Registrasi Kepulangan — Rabu, 21 Oktober 2026</li>
+                   ${isAkkaiEvent ? '<li>Registrasi Kedatangan — Senin, 19 Oktober 2026</li><li>Seminar AKKAI 2026 — Selasa, 20 Oktober 2026</li><li>Registrasi Kepulangan — Rabu, 21 Oktober 2026</li>' : `<li>${safeEventName}</li>`}
                 </ul>
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;">
                   <tr>
@@ -97,8 +106,8 @@ export function createRegistrationEmailTemplate({
             </tr>
             <tr>
               <td style="padding:24px 32px;border-top:1px solid #ddbb6a;color:#667085;font-size:13px;line-height:1.6;">
-                <p style="margin:0 0 4px;">Penyelenggara: AKKAI</p>
-                <p style="margin:0;">Didukung oleh Semangat Rajawali Indonesia</p>
+                <p style="margin:0 0 4px;">Penyelenggara: ${safeEventLabel}</p>
+                ${isAkkaiEvent ? '<p style="margin:0;">Didukung oleh Semangat Rajawali Indonesia</p>' : ''}
               </td>
             </tr>
           </table>
@@ -109,27 +118,23 @@ export function createRegistrationEmailTemplate({
 </html>`,
     text: `Halo ${fullName},
 
-Pendaftaran Anda untuk Seminar Profesi Konsultan Aktuaria Indonesia, Sertifikasi CIAC dan Rapat Anggota AKKAI 2026 telah berhasil.
+Pendaftaran Anda untuk ${eventName} telah berhasil.
 
 Nomor Registrasi: ${registrationId}
 Paket yang diambil: ${packageType}
 Mengikuti: ${participationScope}
 Konsultan Aktuaria: ${actuarialConsultantStatus ?? "-"}
 Hadir Kongres PAI: ${paiCongressAnswer}
-Tanggal: 19–21 Oktober 2026
-Lokasi: Semarang
+Tanggal: ${eventDateRange ?? (isAkkaiEvent ? "19–21 Oktober 2026" : "Tanggal event diinformasikan oleh panitia.")}${isAkkaiEvent ? "\nLokasi: Semarang" : ""}
 
 Satu QR yang sama digunakan untuk:
-1. Registrasi Kedatangan — Senin, 19 Oktober 2026
-2. Seminar AKKAI 2026 — Selasa, 20 Oktober 2026
-3. Registrasi Kepulangan — Rabu, 21 Oktober 2026
+${isAkkaiEvent ? "1. Registrasi Kedatangan — Senin, 19 Oktober 2026\n2. Seminar AKKAI 2026 — Selasa, 20 Oktober 2026\n3. Registrasi Kepulangan — Rabu, 21 Oktober 2026" : `1. ${eventName}`}
 
 Kode QR tersedia sebagai lampiran email ini. Simpan email dan kode QR hingga seluruh rangkaian acara selesai.
 
 QR ini bersifat pribadi dan tidak boleh dibagikan kepada orang lain.
 
-Penyelenggara: AKKAI
-Didukung oleh Semangat Rajawali Indonesia
+Penyelenggara: ${eventLabel}${isAkkaiEvent ? "\nDidukung oleh Semangat Rajawali Indonesia" : ""}
 `,
   };
 }

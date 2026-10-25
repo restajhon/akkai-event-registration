@@ -43,6 +43,7 @@ const navigationIcons: Record<AdminNavigationIcon, LucideIcon> = {
   attendance: ClipboardCheck,
   dashboard: LayoutDashboard,
   display: Monitor,
+  forms: ScrollText,
   meeting: ScrollText,
   participants: Users,
   pickup: BusFront,

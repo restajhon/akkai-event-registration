@@ -4,7 +4,7 @@ export const manualStationIdSchema = z.string().uuid();
 
 export const manualRegistrationIdSchema = z
   .string()
-  .regex(/^AKKAI26-[0-9]{6}$/);
+  .regex(/^[A-Z0-9]{2,16}-[0-9]{6}$/);
 
 export const manualSearchInputSchema = z.object({
   stationId: manualStationIdSchema,

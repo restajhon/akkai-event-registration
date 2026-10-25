@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, type FormEvent, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import {
   cancelRegistrationCertificateUpload,
@@ -10,17 +10,13 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { REGISTRATION_CERTIFICATE_BUCKET, validateRegistrationCertificateFile } from "@/lib/registration/certificate";
 import {
-  ACTUARIAL_CONSULTANT_STATUSES,
   collectiveParticipantSchema,
   getCollectiveParticipantFieldErrors,
-  PACKAGE_TYPES,
-  PARTICIPATION_SCOPES,
-  PAI_CONGRESS_OPTIONS,
-  POLO_MODELS,
-  POLO_SIZES,
   type CollectiveParticipantFieldErrors,
   type CollectiveParticipantFormValues,
 } from "@/lib/validation/registration";
+import { validateRegistrationFormAnswers } from "@/lib/forms/form-schema";
+import type { PublishedEventForm } from "@/lib/tenant/public-events";
 import {
   initialCollectiveRegistrationState,
   type CollectiveRegistrationActionState,
@@ -43,7 +39,11 @@ const emptyTravel = {
   extend_stay: false,
 };
 
-function createParticipant(): CollectiveParticipantFormValues {
+type CollectiveFormParticipant = CollectiveParticipantFormValues & {
+  custom_answers: Record<string, string | number | boolean>;
+};
+
+function createParticipant(publishedForm: PublishedEventForm): CollectiveFormParticipant {
   return {
     full_name: "",
     email: "",
@@ -63,10 +63,15 @@ function createParticipant(): CollectiveParticipantFormValues {
     institution: "",
     include_travel: false,
     travel: { ...emptyTravel },
+    custom_answers: Object.fromEntries(
+      publishedForm.config.fields
+        .filter((field) => !field.system && field.type !== "file")
+        .map((field) => [field.key, field.type === "checkbox" ? false : ""]),
+    ),
   };
 }
 
-type FieldName = keyof CollectiveParticipantFormValues | "travel";
+type FieldName = keyof CollectiveParticipantFormValues | "travel" | "custom_answers";
 type ErrorMap = Record<number, CollectiveParticipantFieldErrors>;
 
 function CardError({ error }: { error?: string }) {
@@ -189,6 +194,7 @@ function TravelFields({
 
 function ParticipantCard({
   participant,
+  publishedForm,
   index,
   errors,
   update,
@@ -196,15 +202,109 @@ function ParticipantCard({
   chooseFile,
   remove,
 }: {
-  participant: CollectiveParticipantFormValues;
+  participant: CollectiveFormParticipant;
+  publishedForm: PublishedEventForm;
   index: number;
   errors: CollectiveParticipantFieldErrors;
-  update: (field: FieldName, value: string | boolean | File | null) => void;
+  update: (field: FieldName, value: string | number | boolean | File | Record<string, string | number | boolean> | null) => void;
   updateTravel: (field: keyof typeof emptyTravel, value: string | boolean) => void;
   chooseFile: (file: File | null) => void;
   remove?: () => void;
 }) {
   const id = (field: string) => `participant-${index}-${field}`;
+  const getFieldValue = (field: (typeof publishedForm.config.fields)[number]) => {
+    if (!field.system) return participant.custom_answers[field.key] ?? (field.type === "checkbox" ? false : "");
+    const value = (participant as unknown as Record<string, unknown>)[field.key];
+    return typeof value === "string" || typeof value === "boolean" || typeof value === "number" ? value : "";
+  };
+  const updateConfiguredField = (
+    field: (typeof publishedForm.config.fields)[number],
+    value: string | number | boolean,
+  ) => {
+    if (field.system) update(field.key as FieldName, value);
+    else update("custom_answers", { ...participant.custom_answers, [field.key]: value });
+  };
+  const renderConfiguredField = (field: (typeof publishedForm.config.fields)[number]) => {
+    const value = getFieldValue(field);
+    const error = (errors as Record<string, string | undefined>)[field.key];
+    const inputId = id(field.key);
+    const required = field.required || (field.key === "certificate_file" && participant.actuarial_consultant_status === "Peserta Baru");
+
+    if (field.type === "file") {
+      if (field.key !== "certificate_file" || participant.actuarial_consultant_status !== "Peserta Baru") return null;
+      return (
+        <div className={styles.field} key={field.id}>
+          <FieldLabel htmlFor={inputId}>{field.label} <span className={styles.required}>(wajib)</span></FieldLabel>
+          <input accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" aria-invalid={Boolean(error)} className={`${styles.input} ${styles.fileInput} ${error ? styles.inputError : ""}`} id={inputId} onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} type="file" />
+          <p className={styles.helper}>PDF, JPG, JPEG, atau PNG maksimal 2 MiB.</p>
+          <CardError error={error} />
+        </div>
+      );
+    }
+
+    if (field.type === "checkbox") {
+      return (
+        <div className={styles.field} key={field.id}>
+          <label className={styles.consentRow} htmlFor={inputId}>
+            <input aria-invalid={Boolean(error)} checked={value === true} className={styles.checkbox} id={inputId} onChange={(event) => updateConfiguredField(field, event.target.checked)} required={required} type="checkbox" />
+            <span className={styles.consentLabel}>{field.label} {required ? <span className={styles.required}>(wajib)</span> : null}</span>
+          </label>
+          <CardError error={error} />
+        </div>
+      );
+    }
+
+    if (field.type === "select") {
+      return (
+        <SelectField
+          error={error}
+          id={inputId}
+          key={field.id}
+          label={field.label}
+          onChange={(nextValue) => updateConfiguredField(field, nextValue)}
+          options={field.options ?? []}
+          required={required}
+          value={typeof value === "string" ? value : ""}
+        />
+      );
+    }
+
+    if (field.type === "radio") {
+      return (
+        <div className={styles.field} key={field.id}>
+          <fieldset className="grid gap-2">
+            <legend className={styles.label}>{field.label} {required ? <span className={styles.required}>(wajib)</span> : <span className={styles.required}>(opsional)</span>}</legend>
+            {(field.options ?? []).map((option) => <label className={styles.consentRow} key={option}><input checked={value === option} name={inputId} onChange={() => updateConfiguredField(field, option)} required={required && !value} type="radio" value={option} /><span>{option}</span></label>)}
+          </fieldset>
+          <CardError error={error} />
+        </div>
+      );
+    }
+
+    if (field.type === "textarea") {
+      return (
+        <div className={styles.field} key={field.id}>
+          <FieldLabel htmlFor={inputId}>{field.label} {required ? <span className={styles.required}>(wajib)</span> : <span className={styles.required}>(opsional)</span>}</FieldLabel>
+          <textarea aria-invalid={Boolean(error)} className={`${styles.input} ${error ? styles.inputError : ""}`} id={inputId} maxLength={2000} onChange={(event) => updateConfiguredField(field, event.target.value)} placeholder={field.placeholder} required={required} value={typeof value === "string" ? value : ""} />
+          <CardError error={error} />
+        </div>
+      );
+    }
+
+    return (
+      <TextField
+        error={error}
+        id={inputId}
+        label={field.label}
+        onChange={(nextValue) => updateConfiguredField(field, field.type === "number" && nextValue !== "" ? Number(nextValue) : nextValue)}
+        placeholder={field.placeholder}
+        required={required}
+        type={field.type}
+        value={typeof value === "boolean" ? "" : String(value)}
+      />
+    );
+  };
+
   return (
     <article className={styles.collectiveCard}>
       <div className={styles.collectiveCardHeader}>
@@ -215,38 +315,28 @@ function ParticipantCard({
         {remove ? <button className={styles.collectiveRemove} onClick={remove} type="button">Hapus peserta</button> : null}
       </div>
       <div className={styles.collectiveGrid}>
-        <TextField id={id("full_name")} label="Nama lengkap" value={participant.full_name} error={errors.full_name} onChange={(value) => update("full_name", value)} required placeholder="Nama sesuai identitas" />
-        <TextField id={id("email")} label="Email penerima QR dan tagihan" type="email" value={participant.email} error={errors.email} onChange={(value) => update("email", value)} required placeholder="nama@email.com" />
-        <TextField id={id("phone_number")} label="Nomor WhatsApp" type="tel" value={participant.phone_number} error={errors.phone_number} onChange={(value) => update("phone_number", value)} required />
         <TextField id={id("member_number")} label="Nomor anggota" value={participant.member_number} error={errors.member_number} onChange={(value) => update("member_number", value)} />
         <TextField id={id("institution")} label="Institusi" value={participant.institution} error={errors.institution} onChange={(value) => update("institution", value)} />
-        <TextField id={id("position")} label="Jabatan" value={participant.position} error={errors.position} onChange={(value) => update("position", value)} required />
-        <TextField id={id("kka_name")} label="Nama KKA" value={participant.kka_name} error={errors.kka_name} onChange={(value) => update("kka_name", value)} required />
-        <SelectField id={id("package_type")} label="Paket menginap" value={participant.package_type} options={PACKAGE_TYPES} error={errors.package_type} onChange={(value) => update("package_type", value)} />
-        <SelectField id={id("polo_model")} label="Model Poloshirt" value={participant.polo_model} options={POLO_MODELS} error={errors.polo_model} onChange={(value) => update("polo_model", value)} />
-        <SelectField id={id("polo_size")} label="Ukuran Poloshirt" value={participant.polo_size} options={POLO_SIZES} error={errors.polo_size} onChange={(value) => update("polo_size", value)} />
-        <SelectField id={id("participation_scope")} label="Pilihan acara" value={participant.participation_scope} options={PARTICIPATION_SCOPES} error={errors.participation_scope} onChange={(value) => update("participation_scope", value)} />
-        <SelectField id={id("actuarial_consultant_status")} label="Status CIAC" value={participant.actuarial_consultant_status} options={ACTUARIAL_CONSULTANT_STATUSES} error={errors.actuarial_consultant_status} onChange={(value) => update("actuarial_consultant_status", value)} required={false} />
-        <SelectField id={id("attends_pai_congress")} label="Hadir Kongres PAI" value={participant.attends_pai_congress} options={PAI_CONGRESS_OPTIONS.map((value) => value === "true" ? "true" : "false")} error={errors.attends_pai_congress} onChange={(value) => update("attends_pai_congress", value)} />
       </div>
-      {participant.actuarial_consultant_status === "Peserta Baru" ? (
-        <div className={styles.collectiveUpload}>
-          <FieldLabel htmlFor={id("certificate_file")}>Surat Keterangan Kerja CIAC <span className={styles.required}>(wajib)</span></FieldLabel>
-          <input accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" aria-invalid={Boolean(errors.certificate_file)} className={`${styles.input} ${styles.fileInput} ${errors.certificate_file ? styles.inputError : ""}`} id={id("certificate_file")} onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} type="file" />
-          <p className={styles.helper}>PDF, JPG, JPEG, atau PNG maksimal 2 MiB.</p>
-          <CardError error={errors.certificate_file} />
-        </div>
-      ) : null}
+      <div className="grid gap-4">
+        {[...publishedForm.config.sections].sort((left, right) => left.position - right.position).map((section) => {
+          const fields = publishedForm.config.fields
+            .filter((field) => field.sectionId === section.id)
+            .sort((left, right) => left.position - right.position);
+          if (fields.length === 0) return null;
+          return (
+            <section className="grid gap-3" key={section.id}>
+              <div><h3 className={styles.sectionTitle}>{section.title}</h3>{section.description ? <p className={styles.helper}>{section.description}</p> : null}</div>
+              <div className={styles.collectiveGrid}>{fields.map(renderConfiguredField)}</div>
+            </section>
+          );
+        })}
+      </div>
       <label className={styles.collectiveToggle} htmlFor={id("include_travel")}>
         <input checked={participant.include_travel} className={styles.checkbox} id={id("include_travel")} onChange={(event) => update("include_travel", event.target.checked)} type="checkbox" />
         <span><strong>Isi data travel peserta</strong><small>Data ini dapat dilengkapi atau disesuaikan admin kemudian.</small></span>
       </label>
       {participant.include_travel ? <TravelFields errors={errors} index={index} participant={participant} updateTravel={updateTravel} /> : null}
-      <label className={styles.consentRow} htmlFor={id("privacy_consent")}>
-        <input aria-invalid={Boolean(errors.privacy_consent)} checked={participant.privacy_consent} className={styles.checkbox} id={id("privacy_consent")} onChange={(event) => update("privacy_consent", event.target.checked)} type="checkbox" />
-        <span className={styles.consentLabel}>Peserta menyetujui penggunaan data untuk registrasi, komunikasi, dan administrasi AKKAI 2026. <span className={styles.required}>(wajib)</span></span>
-      </label>
-      <CardError error={errors.privacy_consent} />
     </article>
   );
 }
@@ -270,19 +360,36 @@ function CollectiveResult({ state }: { state: CollectiveRegistrationActionState 
   );
 }
 
-export function CollectiveRegistrationForm() {
-  const [participants, setParticipants] = useState<CollectiveParticipantFormValues[]>([createParticipant()]);
+export function CollectiveRegistrationForm({ publishedForm }: { publishedForm: PublishedEventForm }) {
+  const [participants, setParticipants] = useState<CollectiveFormParticipant[]>([createParticipant(publishedForm)]);
   const [errors, setErrors] = useState<ErrorMap>({});
   const [submitLocked, setSubmitLocked] = useState(false);
+  const uploadedIntentsForResponse = useRef<{ eventId: string; versionId: string; intentIds: string[] } | null>(null);
   const [state, formAction, isPending] = useActionState(async (previousState: CollectiveRegistrationActionState, formData: FormData) => {
     const result = await submitCollectiveRegistration(previousState, formData);
     if (result.status !== "submitted") setSubmitLocked(false);
     return result;
   }, initialCollectiveRegistrationState);
 
-  function updateParticipant(index: number, field: FieldName, value: string | boolean | File | null) {
+  useEffect(() => {
+    const uploaded = uploadedIntentsForResponse.current;
+    if (!uploaded || state.status === "idle") return;
+    uploadedIntentsForResponse.current = null;
+    void Promise.all(uploaded.intentIds.map((intentId) => cancelRegistrationCertificateUpload(
+      intentId,
+      uploaded.eventId,
+      uploaded.versionId,
+    )));
+  }, [state]);
+
+  function updateParticipant(index: number, field: FieldName, value: string | number | boolean | File | Record<string, string | number | boolean> | null) {
     setParticipants((current) => current.map((participant, participantIndex) => participantIndex === index ? { ...participant, [field]: value } : participant));
-    setErrors((current) => ({ ...current, [index]: { ...current[index], [field]: undefined } }));
+    setErrors((current) => ({
+      ...current,
+      [index]: field === "custom_answers" && value && typeof value === "object"
+        ? { ...current[index], ...Object.fromEntries(Object.keys(value).map((key) => [key, undefined])) }
+        : { ...current[index], [field]: undefined },
+    }));
   }
 
   function updateTravel(index: number, field: keyof typeof emptyTravel, value: string | boolean) {
@@ -303,11 +410,28 @@ export function CollectiveRegistrationForm() {
     const normalized = participants.map((participant) => ({
       ...participant,
       travel: participant.include_travel ? participant.travel : null,
+      form_answers: {
+        full_name: participant.full_name,
+        email: participant.email,
+        phone_number: participant.phone_number,
+        kka_name: participant.kka_name,
+        position: participant.position,
+        polo_size: participant.polo_size,
+        polo_model: participant.polo_model,
+        package_type: participant.package_type,
+        participation_scope: participant.participation_scope,
+        actuarial_consultant_status: participant.actuarial_consultant_status,
+        attends_pai_congress: participant.attends_pai_congress,
+        privacy_consent: participant.privacy_consent,
+        ...participant.custom_answers,
+      },
     }));
     const parsedParticipants = normalized.map((participant) => collectiveParticipantSchema.safeParse(participant));
     const nextErrors: ErrorMap = {};
     parsedParticipants.forEach((result, index) => {
       if (!result.success) nextErrors[index] = getCollectiveParticipantFieldErrors(result.error);
+      const answerResult = validateRegistrationFormAnswers(publishedForm.config, normalized[index].form_answers);
+      if (!answerResult.success) nextErrors[index] = { ...nextErrors[index], ...answerResult.errors } as CollectiveParticipantFieldErrors;
     });
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -317,7 +441,11 @@ export function CollectiveRegistrationForm() {
     setSubmitLocked(true);
     const uploadedIntentIds: string[] = [];
     const cleanupUploadedIntents = async () => {
-      await Promise.all(uploadedIntentIds.map((intentId) => cancelRegistrationCertificateUpload(intentId)));
+      await Promise.all(uploadedIntentIds.map((intentId) => cancelRegistrationCertificateUpload(
+        intentId,
+        publishedForm.eventId,
+        publishedForm.versionId,
+      )));
     };
     const payloadParticipants = [];
     for (let index = 0; index < normalized.length; index += 1) {
@@ -326,6 +454,8 @@ export function CollectiveRegistrationForm() {
       const file = participant.certificate_file;
       if (participant.actuarial_consultant_status === "Peserta Baru" && file instanceof File && file.size > 0) {
         const preparation = new FormData();
+        preparation.set("event_id", publishedForm.eventId);
+        preparation.set("form_version_id", publishedForm.versionId);
         preparation.set("email", participant.email);
         preparation.set("file_name", file.name);
         preparation.set("file_type", file.type);
@@ -343,19 +473,34 @@ export function CollectiveRegistrationForm() {
           uploadId = prepared.intentId;
           uploadedIntentIds.push(uploadId);
         } catch {
-          await cancelRegistrationCertificateUpload(prepared.intentId);
+          await cancelRegistrationCertificateUpload(prepared.intentId, publishedForm.eventId, publishedForm.versionId);
           await cleanupUploadedIntents();
           setErrors((current) => ({ ...current, [index]: { ...current[index], certificate_file: "Surat Keterangan Kerja belum dapat diunggah." } }));
           setSubmitLocked(false);
           return;
         }
       }
-      const payloadParticipant = { ...participant, certificate_file: undefined, certificate_upload_id: uploadId };
+      const payloadParticipant = {
+        ...participant,
+        certificate_file: undefined,
+        certificate_upload_id: uploadId,
+        custom_answers: undefined,
+      };
       payloadParticipants.push(payloadParticipant);
     }
 
     const payload = new FormData();
-    payload.set("payload", JSON.stringify({ idempotency_key: crypto.randomUUID(), participants: payloadParticipants }));
+    payload.set("payload", JSON.stringify({
+      idempotency_key: crypto.randomUUID(),
+      event_id: publishedForm.eventId,
+      form_version_id: publishedForm.versionId,
+      participants: payloadParticipants,
+    }));
+    uploadedIntentsForResponse.current = {
+      eventId: publishedForm.eventId,
+      versionId: publishedForm.versionId,
+      intentIds: uploadedIntentIds,
+    };
     formAction(payload);
   }
 
@@ -382,13 +527,14 @@ export function CollectiveRegistrationForm() {
           index={index}
           key={index}
           participant={participant}
+          publishedForm={publishedForm}
           remove={participants.length > 1 ? () => setParticipants((current) => current.filter((_, participantIndex) => participantIndex !== index)) : undefined}
           update={(field, value) => updateParticipant(index, field, value)}
           updateTravel={(field, value) => updateTravel(index, field, value)}
         />
       ))}
       <div className={styles.collectiveActions}>
-        <button className={styles.secondaryButton} disabled={participants.length >= 100} onClick={() => setParticipants((current) => current.length >= 100 ? current : [...current, createParticipant()])} type="button">+ Tambah Peserta</button>
+        <button className={styles.secondaryButton} disabled={participants.length >= 100} onClick={() => setParticipants((current) => current.length >= 100 ? current : [...current, createParticipant(publishedForm)])} type="button">+ Tambah Peserta</button>
         <p className={styles.collectiveSummary}>Ringkasan: <strong>{participants.length} peserta</strong>. Setiap peserta akan memperoleh registration ID, QR, dan nomor tagihan berbeda.</p>
       </div>
       <div className={styles.submitArea}>

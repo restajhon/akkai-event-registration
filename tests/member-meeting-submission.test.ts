@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   consumeMemberMeetingRateLimit: vi.fn(),
   createAdminClient: vi.fn(),
+  loadPublishedEventForm: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -13,6 +14,10 @@ vi.mock("@/lib/member-meeting/member-meeting-rate-limit", () => ({
 
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: mocks.createAdminClient,
+}));
+
+vi.mock("@/lib/tenant/public-events", () => ({
+  loadPublishedEventForm: mocks.loadPublishedEventForm,
 }));
 
 import {
@@ -42,6 +47,7 @@ beforeEach(() => {
   mocks.consumeMemberMeetingRateLimit.mockReset();
   mocks.createAdminClient.mockReset();
   mocks.consumeMemberMeetingRateLimit.mockResolvedValue("allowed");
+  mocks.loadPublishedEventForm.mockResolvedValue({ eventId: "00000000-0000-4000-8000-000000000001", eventCode: "AKKAI26" });
 });
 
 describe("member meeting submission", () => {

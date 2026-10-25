@@ -4,7 +4,7 @@ import { authorizePermission } from "@/lib/auth/server";
 import { REGISTRATION_CERTIFICATE_BUCKET } from "@/lib/registration/certificate";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const registrationIdPattern = /^AKKAI26-[0-9]{6}$/;
+const registrationIdPattern = /^[A-Z0-9]{2,16}-[0-9]{6}$/;
 
 export async function GET(
   _request: Request,

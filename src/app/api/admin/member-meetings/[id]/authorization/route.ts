@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentUserProfile } from "@/lib/auth/server";
+import { authorizePermission } from "@/lib/auth/server";
 import { MEMBER_MEETING_BUCKET } from "@/lib/member-meeting/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -10,14 +10,12 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const profile = await getCurrentUserProfile();
-
-  if (!profile) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (profile.role !== "SUPER_ADMIN" && profile.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const authorization = await authorizePermission("member_meetings.manage");
+  if (!authorization.authorized) {
+    return NextResponse.json(
+      { error: authorization.status === 401 ? "Unauthorized" : "Forbidden" },
+      { status: authorization.status },
+    );
   }
 
   const { id } = await params;

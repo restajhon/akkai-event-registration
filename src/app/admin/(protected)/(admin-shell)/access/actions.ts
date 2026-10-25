@@ -44,7 +44,7 @@ export async function updateProfileAccess(
   }
 
   try {
-    const { data, error } = await createAdminClient().rpc("update_profile_access", {
+    const { data, error } = await createAdminClient({ scope: "global" }).rpc("update_profile_access", {
       p_actor_id: actor.id,
       p_target_id: profileId,
       p_role: role.data,

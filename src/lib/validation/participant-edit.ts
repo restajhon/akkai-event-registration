@@ -12,7 +12,7 @@ import { participantEmailSchema } from "./email";
 const optionalText = (max: number, min = 0) => z.string().trim().max(max).refine((value) => value.length === 0 || value.length >= min, `Minimal ${min} karakter.`);
 
 export const participantEditSchema = z.object({
-  registrationId: z.string().regex(/^AKKAI26-[0-9]{6}$/),
+  registrationId: z.string().regex(/^[A-Z0-9]{2,16}-[0-9]{6}$/),
   emailGeneration: z.coerce.number().int().min(0),
   full_name: z.string().trim().min(3).max(100),
   email: participantEmailSchema,

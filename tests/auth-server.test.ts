@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
+  resolveActiveTenantContext: vi.fn(),
   redirect: vi.fn(),
 }));
 
@@ -13,6 +14,10 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: vi.fn(),
+}));
+
+vi.mock("@/lib/tenant/server-context", () => ({
+  resolveActiveTenantContext: mocks.resolveActiveTenantContext,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -29,6 +34,18 @@ import LiveDisplaySelectionPage from "@/app/admin/(protected)/(admin-shell)/disp
 import ScannerPairPage from "@/app/admin/(protected)/(admin-shell)/scanner/pair/page";
 
 function configureProfile(profile: unknown) {
+  const value = profile as { role?: string; id?: string } | null;
+  mocks.resolveActiveTenantContext.mockResolvedValue(value?.role ? {
+    id: "00000000-0000-4000-8000-000000000001",
+    companyId: "00000000-0000-4000-8000-000000000002",
+    companyName: "AKKAI",
+    companySlug: "akkai",
+    eventName: "AKKAI 2026",
+    eventSlug: "akkai-2026",
+    eventCode: "AKKAI26",
+    role: value.role,
+    profileId: value.id ?? "profile-1",
+  } : null);
   mocks.createClient.mockResolvedValue({
     auth: {
       getClaims: vi.fn().mockResolvedValue({
@@ -48,6 +65,7 @@ function configureProfile(profile: unknown) {
 
 beforeEach(() => {
   mocks.createClient.mockReset();
+  mocks.resolveActiveTenantContext.mockReset();
   mocks.redirect.mockReset();
 });
 

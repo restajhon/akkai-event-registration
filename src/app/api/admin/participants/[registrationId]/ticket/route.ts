@@ -7,7 +7,7 @@ import {
 } from "@/lib/registration/participant-ticket";
 import { loadParticipantTicketData } from "@/lib/registration/participant-ticket-data";
 
-const registrationIdPattern = /^AKKAI26-[0-9]{6}$/;
+const registrationIdPattern = /^[A-Z0-9]{2,16}-[0-9]{6}$/;
 
 export async function GET(
   _request: Request,

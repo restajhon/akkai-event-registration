@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { loadRegistrationFormAnswers } from "@/lib/admin/form-answer-data";
 
 import { getEffectivePickupPoint } from "./pickup-mapping";
 import type { ParticipantExportRow } from "./revision-exports";
@@ -174,6 +175,11 @@ export async function loadParticipantExportRows(
     const sessions = (sessionsResult.data ?? []) as SessionRow[];
     const attendance = (attendanceResult.data ?? []) as AttendanceRow[];
     const emailLogs = (emailLogsResult.data ?? []) as EmailLogRow[];
+    const formAnswersByParticipant = await loadRegistrationFormAnswers(
+      supabase,
+      participants.map((participant) => participant.id),
+    );
+    if (!formAnswersByParticipant) return null;
     const profileIds = Array.from(new Set([
       ...billings.map((billing) => billing.paid_by),
       ...pickups.map((pickup) => pickup.updated_by),
@@ -305,6 +311,7 @@ export async function loadParticipantExportRows(
         privacyConsentAt: readableDate(participant.privacy_consent_at),
         createdAt: readableDate(participant.created_at),
         updatedAt: readableDate(participant.updated_at),
+        formAnswers: formAnswersByParticipant.get(participant.id) ?? [],
       } satisfies ParticipantExportRow;
     });
   } catch {

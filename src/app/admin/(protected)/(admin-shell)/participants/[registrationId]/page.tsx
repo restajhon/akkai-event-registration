@@ -2,9 +2,11 @@ import Link from "next/link";
 import { z } from "zod";
 
 import { requirePermission } from "@/lib/auth/server";
+import { ParticipantFormAnswers } from "@/components/admin/participant-form-answers";
 import { formatIndonesianRupiah, PAYMENT_INSTRUCTIONS } from "@/lib/billing/pricing";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadPickupAssignmentDetail } from "@/lib/admin/assignment-data";
+import { loadRegistrationFormAnswers, type RegistrationFormAnswer } from "@/lib/admin/form-answer-data";
 import { getEffectivePickupPoint } from "@/lib/admin/pickup-mapping";
 import {
   canChangeRegistrationStatus,
@@ -25,7 +27,7 @@ import { ParticipantEditForm } from "../participant-edit-form";
 
 export const dynamic = "force-dynamic";
 
-const registrationIdSchema = z.string().regex(/^AKKAI26-[0-9]{6}$/);
+const registrationIdSchema = z.string().regex(/^[A-Z0-9]{2,16}-[0-9]{6}$/);
 
 type DatabaseParticipantRow = {
   id: string;
@@ -72,6 +74,7 @@ type DetailData = {
   pickup: PickupParticipant | null;
   travel: TravelRow | null;
   batchCode: string | null;
+  formAnswers: RegistrationFormAnswer[];
 };
 
 type TravelRow = {
@@ -185,6 +188,8 @@ async function loadDetailData(
     }
 
     const participantRow = participant as DatabaseParticipantRow;
+    const formAnswersByParticipant = await loadRegistrationFormAnswers(adminSupabase, [participantRow.id]);
+    if (!formAnswersByParticipant) return null;
     let batchCode: string | null = null;
     if (participantRow.batch_id) {
       const { data: batch } = await adminSupabase
@@ -305,6 +310,7 @@ async function loadDetailData(
       pickup,
       travel: travel as TravelRow | null,
       batchCode,
+      formAnswers: formAnswersByParticipant.get(participantRow.id) ?? [],
     };
   } catch {
     return null;
@@ -550,6 +556,8 @@ export default async function ParticipantDetailPage({
              </div>
            ) : null}
           </section>
+
+          <ParticipantFormAnswers answers={detailData.formAnswers} />
 
           <section aria-label="Download informasi pendaftaran" className="mt-4 rounded-xl border border-[#e4d8c4] bg-[#fffdf8] p-4 sm:p-5">
             <h2 className="text-xl font-semibold text-[#142842]">Informasi Pendaftaran</h2>

@@ -87,6 +87,16 @@ function worksheet(headers: string[], rows: Array<Record<string, string>>) {
   ]);
 }
 
+function formAnswerRows(participants: OperationalParticipant[]) {
+  return participants.flatMap((participant) => participant.formAnswers.map((answer) => ({
+    "Registration ID": participant.registrationId,
+    "Versi Form": String(answer.versionNumber),
+    Key: answer.key,
+    Pertanyaan: answer.label,
+    Jawaban: answer.value,
+  })));
+}
+
 export function buildOperationalWorkbook(participants: OperationalParticipant[]) {
   const workbook = XLSX.utils.book_new();
   const rooms = participants.map((participant) => ({
@@ -152,6 +162,11 @@ export function buildOperationalWorkbook(participants: OperationalParticipant[])
     ),
     "Kehadiran",
   );
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet(["Registration ID", "Versi Form", "Key", "Pertanyaan", "Jawaban"], formAnswerRows(participants)),
+    "Jawaban Tambahan",
+  );
 
   return workbook;
 }
@@ -182,5 +197,10 @@ export function buildAttendanceSessionWorkbook(
   const workbook = XLSX.utils.book_new();
 
   XLSX.utils.book_append_sheet(workbook, worksheet(headers, rows), "Kehadiran");
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet(["Registration ID", "Versi Form", "Key", "Pertanyaan", "Jawaban"], formAnswerRows(participants)),
+    "Jawaban Tambahan",
+  );
   return workbook;
 }

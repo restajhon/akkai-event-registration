@@ -6,8 +6,10 @@ import { AdminSidebar, useAdminProfile } from "./admin-sidebar";
 
 export function AdminShell({
   children,
+  tenantSwitcher,
 }: Readonly<{
   children: ReactNode;
+  tenantSwitcher?: ReactNode;
 }>) {
   const profile = useAdminProfile();
 
@@ -15,6 +17,7 @@ export function AdminShell({
     <div className="admin-shell min-h-screen bg-[#f7f3ea] lg:flex">
       <AdminSidebar profile={profile} />
       <div className="min-w-0 flex-1 lg:pl-[272px]">
+        {tenantSwitcher}
         <div className="min-h-screen">{children}</div>
       </div>
     </div>
