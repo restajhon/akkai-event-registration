@@ -91,6 +91,7 @@ const participant = {
   travel: null,
   arrivalAssignment: null,
   departureAssignment: null,
+  formAnswers: [],
   attendanceBySession: {
     ARRIVAL: { checkedIn: false, checkedInAt: null },
     DAY1_MEMBER_MEETING: { checkedIn: false, checkedInAt: null },
