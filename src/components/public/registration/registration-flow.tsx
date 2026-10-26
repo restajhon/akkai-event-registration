@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import type { PublishedEventForm } from "@/lib/tenant/public-events";
+import { supportsAkkaiParticipantWorkflow } from "@/lib/forms/form-schema";
 
 import { CollectiveRegistrationForm } from "./collective-registration-form";
 import { PublishedRegistrationForm } from "./published-registration-form";
@@ -10,6 +11,9 @@ import styles from "./registration.module.css";
 
 export function RegistrationFlow({ publishedForm }: { publishedForm: PublishedEventForm }) {
   const [mode, setMode] = useState<"single" | "collective" | null>(null);
+  if (publishedForm.eventSlug !== "akkai-2026" || !supportsAkkaiParticipantWorkflow(publishedForm.config)) {
+    return <PublishedRegistrationForm publishedForm={publishedForm} />;
+  }
 
   if (mode === "single") {
     return (

@@ -42,6 +42,7 @@ const formFieldSchema = z.object({
   type: z.enum(REGISTRATION_FIELD_TYPES),
   label: z.string().trim().min(1).max(160).refine(plainText, "Label hanya boleh berupa teks biasa."),
   placeholder: z.string().max(200).refine(plainText, "Placeholder hanya boleh berupa teks biasa.").optional(),
+  instructions: z.string().max(500).refine(plainText, "Instruksi field hanya boleh berupa teks biasa.").optional(),
   required: z.boolean(),
   options: z.array(optionSchema).max(30).optional(),
   sectionId: z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/),
@@ -54,8 +55,11 @@ const formFieldSchema = z.object({
   if (field.options && new Set(field.options).size !== field.options.length) {
     context.addIssue({ code: "custom", path: ["options"], message: "Opsi tidak boleh duplikat." });
   }
-  if (field.type === "file" && (field.system !== true || field.key !== "certificate_file")) {
-    context.addIssue({ code: "custom", path: ["type"], message: "Upload hanya tersedia untuk field sertifikat inti AKKAI." });
+  if (field.type === "file" && field.key !== "certificate_file") {
+    context.addIssue({ code: "custom", path: ["type"], message: "Upload hanya tersedia untuk key sertifikat CIAC." });
+  }
+  if (field.type === "file" && field.required) {
+    context.addIssue({ code: "custom", path: ["required"], message: "Unggahan sertifikat hanya wajib secara kondisional untuk peserta baru CIAC." });
   }
 });
 
@@ -64,7 +68,7 @@ export const registrationFormConfigSchema = z.object({
   title: z.string().trim().min(1).max(200).refine(plainText, "Judul formulir hanya boleh berupa teks biasa."),
   instructions: z.string().trim().max(2000).refine(plainText, "Instruksi hanya boleh berupa teks biasa."),
   sections: z.array(formSectionSchema).min(1).max(30),
-  fields: z.array(formFieldSchema).max(100),
+  fields: z.array(formFieldSchema).min(1, "Tambahkan sedikitnya satu field sebelum menyimpan formulir.").max(100),
 }).strict().superRefine((config, context) => {
   const sectionIds = new Set<string>();
   for (const section of config.sections) {
@@ -113,49 +117,19 @@ const coreFieldContract: Record<
 
 export const CORE_REGISTRATION_FIELD_KEYS = Object.keys(coreFieldContract);
 
-/**
- * Form configuration is data only. Core AKKAI fields remain present and keep
- * the types, options, and required rules expected by registration/billing.
- */
 export function validateRegistrationFormConfig(input: unknown) {
-  const parsed = registrationFormConfigSchema.safeParse(input);
-  if (!parsed.success) return parsed;
+  return registrationFormConfigSchema.safeParse(input);
+}
 
-  const fieldsByKey = new Map(parsed.data.fields.map((field) => [field.key, field]));
-  const customIssues: string[] = [];
-  for (const [key, contract] of Object.entries(coreFieldContract)) {
-    const field = fieldsByKey.get(key);
-    if (
-      !field ||
-      field.id !== key ||
-      field.system !== true ||
-      field.type !== contract.type ||
-      field.required !== contract.required ||
-      (contract.options && JSON.stringify(field.options) !== JSON.stringify(contract.options))
-    ) {
-      customIssues.push(`Field inti ${key} harus tetap tersedia sesuai alur AKKAI.`);
-    }
-  }
-  for (const field of parsed.data.fields) {
-    if (field.system === true && !Object.hasOwn(coreFieldContract, field.key)) {
-      customIssues.push(`Field sistem ${field.key} tidak dikenali.`);
-    }
-    if (field.type === "file" && field.system !== true) {
-      customIssues.push("Field upload hanya tersedia untuk dokumen CIAC inti AKKAI.");
-    }
-  }
-
-  if (customIssues.length > 0) {
-    return {
-      success: false as const,
-      error: new z.ZodError(customIssues.map((message) => ({
-        code: "custom" as const,
-        path: ["fields"],
-        message,
-      }))),
-    };
-  }
-  return parsed;
+/** The billing/participant RPC still expects these stable keys and values.
+ * Other published configurations use versioned form submissions instead. */
+export function supportsAkkaiParticipantWorkflow(config: RegistrationFormConfig) {
+  const fields = new Map(config.fields.map((field) => [field.key, field]));
+  return Object.entries(coreFieldContract).every(([key, contract]) => {
+    const field = fields.get(key);
+    return field?.type === contract.type && field.required === contract.required &&
+      (!contract.options || JSON.stringify(field.options) === JSON.stringify(contract.options));
+  });
 }
 
 export function validateRegistrationFormAnswers(

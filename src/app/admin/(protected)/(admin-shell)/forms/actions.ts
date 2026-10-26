@@ -52,6 +52,7 @@ export async function publishRegistrationFormDraft(): Promise<FormBuilderActionR
     if (error || !data) return { success: false, message: "Draft belum dapat diterbitkan. Periksa validasi formulir." };
     revalidatePath("/admin/forms");
     revalidatePath("/register");
+    revalidatePath("/events/[eventSlug]/register", "page");
     return { success: true, message: "Versi formulir baru berhasil diterbitkan." };
   } catch {
     return { success: false, message: "Draft belum dapat diterbitkan. Periksa akses dan validasi formulir." };
@@ -72,6 +73,7 @@ export async function setEventRegistrationOpen(open: boolean): Promise<FormBuild
     if (error || data !== true) return { success: false, message: "Status registrasi belum dapat diperbarui." };
     revalidatePath("/admin/forms");
     revalidatePath("/register");
+    revalidatePath("/events/[eventSlug]/register", "page");
     return { success: true, message: open ? "Registrasi event dibuka." : "Registrasi event ditutup." };
   } catch {
     return { success: false, message: "Status registrasi belum dapat diperbarui." };

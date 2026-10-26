@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AKKAI_EVENT } from "@/lib/akkai-event";
+import { supportsAkkaiParticipantWorkflow } from "@/lib/forms/form-schema";
 import { loadPublishedEventForm } from "@/lib/tenant/public-events";
 import type { PublishedEventForm } from "@/lib/tenant/public-events";
 
@@ -110,7 +111,7 @@ function RegistrationContent({
          <div className={styles.formColumn}>
             <RegistrationFlow publishedForm={publishedForm} />
          </div>
-          {isAkkaiEvent ? <aside className={styles.sidebar}><RegistrationInformation /></aside> : null}
+          {isAkkaiEvent && supportsAkkaiParticipantWorkflow(publishedForm.config) ? <aside className={styles.sidebar}><RegistrationInformation /></aside> : null}
        </div>
     </div>
   );

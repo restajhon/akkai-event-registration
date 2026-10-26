@@ -6,6 +6,7 @@ import {
   cancelRegistrationCertificateUpload,
   prepareRegistrationCertificateUpload,
   reportRegistrationStageFailure,
+  submitGenericRegistration,
   submitRegistration,
 } from "@/app/register/actions";
 import { formatIndonesianRupiah, PAYMENT_INSTRUCTIONS, REGISTRATION_PACKAGE_PRICES } from "@/lib/billing/pricing";
@@ -13,7 +14,7 @@ import { type PublishedEventForm } from "@/lib/tenant/public-events";
 import { createClient } from "@/lib/supabase/client";
 import { REGISTRATION_CERTIFICATE_BUCKET, validateRegistrationCertificateFile } from "@/lib/registration/certificate";
 import { initialRegistrationState, type RegistrationActionState } from "@/lib/registration/registration-action-state";
-import { validateRegistrationFormAnswers } from "@/lib/forms/form-schema";
+import { supportsAkkaiParticipantWorkflow, validateRegistrationFormAnswers } from "@/lib/forms/form-schema";
 import { getRegistrationFieldErrors, registrationSchema, type RegistrationFormValues } from "@/lib/validation/registration";
 
 import styles from "./registration.module.css";
@@ -38,6 +39,7 @@ function asText(value: Answer | undefined) {
 }
 
 export function PublishedRegistrationForm({ publishedForm }: { publishedForm: PublishedEventForm }) {
+  const akkaiWorkflow = publishedForm.eventSlug === "akkai-2026" && supportsAkkaiParticipantWorkflow(publishedForm.config);
   const [answers, setAnswers] = useState<Record<string, Answer>>(() => Object.fromEntries(
     publishedForm.config.fields.filter((field) => field.type !== "file").map((field) => [field.key, field.type === "checkbox" ? false : ""]),
   ));
@@ -46,6 +48,11 @@ export function PublishedRegistrationForm({ publishedForm }: { publishedForm: Pu
   const fileInputRef = useRef<HTMLInputElement>(null);
   const idempotencyRef = useRef<HTMLInputElement>(null);
   const [state, formAction, isPending] = useActionState<RegistrationActionState, FormData>(async (previousState, formData) => {
+    if (!akkaiWorkflow) {
+      const result = await submitGenericRegistration(previousState, formData);
+      if (result.status !== "submitted") setSubmitLocked(false);
+      return result;
+    }
     const selectedFile = formData.get("certificate_file");
     if (typeof File !== "undefined" && selectedFile instanceof File && selectedFile.size > 0) {
       const prepareData = new FormData();
@@ -128,14 +135,14 @@ export function PublishedRegistrationForm({ publishedForm }: { publishedForm: Pu
     }
     if (idempotencyRef.current && !idempotencyRef.current.value) idempotencyRef.current.value = crypto.randomUUID();
 
-    const selectedFile = fileInputRef.current?.files?.[0] ?? null;
+    const selectedFile = akkaiWorkflow ? fileInputRef.current?.files?.[0] ?? null : null;
     const fileError = selectedFile ? validateRegistrationCertificateFile(selectedFile) : undefined;
-    const values = coreValues(selectedFile);
-    if (values.actuarial_consultant_status === "Peserta Baru" && selectedFile) values.certificate_upload_id = "pending-upload";
-    const staticResult = registrationSchema.safeParse(values);
+    const values = akkaiWorkflow ? coreValues(selectedFile) : null;
+    if (values?.actuarial_consultant_status === "Peserta Baru" && selectedFile) values.certificate_upload_id = "pending-upload";
+    const staticResult = values ? registrationSchema.safeParse(values) : null;
     const dynamicResult = validateRegistrationFormAnswers(publishedForm.config, answers);
     const nextErrors: Record<string, string> = {
-      ...(staticResult.success ? {} : getRegistrationFieldErrors(staticResult.error)),
+      ...(staticResult && !staticResult.success ? getRegistrationFieldErrors(staticResult.error) : {}),
       ...(dynamicResult.success ? {} : dynamicResult.errors),
     };
     if (fileError) nextErrors.certificate_file = fileError;
@@ -157,17 +164,18 @@ export function PublishedRegistrationForm({ publishedForm }: { publishedForm: Pu
     const wrapperClass = field.type === "checkbox" ? styles.consentField : styles.field;
 
     if (field.type === "file") {
-      if (field.key !== "certificate_file" || answers.actuarial_consultant_status !== "Peserta Baru") return null;
+      if (!akkaiWorkflow || field.key !== "certificate_file" || answers.actuarial_consultant_status !== "Peserta Baru") return null;
       return <div className={wrapperClass} key={field.id}>
         <label className={styles.label} htmlFor={field.key}>{field.label} {required ? <span className={styles.required}>(wajib)</span> : null}</label>
         <input accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" aria-invalid={Boolean(error)} className={`${styles.input} ${styles.fileInput} ${error ? styles.inputError : ""}`} id={field.key} name={field.key} ref={fileInputRef} required={required} type="file" />
         <input name="certificate_upload_id" type="hidden" value="" />
-        <p className={styles.helper}>PDF, JPG, JPEG, atau PNG maksimal 2 MiB.</p>
-        {error ? <ErrorMessage id={errorId} message={error} /> : null}
+         <p className={styles.helper}>PDF, JPG, JPEG, atau PNG maksimal 2 MiB.</p>
+         {field.instructions ? <p className={styles.helper}>{field.instructions}</p> : null}
+         {error ? <ErrorMessage id={errorId} message={error} /> : null}
       </div>;
     }
 
-    if (field.key === "package_type") {
+    if (akkaiWorkflow && field.key === "package_type" && field.type === "select") {
       return <div className={wrapperClass} key={field.id}>
         <label className={styles.visuallyHidden} htmlFor={field.key}>{field.label}</label>
         <div aria-label={field.label} className={styles.packageOptions} role="group">
@@ -184,7 +192,8 @@ export function PublishedRegistrationForm({ publishedForm }: { publishedForm: Pu
         <select aria-invalid={Boolean(error)} className={styles.visuallyHiddenControl} id={field.key} name={field.key} onChange={(event) => update(field.key, event.target.value)} required={required} tabIndex={-1} value={asText(answers[field.key])}>
           <option value="">Pilih paket</option>{(field.options ?? []).map((option) => <option key={option} value={option}>{option}</option>)}
         </select>
-        {error ? <ErrorMessage id={errorId} message={error} /> : null}
+         {field.instructions ? <p className={styles.helper}>{field.instructions}</p> : null}
+         {error ? <ErrorMessage id={errorId} message={error} /> : null}
       </div>;
     }
 
@@ -194,18 +203,20 @@ export function PublishedRegistrationForm({ publishedForm }: { publishedForm: Pu
           <input aria-describedby={error ? errorId : undefined} aria-invalid={Boolean(error)} checked={answers[field.key] === true} className={styles.checkbox} id={field.key} name={field.key} onChange={(event) => update(field.key, event.target.checked)} required={required} type="checkbox" value="true" />
           <label className={styles.consentLabel} htmlFor={field.key}>{field.label} {required ? <span className={styles.required}>(wajib)</span> : null}</label>
         </div>
-        {error ? <ErrorMessage id={errorId} message={error} /> : null}
+         {field.instructions ? <p className={styles.helper}>{field.instructions}</p> : null}
+         {error ? <ErrorMessage id={errorId} message={error} /> : null}
       </div>;
     }
 
     return <div className={wrapperClass} key={field.id}>
       <label className={styles.label} htmlFor={field.key}>{field.label} {required ? <span className={styles.required}>(wajib)</span> : <span className={styles.required}>(opsional)</span>}</label>
       {field.type === "select" ? <select aria-invalid={Boolean(error)} className={`${styles.select} ${error ? styles.inputError : ""}`} id={field.key} name={field.key} onChange={(event) => update(field.key, event.target.value)} required={required} value={asText(answers[field.key])}>
-        <option value="">Pilih {field.label.toLowerCase()}</option>{(field.options ?? []).map((option) => <option key={option} value={option}>{field.key === "attends_pai_congress" ? (option === "true" ? "Ya" : "Tidak") : option}</option>)}
+         <option value="">Pilih {field.label.toLowerCase()}</option>{(field.options ?? []).map((option) => <option key={option} value={option}>{akkaiWorkflow && field.key === "attends_pai_congress" ? (option === "true" ? "Ya" : "Tidak") : option}</option>)}
       </select> : field.type === "radio" ? <fieldset className="grid gap-2">
         <legend className="sr-only">{field.label}</legend>{(field.options ?? []).map((option) => <label className={styles.consentRow} key={option}><input checked={answers[field.key] === option} name={field.key} onChange={() => update(field.key, option)} required={required && !answers[field.key]} type="radio" value={option} /><span>{option}</span></label>)}
       </fieldset> : field.type === "textarea" ? <textarea aria-invalid={Boolean(error)} className={`${styles.input} ${error ? styles.inputError : ""}`} id={field.key} maxLength={2000} name={field.key} onChange={(event) => update(field.key, event.target.value)} placeholder={field.placeholder} required={required} value={asText(answers[field.key])} /> : <input aria-invalid={Boolean(error)} className={`${styles.input} ${error ? styles.inputError : ""}`} id={field.key} max={field.type === "number" ? undefined : undefined} name={field.key} onChange={(event) => update(field.key, field.type === "number" && event.target.value !== "" ? Number(event.target.value) : event.target.value)} placeholder={field.placeholder} required={required} type={field.type} value={asText(answers[field.key])} />}
-      {error ? <ErrorMessage id={errorId} message={error} /> : null}
+       {field.instructions ? <p className={styles.helper}>{field.instructions}</p> : null}
+       {error ? <ErrorMessage id={errorId} message={error} /> : null}
     </div>;
   }
 
@@ -213,8 +224,8 @@ export function PublishedRegistrationForm({ publishedForm }: { publishedForm: Pu
     return <section aria-live="polite" className={styles.closedCard} role="status">
       <p className={styles.eyebrow}>Registrasi Peserta</p><h2 className={`${styles.displayFont} ${styles.closedTitle}`}>Pendaftaran Berhasil</h2>
       <p className={styles.closedDescription}>Data registrasi Anda telah berhasil disimpan.</p>
-      {state.registrationId ? <p className={styles.eventValue}>Nomor Registrasi: {state.registrationId}</p> : null}
-      <p className={styles.closedDescription}>{state.emailDelivery === "accepted" ? "Email QR dan konfirmasi telah diterima oleh layanan pengiriman." : "Data tersimpan, tetapi email QR belum dapat dikirim. Silakan hubungi panitia."}</p>
+       {state.registrationId ? <p className={styles.eventValue}>Nomor Registrasi: {state.registrationId}</p> : null}
+       {akkaiWorkflow ? <p className={styles.closedDescription}>{state.emailDelivery === "accepted" ? "Email QR dan konfirmasi telah diterima oleh layanan pengiriman." : "Data tersimpan, tetapi email QR belum dapat dikirim. Silakan hubungi panitia."}</p> : null}
       {state.billing ? <section aria-label="Ringkasan pembayaran" className={styles.billingCard}>
         <p className={styles.billingEyebrow}>Ringkasan pembayaran</p><h3 className={styles.billingTitle}>Tagihan Biaya Pendaftaran</h3>
         <dl className={styles.billingDetails}>

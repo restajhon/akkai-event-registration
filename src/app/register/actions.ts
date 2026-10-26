@@ -28,7 +28,7 @@ import {
 } from "@/lib/registration/registration-action-state";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateParticipantQrPng } from "@/lib/qr/participant-qr";
-import { validateRegistrationFormAnswers } from "@/lib/forms/form-schema";
+import { supportsAkkaiParticipantWorkflow, validateRegistrationFormAnswers } from "@/lib/forms/form-schema";
 import {
   loadPublishedEventForm,
   loadPublishedEventFormById,
@@ -160,6 +160,42 @@ function readAnswers(formData: FormData) {
     return JSON.parse(value) as unknown;
   } catch {
     return null;
+  }
+}
+
+export async function submitGenericRegistration(
+  previousState: RegistrationActionState,
+  formData: FormData,
+): Promise<RegistrationActionState> {
+  void previousState;
+  const publishedForm = await loadSubmissionForm(formData);
+  if (!publishedForm) return stateWithGeneralError(REGISTRATION_CLOSED_ERROR);
+  if (publishedForm.eventSlug === "akkai-2026" && supportsAkkaiParticipantWorkflow(publishedForm.config)) {
+    return stateWithGeneralError(GENERAL_ERROR);
+  }
+
+  const validation = validateRegistrationFormAnswers(publishedForm.config, readAnswers(formData));
+  if (!validation.success) return { ...initialRegistrationState, status: "validation-error", fieldErrors: validation.errors };
+  const idempotencyKey = getFormValue(formData, "registration_idempotency_key").trim();
+  if (idempotencyKey.length < 16 || idempotencyKey.length > 200) return stateWithGeneralError(GENERAL_ERROR);
+
+  try {
+    const { data, error } = await createAdminClient({ scope: "public-event", eventId: publishedForm.eventId }).rpc(
+      "submit_public_registration_form",
+      {
+        p_event_id: publishedForm.eventId,
+        p_form_version_id: publishedForm.versionId,
+        p_idempotency_key: idempotencyKey,
+        p_answers: validation.data,
+      },
+    );
+    const result = (Array.isArray(data) ? data[0] : data) as { result_code: string; submission_id: string | null } | null;
+    if (error || !result || !["SUBMITTED", "ALREADY_SUBMITTED"].includes(result.result_code) || !result.submission_id) {
+      return stateWithGeneralError(GENERAL_ERROR);
+    }
+    return submittedState(result.submission_id, "not-attempted", undefined, "not-attempted");
+  } catch {
+    return stateWithGeneralError(GENERAL_ERROR);
   }
 }
 
